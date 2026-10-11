@@ -101,6 +101,19 @@ textarea.inp{height:auto;min-height:80px;line-height:1.4;padding:12px 14px;resiz
 .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:800}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .amt{font-size:30px;font-weight:800;height:64px;min-height:64px;line-height:64px;text-align:center}
+.step{display:flex;align-items:center;gap:2px;background:var(--chip);border-radius:12px;padding:3px;flex-shrink:0}
+.step button{width:40px;height:38px;border:none;background:var(--surface);border-radius:9px;font-size:18px;font-weight:700}
+.step span{min-width:46px;text-align:center;font-weight:800;font-size:15px}
+.prm{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.prm:first-child{border-top:none}.prm .tx{flex:1;font-size:14px;min-width:0}
+.hrow{display:grid;grid-template-columns:48px auto minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.hrow:first-child{border-top:none}
+.hrow select.inp{height:44px;min-height:44px;line-height:44px;padding:0 26px 0 10px;font-size:15px;background-position:right 8px center}
+.hrow .off{grid-column:3 / 5;color:var(--muted);font-size:13px;text-align:center}
+.chev{color:var(--muted);flex-shrink:0}
+select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;padding:0 30px 0 10px;background-position:right 10px center;border-radius:12px}
+.pgrid{display:grid;grid-template-columns:minmax(0,1fr) 116px 116px;gap:8px;align-items:center}
+.pgrid .h{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -217,6 +230,8 @@ const I = {
   pl:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
   back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
   fwd:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+  gear:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  chev:'<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
   refresh:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
   search:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
   lock:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
@@ -232,7 +247,8 @@ const S = {
   monthAppts:[], dayAppts:[], wait:[], winter:new Set(), freed:null,
   sheet:null, toast:null, busy:false,
   cl:{ list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 },
-  cash:{ day:null, cd:null, mv:[], hist:[], loaded:false }
+  cash:{ day:null, cd:null, mv:[], hist:[], loaded:false },
+  set:{ page:null, loaded:false }
 };
 
 // ===== Δεδομένα =====
@@ -422,10 +438,50 @@ async function loadCash(){
   }
   S.cash.loaded = true;
 }
+// ----- Ρυθμίσεις (admin) -----
+function openMemberSheet(v){
+  const X = S.set, m = X.members.find(x => x.id === v), sched = {}, perms = {};
+  X.sched.filter(x => x.member_id === v).forEach(x => sched[x.weekday] = x.store_id);
+  X.mperms.filter(x => x.member_id === v).forEach(x => perms[x.tab] = x.level);
+  S.sheet = { type:'member', id: v, name: m.name, role: m.role, active: m.active, stores: X.mstores.filter(x => x.member_id === v).map(x => x.store_id), sched, perms, offKind:'day_off' };
+}
+function genPw(){ const a = 'abcdefghjkmnpqrstuvwxyz', A = 'ABCDEFGHJKLMNPQRSTUVWXYZ', d = '23456789'; const r = s => s[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 * s.length)];
+  return r(A) + r(a) + r(a) + r(a) + r(a) + '-' + r(d) + r(d) + r(d) + r(d); }
+const TAB_NAMES = { appts:'Ραντεβού', clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'P&L', services:'Υπηρεσίες' };
+const LV_NAMES = { none:'Όχι', view:'Βλέπει', write:'Γράφει', full:'Πλήρης' };
+const tgl = (on, a, v, label) => `<button class="tg ${on?'on':''}" data-a="${a}" ${v != null ? `data-v="${v}"` : ''} aria-pressed="${!!on}" aria-label="${esc(label||'')}"><span class="k"></span></button>`;
+const hhmm = t => t ? String(t).slice(0, 5) : '';
+async function fnCall(body){
+  const { data, error } = await sb.functions.invoke('team-admin', { body: { org_id: S.ctx.org.id, ...body } });
+  if (error){ let m = null; try { m = (await error.context.json()).error; } catch(e){} throw new Error(m || 'Δεν ολοκληρώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.'); }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+async function reloadCtx(){ const keep = { tab:S.tab, store:S.store }; S.ctx = await loadContext(); S.tab = keep.tab; S.store = keep.store; S.cl.loaded = false; }
+async function loadSettings(){
+  const org = S.ctx.org.id;
+  const [mem, ms, rp, mp, sc, off, hrs, set, svc, cats] = await Promise.all([
+    sb.from('members').select('id,name,role,active,user_id,created_at').eq('org_id', org).order('name'),
+    sb.from('member_stores').select('*').eq('org_id', org),
+    sb.from('role_permissions').select('*').eq('org_id', org),
+    sb.from('member_permissions').select('*').eq('org_id', org),
+    sb.from('tech_schedule').select('*').eq('org_id', org),
+    sb.from('tech_time_off').select('*').eq('org_id', org).gte('date_to', ymd(addDays(today(), -1))).order('date_from'),
+    sb.from('store_hours').select('*').eq('org_id', org),
+    sb.from('org_settings').select('*').eq('org_id', org).single(),
+    sb.from('services').select('*').eq('org_id', org).order('sort'),
+    sb.from('service_categories').select('*').eq('org_id', org).order('sort')
+  ]);
+  for (const r of [mem, ms, rp, mp, sc, off, hrs, set, svc, cats]) if (r.error) throw r.error;
+  Object.assign(S.set, { members: mem.data, mstores: ms.data, rperms: rp.data, mperms: mp.data, sched: sc.data, off: off.data, loaded: true });
+  S.ctx.hours = hrs.data; S.ctx.settings = set.data; S.ctx.services = svc.data; S.ctx.cats = cats.data;
+  if (!S.set.emails){ S.set.emails = {}; fnCall({ action:'emails' }).then(d => { S.set.emails = (d && d.emails) || {}; paint(); }).catch(() => {}); }
+}
 async function refresh(){
   try {
     S.busy = true; render();
-    if (S.tab === 'clients') await loadClients();
+    if (S.tab === 'settings') await loadSettings();
+    else if (S.tab === 'clients') await loadClients();
     else if (S.tab === 'cash') await loadCash();
     else if (S.view === 'wait') await loadWait();
     else if (S.day) await loadDay(); else await loadMonth();
@@ -447,17 +503,20 @@ function render(){
       <button style="flex:1;min-width:0;border:none;background:none;color:#fff;text-align:center;padding:0" data-a="toMonth" aria-label="Πίσω στον μήνα"><h1 style="font-size:17px">${WD[wdOf(S.day)]} ${S.day.getDate()} ${MSHORT[S.day.getMonth()]}</h1><div class="sub">${n} ραντεβού</div></button>
       <button class="rbtn sq" data-a="dayStep" data-v="1" aria-label="Επόμενη μέρα">${I.fwd}</button>
       <button class="tg dark ${S.freeOnly?'on':''}" data-a="freeOnly" aria-pressed="${S.freeOnly}"><span class="k"></span>Κενά</button>`;
+  } else if (S.tab === 'settings'){
+    const pt = { hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
+    head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
     const titles = { appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'P&L' };
     const d = today();
     head = `<div style="flex:1;min-width:0"><h1>${esc(titles[S.tab])}</h1><div class="sub">${WDF[wdOf(d)]}, ${d.getDate()} ${MSHORT[d.getMonth()]} · ${ROLE_NAME[m.role]}</div></div>
-      <button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
+      ${role() === 'admin' ? `<button class="rbtn" data-a="settings" aria-label="Ρυθμίσεις">${I.gear}</button>` : ''}<button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
   }
   const tabs = [['appts','Ραντεβού',I.cal],['clients','Πελάτες',I.users],['cash','Ταμείο',I.cash],['expenses','Έξοδα',I.exp],['pl','P&L',I.pl]].filter(([t]) => can(t));
   const badge = S.freed && matches().length ? `<span class="badge">${matches().length}</span>` : '';
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : renderSoon()}</main>
+    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${S.tab===t?'on':''}" data-a="tab" data-v="${t}">${t==='appts'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
@@ -715,11 +774,106 @@ function renderCash(){
   return h;
 }
 
+function timeOpts(cur){ let o = ''; for (let m = 6*60; m <= 23*60 + 45; m += 15){ const t = hm(m); o += `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`; } return o; }
+function renderSettings(){
+  if (role() !== 'admin') return `<div class="center">Μόνο ο admin έχει πρόσβαση στις ρυθμίσεις.</div>`;
+  const X = S.set;
+  if (!X.loaded) return S.busy ? `<div class="center"><div class="spin"></div></div>` : `<div class="center">Δεν φόρτωσαν οι ρυθμίσεις.<button class="pill" data-a="refresh">Δοκίμασε ξανά</button></div>`;
+  const st = S.ctx.settings || {};
+  if (!X.page){
+    const act = X.members.filter(m => m.active).length;
+    const items = [
+      ['hours','Ωράριο καταστημάτων','Μέρες και ώρες λειτουργίας ανά κατάστημα'],
+      ['team','Ομάδα', `${act} ενεργά άτομα · βάρδιες, ρεπό, κωδικοί`],
+      ['perm','Δικαιώματα','Τι βλέπει η γραμματεία και οι τεχνίτριες'],
+      ['services','Υπηρεσίες', `${S.ctx.services.filter(x => x.active).length} ενεργές · χρόνος και τιμή`],
+      ['seg','Πελάτες & segment','Όρια σκαλιών, VIP, Χ/Κ, ποιος βλέπει τα σήματα'],
+      ['cash','Ταμείο', 'Διόρθωση παλιών ημερών: ' + (st.allow_past_cash_edit ? 'επιτρέπεται' : 'κλειστή')]
+    ];
+    return `<div class="card flush">${items.map(([k, t, d]) => `<button class="row" data-a="setPage" data-v="${k}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${t}</span><span class="t2" style="display:block">${esc(d)}</span></span>${I.chev}</button>`).join('')}</div>`;
+  }
+  if (X.page === 'hours'){
+    const sid = X.hStore || S.ctx.stores[0].id;
+    if (!X.hDraft || X.hDraftFor !== sid){
+      X.hDraftFor = sid;
+      X.hDraft = [0,1,2,3,4,5,6].map(w => { const h = S.ctx.hours.find(x => x.store_id === sid && x.weekday === w) || { closed:true };
+        return { closed: !!h.closed, opens: hhmm(h.opens) || '10:00', closes: hhmm(h.closes) || '20:00' }; });
+    }
+    let h = S.ctx.stores.length > 1 ? `<div class="seg">${S.ctx.stores.map(x => `<button class="${sid===x.id?'on':''}" data-a="hStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '';
+    h += `<div class="card" style="padding:8px 14px">${X.hDraft.map((d, w) => `<div class="hrow"><b style="font-size:14px">${WD[w]}</b>${tgl(!d.closed, 'hOpen', w, 'Ανοιχτό ' + WDF[w])}${d.closed
+      ? `<div class="off">Κλειστό</div>`
+      : `<select id="hO${w}" class="inp num" aria-label="Ανοίγει ${WDF[w]}">${timeOpts(d.opens)}</select><select id="hC${w}" class="inp num" aria-label="Κλείνει ${WDF[w]}">${timeOpts(d.closes)}</select>`}</div>`).join('')}</div>
+      <button class="pill" style="align-self:flex-start" data-a="hCopy">Αντιγραφή Δευτέρας σε Τρ–Παρ</button>
+      <div class="t2" style="margin:0 2px">Τα ραντεβού που υπάρχουν ήδη δεν αλλάζουν. Νέα ραντεβού κλείνονται μόνο μέσα στο ωράριο.</div>`;
+    if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
+    return h + `<button class="btn primary" data-a="hSave" ${S.busy?'disabled':''}>Αποθήκευση ωραρίου ${esc(storeName(sid))}</button>`;
+  }
+  if (X.page === 'team'){
+    const groups = [['admin','Admin'],['store','Γραμματεία'],['user','Τεχνίτριες']];
+    let h = '';
+    groups.forEach(([r, n]) => {
+      const list = X.members.filter(m => m.role === r);
+      if (!list.length) return;
+      h += `<div class="lbl" style="margin:4px 2px -4px">${n}</div><div class="card flush">${list.map(m => {
+        const sts = r === 'admin' ? 'Όλα τα καταστήματα' : r === 'user'
+          ? [...new Set(X.sched.filter(x => x.member_id === m.id).map(x => storeName(x.store_id)))].join(', ') || 'Χωρίς βάρδιες'
+          : X.mstores.filter(x => x.member_id === m.id).map(x => storeName(x.store_id)).join(', ') || 'Χωρίς κατάστημα';
+        return `<button class="row" data-a="openMember" data-v="${m.id}" style="${m.active ? '' : 'opacity:.55'}">${av(m.name, 40)}<span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(m.name)}${m.active ? '' : ' <span class="tag t-gray">Ανενεργό</span>'}</span><span class="t2" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sts)}${X.emails && X.emails[m.id] ? ' · ' + esc(X.emails[m.id]) : ''}</span></span>${I.chev}</button>`; }).join('')}</div>`;
+    });
+    return h + `<button class="btn navy" data-a="newMember">+ Νέο άτομο</button><div class="t2" style="margin:0 2px">Όταν κάποιος φύγει, τον κάνεις ανενεργό. Δεν σβήνεται, για να μένει το ιστορικό του.</div>`;
+  }
+  if (X.page === 'perm'){
+    const lvl = (r, t) => (X.rperms.find(x => x.role === r && x.tab === t) || {}).level || 'none';
+    const sel = (r, t) => `<select class="inp sm" data-perm="${r}:${t}" aria-label="${ROLE_NAME[r]} · ${TAB_NAMES[t]}">${LV.map(l => `<option value="${l}" ${lvl(r, t)===l?'selected':''}>${LV_NAMES[l]}</option>`).join('')}</select>`;
+    let h = `<div class="card"><div class="pgrid"><span></span><span class="h">Γραμματεία</span><span class="h">Τεχνίτρια</span>
+      ${Object.keys(TAB_NAMES).map(t => `<b style="font-size:14px">${TAB_NAMES[t]}</b>${sel('store', t)}${sel('user', t)}`).join('')}</div></div>
+      <div class="card" style="font-size:13px;color:var(--ink2);display:flex;flex-direction:column;gap:6px">
+        <div><b>Όχι</b> · δεν εμφανίζεται η καρτέλα</div><div><b>Βλέπει</b> · μόνο ανάγνωση</div><div><b>Γράφει</b> · καταχωρίζει και αλλάζει</div><div><b>Πλήρης</b> · και διαγραφές/ρυθμίσεις της καρτέλας</div>
+        <div class="t2">Η τεχνίτρια βλέπει πάντα μόνο τα δικά της ραντεβού, χωρίς τηλέφωνα. Όποιος έχει P&L βλέπει και τζίρο/ποσά προηγούμενων ημερών. Εξαιρέσεις ανά άτομο ορίζεις από την Ομάδα.</div></div>`;
+    return h;
+  }
+  if (X.page === 'services'){
+    let h = '';
+    S.ctx.cats.forEach(c => {
+      const list = S.ctx.services.filter(x => x.category_id === c.id);
+      h += `<div style="display:flex;align-items:center;margin:4px 2px -4px"><div class="lbl" style="flex:1">${esc(c.name)}</div><button class="pill" style="min-height:32px" data-a="editCat" data-v="${c.id}">Μετονομασία</button></div>
+        <div class="card flush">${list.length ? list.map(x => `<button class="row" data-a="editSvc" data-v="${x.id}" style="${x.active ? '' : 'opacity:.55'}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(x.name)}${x.active ? '' : ' <span class="tag t-gray">Ανενεργή</span>'}</span><span class="t2 num" style="display:block">${x.duration_min}΄</span></span><b class="num">${eur0(x.price)}</b>${I.chev}</button>`).join('') : '<div style="padding:16px;color:var(--muted);font-size:13px">Καμία υπηρεσία.</div>'}</div>`;
+    });
+    return h + `<div class="grid2"><button class="btn ghost" style="font-size:14px" data-a="editCat" data-v="">+ Κατηγορία</button><button class="btn navy" style="font-size:14px" data-a="editSvc" data-v="">+ Υπηρεσία</button></div>
+      <div class="t2" style="margin:0 2px">Οι τιμές είναι ίδιες σε όλα τα καταστήματα. Αλλαγή τιμής δεν επηρεάζει ραντεβού που έχουν ήδη κλειστεί. Μια υπηρεσία που δεν προσφέρεται πια γίνεται ανενεργή.</div>`;
+  }
+  if (X.page === 'seg'){
+    if (!X.sDraft) X.sDraft = { ...st, season_months: [...(st.season_months || [])] };
+    const D = X.sDraft;
+    const stp = (k, lbl, sub, unit, mn) => `<div class="prm"><span class="tx">${lbl}<span class="t2" style="display:block">${sub}</span></span><div class="step"><button data-a="sStep" data-k="${k}" data-v="-1" data-min="${mn}" aria-label="Μείωση">−</button><span class="num">${D[k]}${unit}</span><button data-a="sStep" data-k="${k}" data-v="1" data-min="${mn}" aria-label="Αύξηση">+</button></div></div>`;
+    let h = `<div class="card" style="padding:8px 16px"><div class="lbl" style="margin:6px 0 2px">Σκαλιά</div>
+        ${stp('seg_new_days','«Νέα» για','μέρες μετά την πρώτη επίσκεψη',' μ.',5)}
+        ${stp('seg_late_grace','«Άργησε» μετά από','μέρες πάνω από τον κύκλο της',' μ.',1)}
+        ${stp('seg_lost_mult','«Χάθηκε» μετά από','φορές τον κύκλο της','×',2)}</div>
+      <div class="card" style="padding:8px 16px"><div class="lbl" style="margin:6px 0 2px">Ετικέτες</div>
+        ${stp('seg_vip_visits','★ VIP από','επισκέψεις τους τελευταίους 12 μήνες','',2)}
+        ${stp('seg_x_visits','Χ · επισκέψεις εκτός σεζόν','τουλάχιστον','',1)}
+        ${stp('seg_x_months','Χ · σε διαφορετικούς μήνες','τουλάχιστον','',1)}</div>
+      <div class="card"><div class="lbl" style="margin-bottom:8px">Μήνες σεζόν (καλοκαίρι)</div><div class="chips">${MSHORT.map((m, i) => `<button class="pill ${D.season_months.includes(i+1)?'on':''}" style="min-width:58px" data-a="sMonth" data-v="${i+1}">${m}</button>`).join('')}</div></div>
+      <div class="card" style="padding:8px 16px">
+        <div class="prm"><span class="tx">Η γραμματεία βλέπει τα σήματα<span class="t2" style="display:block">★ Χ Κ NS στη λίστα και στο ημερολόγιο</span></span>${tgl(D.marks_store, 'sTog', 'marks_store')}</div>
+        <div class="prm"><span class="tx">Οι τεχνίτριες βλέπουν τα σήματα</span>${tgl(D.marks_tech, 'sTog', 'marks_tech')}</div>
+        <div class="prm"><span class="tx">Προτεραιότητα Χ στην αναμονή<span class="t2" style="display:block">Οι πελάτισσες χειμώνα εμφανίζονται πρώτες στα ταιριάσματα</span></span>${tgl(D.waitlist_x_priority, 'sTog', 'waitlist_x_priority')}</div></div>`;
+    if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
+    return h + `<button class="btn primary" data-a="sSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`;
+  }
+  if (X.page === 'cash'){
+    return `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx">Διόρθωση παλιών ημερών<span class="t2" style="display:block">Όταν είναι ανοιχτό, η γραμματεία μπορεί να αλλάζει κινήσεις και ταμεία προηγούμενων ημερών. Ο admin μπορεί πάντα.</span></span>${tgl(st.allow_past_cash_edit, 'cashPastTog')}</div></div>
+      <div class="t2" style="margin:0 2px">Συμβουλή: άνοιξέ το μόνο όσο χρειάζεται για μια διόρθωση και μετά κλείσ' το. Κάθε αλλαγή καταγράφεται.</div>`;
+  }
+  return '';
+}
+
 // ===== Sheets =====
 let lastSheet = null;
 function sheet(title, body, foot, sub){
   const first = S.sheet !== lastSheet; lastSheet = S.sheet;
-  const tall = S.sheet && ['new','wait','client'].includes(S.sheet.type);
+  const tall = S.sheet && ['new','wait','client','member'].includes(S.sheet.type);
   return `<div class="scrim" data-a="closeSheet"><div class="sheet${first?' anim':''}${tall?' tall':''}" role="dialog" aria-label="${esc(title)}"><div class="grip"></div>
     <div class="sh"><div style="flex:1;min-width:0"><div style="font-family:var(--font-display);font-size:19px;font-weight:600">${title}</div>${sub?`<div class="t2">${sub}</div>`:''}</div><button class="x" data-a="closeSheet" aria-label="Κλείσιμο">✕</button></div>
     <div class="sb">${body}</div>${foot?`<div class="sf">${foot}</div>`:''}</div></div>`;
@@ -752,7 +906,7 @@ function renderSheet(){
   if (sh.type === 'me'){
     const m = S.ctx.member;
     return sheet('Ο λογαριασμός μου', `<div style="display:flex;align-items:center;gap:12px">${av(m.name, 52, 'var(--teal)', '#fff')}<div><div class="t1" style="font-size:17px">${esc(m.name)}</div><div class="t2">${ROLE_NAME[m.role]} · ${esc(S.ctx.org.name)}</div><div class="t2">${esc(S.session.user.email)}</div></div></div>
-      <div class="t2">Καταστήματα: ${S.ctx.stores.map(s => esc(s.name)).join(', ') || '—'}</div>`, `<button class="btn ghost" data-a="logout">Αποσύνδεση</button>`);
+      <div class="t2">Καταστήματα: ${S.ctx.stores.map(s => esc(s.name)).join(', ') || '—'}</div>${role() === 'admin' ? `<button class="btn ghost" data-a="settings">${I.gear} Ρυθμίσεις</button>` : ''}`, `<button class="btn ghost" data-a="logout">Αποσύνδεση</button>`);
   }
   if (sh.type === 'appt'){
     const a = sh.a, c = a.client || {};
@@ -815,6 +969,52 @@ function renderSheet(){
     const w = S.wait.find(x => x.id === sh.id), c = (w && w.clients) || {};
     return sheet('Κάλεσε', `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 48)}<div><div class="t1">${esc(c.name)}</div><div class="num" style="font-size:22px;font-weight:800;margin-top:4px;user-select:all">${esc(c.phone || 'Χωρίς τηλέφωνο')}</div></div></div>
       ${c.phone ? `<a class="btn ghost" href="tel:${esc(c.phone)}" style="text-decoration:none">${I.phone} Κλήση από αυτή τη συσκευή</a>` : ''}<div class="t2">Κάλεσε από το τηλέφωνο του καταστήματος και κλείσε από τη λίστα αν συμφωνήσει.</div>`, `<button class="btn ghost" data-a="closeSheet">Κλείσιμο</button>`);
+  }
+  if (sh.type === 'member'){
+    const X = S.set, m = X.members.find(x => x.id === sh.id); if (!m) return '';
+    const self = m.id === S.ctx.member.id, isAdm = m.role === 'admin';
+    let b = `<div class="field"><label for="mName">Όνομα</label><input id="mName" class="inp" value="${esc(sh.name)}"></div>`;
+    if (X.emails && X.emails[m.id]) b += `<div class="t2" style="margin:-6px 2px 0">Σύνδεση με: <b>${esc(X.emails[m.id])}</b></div>`;
+    if (!isAdm) b += `<div class="field"><label>Ρόλος</label><div class="seg"><button class="${sh.role==='store'?'on':''}" data-a="mRole" data-v="store">Γραμματεία</button><button class="${sh.role==='user'?'on':''}" data-a="mRole" data-v="user">Τεχνίτρια</button></div></div>`;
+    if (sh.role === 'store') b += `<div class="field"><label>Καταστήματα που καλύπτει</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="mStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>`;
+    if (sh.role === 'user'){
+      b += `<div class="field"><label>Εβδομαδιαίο πρόγραμμα</label><div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${[0,1,2,3,4,5,6].map(w => `<div class="prm"><b class="tx">${WDF[w]}</b><select class="inp sm" style="width:150px" data-sched="${w}">${['', ...S.ctx.stores.map(x => x.id)].map(id => `<option value="${id}" ${(sh.sched[w]||'')===id?'selected':''}>${id ? esc(storeName(id)) : 'Ρεπό'}</option>`).join('')}</select></div>`).join('')}</div></div>`;
+      const offs = X.off.filter(o => o.member_id === m.id);
+      b += `<div class="field"><label>Ρεπό & άδειες</label>${offs.map(o => `<div class="svc" style="cursor:default"><span style="flex:1;font-size:14px"><b>${o.kind === 'leave' ? 'Άδεια' : 'Ρεπό'}</b> · ${dlabel(parseYmd(o.date_from))}${o.date_to !== o.date_from ? ' – ' + dlabel(parseYmd(o.date_to)) : ''}</span><button class="x" data-a="offDel" data-v="${o.id}" aria-label="Αφαίρεση" style="width:34px;height:34px">✕</button></div>`).join('') || '<div class="t2">Κανένα προγραμματισμένο.</div>'}
+        <div class="pair"><div class="field"><label for="offFrom" style="font-weight:400">Από</label><input id="offFrom" class="inp" type="date" value="${esc(sh.offFrom||'')}"></div><div class="field"><label for="offTo" style="font-weight:400">Έως</label><input id="offTo" class="inp" type="date" value="${esc(sh.offTo||'')}"></div></div>
+        <div style="display:flex;gap:8px"><div class="seg" style="flex:1"><button class="${sh.offKind!=='leave'?'on':''}" data-a="offKind" data-v="day_off">Ρεπό</button><button class="${sh.offKind==='leave'?'on':''}" data-a="offKind" data-v="leave">Άδεια</button></div><button class="pill" data-a="offAdd">Προσθήκη</button></div></div>`;
+    }
+    if (!isAdm){
+      const rl = t => (X.rperms.find(x => x.role === sh.role && x.tab === t) || {}).level || 'none';
+      b += `<div class="field"><label>Εξαιρέσεις δικαιωμάτων</label><div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${Object.keys(TAB_NAMES).map(t => `<div class="prm"><b class="tx">${TAB_NAMES[t]}</b><select class="inp sm" style="width:170px" data-mperm="${t}"><option value="" ${!sh.perms[t]?'selected':''}>Όπως ο ρόλος (${LV_NAMES[rl(t)]})</option>${LV.map(l => `<option value="${l}" ${sh.perms[t]===l?'selected':''}>${LV_NAMES[l]}</option>`).join('')}</select></div>`).join('')}</div></div>`;
+    }
+    b += `<div class="field"><label for="mPw">Νέος κωδικός</label><div style="display:flex;gap:8px"><input id="mPw" class="inp" type="text" autocomplete="off" placeholder="τουλάχιστον 8 χαρακτήρες" value="${esc(sh.pw||'')}"><button class="pill" data-a="mPwGen" style="flex-shrink:0">Τυχαίος</button></div><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="mPwSave">Αλλαγή κωδικού</button></div>`;
+    if (!self) b += `<div class="prm" style="border-top:1px solid var(--line)"><span class="tx"><b>Ενεργό</b><span class="t2" style="display:block">Αν το κλείσεις, δεν μπορεί να συνδεθεί. Το ιστορικό μένει.</span></span>${tgl(sh.active, 'mActive')}</div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(esc(m.name), b, `<button class="btn primary" data-a="mSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, ROLE_NAME[m.role]);
+  }
+  if (sh.type === 'newMember'){
+    let b = `<div class="field"><label for="nmName">Όνομα</label><input id="nmName" class="inp" value="${esc(sh.name||'')}" placeholder="π.χ. Ελένη Π."></div>
+      <div class="field"><label for="nmEmail">Email σύνδεσης</label><input id="nmEmail" class="inp" type="email" autocomplete="off" value="${esc(sh.email||'')}" placeholder="name@example.com"></div>
+      <div class="field"><label for="nmPw">Κωδικός</label><div style="display:flex;gap:8px"><input id="nmPw" class="inp" type="text" autocomplete="off" value="${esc(sh.pw||'')}" placeholder="τουλάχιστον 8 χαρακτήρες"><button class="pill" data-a="nmPwGen" style="flex-shrink:0">Τυχαίος</button></div></div>
+      <div class="field"><label>Ρόλος</label><div class="seg"><button class="${sh.role==='store'?'on':''}" data-a="nmRole" data-v="store">Γραμματεία</button><button class="${sh.role==='user'?'on':''}" data-a="nmRole" data-v="user">Τεχνίτρια</button></div></div>
+      ${sh.role === 'store' ? `<div class="field"><label>Καταστήματα</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="nmStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>` : `<div class="t2">Τις μέρες και τα καταστήματα της τεχνίτριας τα ορίζεις μετά, από το πρόγραμμά της.</div>`}
+      <div class="t2">Δώσε στο άτομο το email και τον κωδικό. Δεν στέλνεται email επιβεβαίωσης.</div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet('Νέο άτομο', b, `<button class="btn primary" data-a="nmSave" ${S.busy?'disabled':''}>Δημιουργία λογαριασμού</button>`);
+  }
+  if (sh.type === 'svcEdit'){
+    let b = `<div class="field"><label for="svName">Όνομα</label><input id="svName" class="inp" value="${esc(sh.name||'')}"></div>
+      <div class="field"><label for="svCat">Κατηγορία</label><select id="svCat" class="inp">${S.ctx.cats.map(c => `<option value="${c.id}" ${sh.cat===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+      <div class="pair"><div class="field"><label for="svDur">Διάρκεια (λεπτά)</label><input id="svDur" class="inp num" inputmode="numeric" value="${esc(sh.dur||'')}"></div><div class="field"><label for="svPrice">Τιμή (€)</label><input id="svPrice" class="inp num" inputmode="decimal" value="${esc(sh.price||'')}"></div></div>`;
+    if (sh.id) b += `<div class="prm"><span class="tx"><b>Ενεργή</b><span class="t2" style="display:block">Οι ανενεργές δεν εμφανίζονται στα νέα ραντεβού</span></span>${tgl(sh.active, 'svActive')}</div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(sh.id ? 'Επεξεργασία υπηρεσίας' : 'Νέα υπηρεσία', b, `<button class="btn primary" data-a="svSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`);
+  }
+  if (sh.type === 'catEdit'){
+    let b = `<div class="field"><label for="ctName">Όνομα κατηγορίας</label><input id="ctName" class="inp" value="${esc(sh.name||'')}" placeholder="π.χ. Βλεφαρίδες"></div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(sh.id ? 'Μετονομασία κατηγορίας' : 'Νέα κατηγορία', b, `<button class="btn primary" data-a="ctSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`);
   }
   if (sh.type === 'cashAdd'){
     const out = sh.kind === 'drawer_out';
@@ -1222,6 +1422,159 @@ document.addEventListener('click', async ev => {
       if (m.kind === 'appointment' && m.appointment_id) await sb.from('appointments').update({ status:'arrived' }).eq('id', m.appointment_id);
       S.sheet = null; toast('Η κίνηση διαγράφηκε'); return refresh();
     }
+    case 'settings': S.tab = 'settings'; S.set.page = null; S.set.err = null; S.sheet = null; return refresh();
+    case 'setBack':
+      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; break; }
+      S.tab = 'appts'; S.day = null; S.view = 'cal'; return refresh();
+    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; document.getElementById('main').scrollTop = 0; break;
+    case 'hStore': S.set.hStore = v; S.set.hDraft = null; S.set.err = null; break;
+    case 'hOpen': { const d = S.set.hDraft[+v]; d.closed = !d.closed; break; }
+    case 'hCopy': { const m = S.set.hDraft[0]; for (let w = 1; w <= 4; w++) S.set.hDraft[w] = { ...m }; toast('Αντιγράφηκε · πάτα Αποθήκευση'); break; }
+    case 'hSave': {
+      const X = S.set, sid = X.hDraftFor; X.err = null;
+      for (let w = 0; w < 7; w++){ const d = X.hDraft[w]; if (!d.closed && !(toTime(d.closes) > toTime(d.opens))){ X.err = WDF[w] + ': η ώρα κλεισίματος πρέπει να είναι μετά το άνοιγμα.'; break; } }
+      if (X.err) break;
+      S.busy = true; paint();
+      try {
+        const rows = X.hDraft.map((d, w) => ({ store_id: sid, org_id: S.ctx.org.id, weekday: w, closed: d.closed, opens: d.closed ? null : d.opens, closes: d.closed ? null : d.closes }));
+        const r = await sb.from('store_hours').upsert(rows, { onConflict: 'store_id,weekday' });
+        if (r.error) throw r.error;
+        const h2 = await sb.from('store_hours').select('*').eq('org_id', S.ctx.org.id); if (!h2.error) S.ctx.hours = h2.data;
+        S.busy = false; toast('Αποθηκεύτηκε το ωράριο ' + storeName(sid));
+      } catch(e){ S.busy = false; X.err = friendlyError(e); }
+      break;
+    }
+    case 'openMember': openMemberSheet(v); break;
+    case 'mRole': sh.role = v; break;
+    case 'mStore': sh.stores = sh.stores.includes(v) ? sh.stores.filter(x => x !== v) : sh.stores.concat(v); break;
+    case 'mActive': sh.active = !sh.active; break;
+    case 'offKind': sh.offKind = v; break;
+    case 'offAdd': {
+      if (!sh.offFrom){ sh.err = 'Διάλεξε ημερομηνία «Από».'; break; }
+      const to = sh.offTo || sh.offFrom;
+      if (to < sh.offFrom){ sh.err = 'Το «Έως» είναι πριν από το «Από».'; break; }
+      const r = await sb.from('tech_time_off').insert({ org_id: S.ctx.org.id, member_id: sh.id, date_from: sh.offFrom, date_to: to, kind: sh.offKind || 'day_off' }).select('*').single();
+      if (r.error) throw r.error;
+      S.set.off.push(r.data); S.set.off.sort((a, b) => a.date_from < b.date_from ? -1 : 1);
+      sh.offFrom = ''; sh.offTo = ''; sh.err = null;
+      const t = await sb.from('tech_time_off').select('*').eq('org_id', S.ctx.org.id).gte('date_to', ymd(addDays(today(), -60))); if (!t.error) S.ctx.timeOff = t.data;
+      toast('Καταχωρίστηκε'); break;
+    }
+    case 'offDel': {
+      const r = await sb.from('tech_time_off').delete().eq('id', v);
+      if (r.error) throw r.error;
+      S.set.off = S.set.off.filter(o => o.id !== v); S.ctx.timeOff = S.ctx.timeOff.filter(o => o.id !== v);
+      toast('Αφαιρέθηκε'); break;
+    }
+    case 'mPwGen': sh.pw = genPw(); break;
+    case 'nmPwGen': sh.pw = genPw(); break;
+    case 'mPwSave': {
+      if ((sh.pw || '').length < 8){ sh.err = 'Ο κωδικός θέλει τουλάχιστον 8 χαρακτήρες.'; break; }
+      S.busy = true; paint();
+      try { await fnCall({ action:'set_password', member_id: sh.id, password: sh.pw }); S.busy = false; sh.err = null; toast('Ο κωδικός άλλαξε · δώσ\'τον στο άτομο'); }
+      catch(e){ S.busy = false; sh.err = e.message; }
+      break;
+    }
+    case 'mSave': {
+      const X = S.set, m = X.members.find(x => x.id === sh.id), org = S.ctx.org.id;
+      if (!(sh.name || '').trim()){ sh.err = 'Γράψε όνομα.'; break; }
+      if (sh.role === 'store' && !sh.stores.length){ sh.err = 'Διάλεξε τουλάχιστον ένα κατάστημα.'; break; }
+      S.busy = true; paint();
+      try {
+        const chk = r => { if (r.error) throw r.error; };
+        chk(await sb.from('members').update({ name: sh.name.trim(), role: m.role === 'admin' ? 'admin' : sh.role, active: sh.id === S.ctx.member.id ? true : sh.active }).eq('id', sh.id));
+        if (m.role !== 'admin'){
+          chk(await sb.from('member_stores').delete().eq('member_id', sh.id));
+          const stIds = sh.role === 'store' ? sh.stores : [...new Set(Object.values(sh.sched).filter(Boolean))];
+          if (stIds.length) chk(await sb.from('member_stores').insert(stIds.map(x => ({ member_id: sh.id, store_id: x, org_id: org }))));
+          chk(await sb.from('tech_schedule').delete().eq('member_id', sh.id));
+          if (sh.role === 'user'){ const rows = Object.entries(sh.sched).filter(([, x]) => x).map(([w, x]) => ({ member_id: sh.id, org_id: org, weekday: +w, store_id: x })); if (rows.length) chk(await sb.from('tech_schedule').insert(rows)); }
+          chk(await sb.from('member_permissions').delete().eq('member_id', sh.id));
+          const pr = Object.entries(sh.perms).filter(([, l]) => l).map(([t, l]) => ({ member_id: sh.id, org_id: org, tab: t, level: l }));
+          if (pr.length) chk(await sb.from('member_permissions').insert(pr));
+        }
+        await reloadCtx(); await loadSettings();
+        S.busy = false; S.sheet = null; toast('Αποθηκεύτηκε');
+      } catch(e){ S.busy = false; sh.err = friendlyError(e); }
+      break;
+    }
+    case 'newMember': S.sheet = { type:'newMember', role:'user', stores: S.ctx.stores.length === 1 ? [S.ctx.stores[0].id] : [], pw: genPw() }; break;
+    case 'nmRole': sh.role = v; break;
+    case 'nmStore': sh.stores = sh.stores.includes(v) ? sh.stores.filter(x => x !== v) : sh.stores.concat(v); break;
+    case 'nmSave': {
+      if (!(sh.name||'').trim()){ sh.err = 'Γράψε όνομα.'; break; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((sh.email||'').trim())){ sh.err = 'Γράψε έγκυρο email.'; break; }
+      if ((sh.pw||'').length < 8){ sh.err = 'Ο κωδικός θέλει τουλάχιστον 8 χαρακτήρες.'; break; }
+      if (sh.role === 'store' && !sh.stores.length){ sh.err = 'Διάλεξε τουλάχιστον ένα κατάστημα.'; break; }
+      S.busy = true; paint();
+      try {
+        const d = await fnCall({ action:'create', name: sh.name.trim(), email: sh.email.trim(), password: sh.pw, role: sh.role, store_ids: sh.role === 'store' ? sh.stores : [] });
+        S.set.emails = null;
+        await reloadCtx(); await loadSettings();
+        S.busy = false;
+        const em = sh.email.trim(), pw = sh.pw, nm = sh.name.trim();
+        if (d && d.member_id && sh.role === 'user' && S.set.members.some(x => x.id === d.member_id)){ openMemberSheet(d.member_id); toast('Δημιουργήθηκε · όρισε τώρα το πρόγραμμά της'); }
+        else { S.sheet = null; toast('Δημιουργήθηκε ο λογαριασμός ' + em); }
+      } catch(e){ S.busy = false; sh.err = e.message; }
+      break;
+    }
+    case 'editSvc': {
+      const x = v ? S.ctx.services.find(q => q.id === v) : null;
+      S.sheet = x ? { type:'svcEdit', id:x.id, name:x.name, cat:x.category_id, dur:String(x.duration_min), price:String(x.price).replace('.', ','), active:x.active }
+                  : { type:'svcEdit', id:null, name:'', cat:(S.ctx.cats[0]||{}).id, dur:'45', price:'', active:true };
+      break;
+    }
+    case 'svActive': sh.active = !sh.active; break;
+    case 'svSave': {
+      const dur = parseInt(sh.dur, 10), price = num(sh.price);
+      if (!(sh.name||'').trim()){ sh.err = 'Γράψε όνομα υπηρεσίας.'; break; }
+      if (!sh.cat){ sh.err = 'Φτιάξε πρώτα μια κατηγορία.'; break; }
+      if (!(dur > 0 && dur <= 600)){ sh.err = 'Η διάρκεια θέλει λεπτά (π.χ. 45).'; break; }
+      if (isNaN(price) || price < 0){ sh.err = 'Μη έγκυρη τιμή.'; break; }
+      S.busy = true; paint();
+      try {
+        const row = { name: sh.name.trim(), category_id: sh.cat, duration_min: dur, price, active: sh.id ? sh.active : true };
+        const r = sh.id ? await sb.from('services').update(row).eq('id', sh.id)
+                        : await sb.from('services').insert({ ...row, org_id: S.ctx.org.id, sort: S.ctx.services.length + 1 });
+        if (r.error) throw r.error;
+        await loadSettings(); S.busy = false; S.sheet = null; toast('Αποθηκεύτηκε');
+      } catch(e){ S.busy = false; sh.err = friendlyError(e); }
+      break;
+    }
+    case 'editCat': { const c = v ? S.ctx.cats.find(q => q.id === v) : null; S.sheet = { type:'catEdit', id: c ? c.id : null, name: c ? c.name : '' }; break; }
+    case 'ctSave': {
+      if (!(sh.name||'').trim()){ sh.err = 'Γράψε όνομα.'; break; }
+      S.busy = true; paint();
+      try {
+        const r = sh.id ? await sb.from('service_categories').update({ name: sh.name.trim() }).eq('id', sh.id)
+                        : await sb.from('service_categories').insert({ org_id: S.ctx.org.id, name: sh.name.trim(), sort: S.ctx.cats.length + 1 });
+        if (r.error) throw r.error;
+        await loadSettings(); S.busy = false; S.sheet = null; toast('Αποθηκεύτηκε');
+      } catch(e){ S.busy = false; sh.err = friendlyError(e); }
+      break;
+    }
+    case 'sStep': { const D = S.set.sDraft, k = el.dataset.k; D[k] = Math.max(+el.dataset.min, Math.min(999, (+D[k] || 0) + (+v) * (k === 'seg_new_days' ? 5 : 1))); break; }
+    case 'sMonth': { const D = S.set.sDraft, n = +v; D.season_months = D.season_months.includes(n) ? D.season_months.filter(x => x !== n) : D.season_months.concat(n).sort((a, b) => a - b); break; }
+    case 'sTog': S.set.sDraft[v] = !S.set.sDraft[v]; break;
+    case 'sSave': {
+      const D = S.set.sDraft;
+      if (!D.season_months.length){ S.set.err = 'Διάλεξε τουλάχιστον έναν μήνα σεζόν.'; break; }
+      S.busy = true; paint();
+      try {
+        const keys = ['seg_new_days','seg_late_grace','seg_lost_mult','seg_vip_visits','seg_x_visits','seg_x_months','season_months','marks_store','marks_tech','waitlist_x_priority'];
+        const row = {}; keys.forEach(k => row[k] = D[k]);
+        const r = await sb.from('org_settings').update(row).eq('org_id', S.ctx.org.id).select('*').single();
+        if (r.error) throw r.error;
+        S.ctx.settings = r.data; S.cl.loaded = false; S.winterLoaded = false; S.set.err = null; S.busy = false; toast('Αποθηκεύτηκε · τα σκαλιά υπολογίζονται ξανά');
+      } catch(e){ S.busy = false; S.set.err = friendlyError(e); }
+      break;
+    }
+    case 'cashPastTog': {
+      const nv = !S.ctx.settings.allow_past_cash_edit;
+      const r = await sb.from('org_settings').update({ allow_past_cash_edit: nv }).eq('org_id', S.ctx.org.id).select('*').single();
+      if (r.error) throw r.error;
+      S.ctx.settings = r.data; toast(nv ? 'Η διόρθωση παλιών ημερών άνοιξε' : 'Η διόρθωση παλιών ημερών έκλεισε'); break;
+    }
     case 'call': S.sheet = { type:'call', id: v }; break;
     case 'fillFromWait': {
       const w = S.wait.find(x => x.id === v), f = S.freed;
@@ -1253,6 +1606,8 @@ document.addEventListener('input', ev => {
   const id = ev.target.id, val = ev.target.value, sh = S.sheet;
   if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
   if (!sh) return;
+  const mp = { mName:'name', mPw:'pw', nmName:'name', nmEmail:'email', nmPw:'pw', svName:'name', svDur:'dur', svPrice:'price', ctName:'name', offFrom:'offFrom', offTo:'offTo' };
+  if (mp[id]){ sh[mp[id]] = val; return; }
   if (id === 'caAmt' || id === 'coAmt' || id === 'ccAmt'){ sh.amt = val; if (id === 'ccAmt') paint(); return; }
   if (id === 'caNote'){ sh.note = val; return; }
   if (sh.type === 'cedit'){ const k = { ceName:'name', cePhone:'phone', ceBd:'birthday', ceEmail:'email', ceNote:'note' }[id]; if (k) sh[k] = val; return; }
@@ -1262,7 +1617,20 @@ document.addEventListener('input', ev => {
   if (id === 'wNote') sh.note = val;
 });
 document.addEventListener('change', async ev => {
-  const id = ev.target.id, sh = S.sheet; if (!sh) return;
+  const id = ev.target.id, sh = S.sheet, ds = ev.target.dataset;
+  if (/^h[OC]\d$/.test(id) && S.set.hDraft){ S.set.hDraft[+id[2]][id[1] === 'O' ? 'opens' : 'closes'] = ev.target.value; return; }
+  if (ds.perm){
+    const [r, t] = ds.perm.split(':'), lv = ev.target.value;
+    const q = await sb.from('role_permissions').upsert({ org_id: S.ctx.org.id, role: r, tab: t, level: lv }, { onConflict: 'org_id,role,tab' });
+    if (q.error){ toast(friendlyError(q.error)); return; }
+    const ex = S.set.rperms.find(x => x.role === r && x.tab === t); if (ex) ex.level = lv; else S.set.rperms.push({ role: r, tab: t, level: lv });
+    toast(ROLE_NAME[r] + ' · ' + TAB_NAMES[t] + ': ' + LV_NAMES[lv]); return;
+  }
+  if (!sh) return;
+  if (ds.sched != null){ sh.sched[+ds.sched] = ev.target.value || null; return; }
+  if (ds.mperm){ sh.perms[ds.mperm] = ev.target.value || null; return; }
+  if (id === 'svCat'){ sh.cat = ev.target.value; return; }
+  if (id === 'offFrom' || id === 'offTo'){ sh[id] = ev.target.value; return; }
   if (id === 'ncGdpr') sh.ncGdpr = ev.target.checked;
   if (id === 'ceGdpr') sh.gdpr = ev.target.checked;
   if (id === 'ceBd') sh.birthday = ev.target.value;
@@ -1273,7 +1641,7 @@ document.addEventListener('change', async ev => {
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false };
+  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false };
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
   try {
