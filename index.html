@@ -155,6 +155,20 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .catbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:13px}
 .catbar .tr{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
 .catbar .tr i{display:block;height:6px;border-radius:3px;background:var(--teal)}
+.cf{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;font-size:10px;font-weight:800;padding:0 5px;flex-shrink:0;line-height:1}
+.cf.need,.cf.sent,.cf.na{background:var(--goldbg);color:var(--gold);box-shadow:inset 0 0 0 1px var(--amber)}
+.cf.urg{background:var(--neg);color:#fff;box-shadow:none}
+.cf.ok{background:var(--posbg);color:var(--pos)}
+.cf.chg{background:var(--neg);color:#fff}
+.cfc{background:var(--surface);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.cfc.urg{box-shadow:inset 0 0 0 2px var(--neg)}
+.cfc .acts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.cfc .acts .btn{min-height:44px;font-size:12px;padding:0 4px;border-radius:14px;flex-direction:column;gap:2px;text-decoration:none}
+.cfc .acts .btn span{font-size:16px;line-height:1}
+.cflog{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.tplchips{display:flex;flex-wrap:wrap;gap:6px}
+.tplchips button{border:1.5px dashed var(--line);background:var(--chip);border-radius:10px;padding:5px 9px;font-size:12px;font-weight:700;color:var(--ink)}
+.bubble{background:var(--tealbg);color:var(--ink);border-radius:18px 18px 18px 4px;padding:12px 14px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -291,7 +305,8 @@ const S = {
   cl:{ list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 },
   cash:{ day:null, cd:null, mv:[], hist:[], loaded:false },
   set:{ page:null, loaded:false },
-  ex:{ month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }
+  ex:{ month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false },
+  conf:{ list:[], loaded:false }
 };
 
 // ===== Δεδομένα =====
@@ -390,7 +405,7 @@ function gapsFor(storeId, d, techId, appts){
 async function loadMonth(){
   const m0 = new Date(S.month.getFullYear(), S.month.getMonth(), 1), m1 = new Date(S.month.getFullYear(), S.month.getMonth()+1, 1);
   if (isTech()){
-    const { data, error } = await sb.rpc('my_tech_appointments', { p_from: ymd(m0), p_to: ymd(addDays(m1,-1)) });
+    const { data, error } = await sb.rpc('my_tech_appointments_v2', { p_from: ymd(m0), p_to: ymd(addDays(m1,-1)) });
     if (error) throw error;
     S.monthAppts = data.filter(a => a.store_id === S.store).map(a => ({...a, tech_id: S.ctx.member.id}));
   } else {
@@ -404,16 +419,16 @@ async function loadMonth(){
 async function loadDay(){
   const d0 = at(S.day, 0), d1 = addDays(d0, 1);
   if (isTech()){
-    const { data, error } = await sb.rpc('my_tech_appointments', { p_from: ymd(d0), p_to: ymd(d0) });
+    const { data, error } = await sb.rpc('my_tech_appointments_v2', { p_from: ymd(d0), p_to: ymd(d0) });
     if (error) throw error;
     S.dayAppts = data.filter(a => a.store_id === S.store).map(a => ({...a, tech_id: S.ctx.member.id, client: { name: a.client_first_name }, svcText: a.services }));
   } else {
     const { data, error } = await sb.from('appointments')
-      .select('id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,walk_in,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)')
+      .select('id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,walk_in,created_at,squeezed,confirm_state,confirm_attempts,confirm_note,confirm_token,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)')
       .eq('store_id', S.store).gte('starts_at', d0.toISOString()).lt('starts_at', d1.toISOString())
       .in('status', ['booked','arrived','done']).order('starts_at');
     if (error) throw error;
-    S.dayAppts = data.map(a => ({...a, client: a.clients, svcText: a.appointment_services.map(s => s.name).join(', ')}));
+    S.dayAppts = data.map(a => ({...a, client: a.clients, svcText: (a.appointment_services || []).map(s => s.name).join(', ')}));
   }
 }
 async function loadWait(){
@@ -518,6 +533,16 @@ async function ensureSupplier(name){
   if (r.error) throw r.error;
   S.ex.sup.push(r.data); return r.data.id;
 }
+function findConf(id){
+  const x = S.conf.list.find(q => q.a.id === id); if (x) return x;
+  const a = S.dayAppts.find(q => q.id === id) || (S.sheet && S.sheet.a && S.sheet.a.id === id ? S.sheet.a : null);
+  return a ? { a: { ...a, store_id: a.store_id || S.store, client: a.client || a.clients } } : null;
+}
+async function afterConf(){
+  if (S.sheet && S.sheet.type === 'appt'){ const id = S.sheet.a.id; S.sheet = null; }
+  if (S.view === 'conf') return refresh();
+  await loadConfirm(); return refresh();
+}
 function genPw(){ const a = 'abcdefghjkmnpqrstuvwxyz', A = 'ABCDEFGHJKLMNPQRSTUVWXYZ', d = '23456789'; const r = s => s[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 * s.length)];
   return r(A) + r(a) + r(a) + r(a) + r(a) + '-' + r(d) + r(d) + r(d) + r(d); }
 const TAB_NAMES = { appts:'Ραντεβού', clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'P&L', services:'Υπηρεσίες' };
@@ -579,6 +604,72 @@ async function loadExpenses(){
   for (const r of [ex, rec, sup, cats]) if (r.error) throw r.error;
   X.list = ex.data; X.rec = rec.data; X.sup = sup.data; X.cats = cats.data; X.loaded = true;
 }
+// ----- Επιβεβαίωση ραντεβού -----
+function confWindowStart(a){
+  const st = S.ctx.settings || {}, s0 = new Date(a.starts_at);
+  let w = new Date(s0.getTime() - (st.confirm_hours || 24) * 3600e3);
+  if (st.confirm_shift_closed !== false) for (let i = 0; i < 7 && !storeHours(a.store_id || S.store, w); i++) w = new Date(w.getTime() - 24 * 3600e3);
+  return w;
+}
+function confInfo(a){
+  const st = S.ctx.settings || {};
+  if (!st.confirm_enabled || a.status !== 'booked') return null;
+  const now = new Date(), s0 = new Date(a.starts_at);
+  if (s0 <= now) return null;
+  const urg = (s0 - now) <= (st.confirm_urgent_hours ?? 3) * 3600e3;
+  if (a.confirm_state === 'confirmed') return { k:'ok', label:'Επιβεβαιώθηκε', sym:'✓' };
+  if (a.confirm_state === 'change_requested') return { k:'chg', label:'Ζήτησε αλλαγή', sym:'!' };
+  const ws = confWindowStart(a);
+  if (now < ws && !a.confirm_state) return null;
+  if (st.confirm_auto_inside !== false && !a.confirm_state && a.created_at && new Date(a.created_at) >= ws) return { k:'ok', label:'Κλείστηκε μέσα στο 24ωρο', sym:'✓', auto:true };
+  if (a.confirm_state === 'sent') return { k:'sent', label:'Στάλθηκε μήνυμα', sym:'✉', urg };
+  if (a.confirm_state === 'no_answer') return { k:'na', label:'Δεν απαντά' + (a.confirm_attempts > 1 ? ' (' + a.confirm_attempts + ')' : ''), sym:'☎' + (a.confirm_attempts || ''), urg };
+  return { k:'need', label:'Θέλει επιβεβαίωση', sym:'?', urg };
+}
+const cfTag = ci => ci ? `<span class="cf ${ci.urg ? 'urg' : ci.k}" title="${esc(ci.label)}">${ci.sym}</span>` : '';
+function dayWord(d){
+  const t0 = today(), dd = new Date(d); dd.setHours(0,0,0,0);
+  const diff = Math.round((dd - t0) / 864e5), lbl = WDF[wdOf(dd)] + ' ' + dd.getDate() + '/' + (dd.getMonth() + 1);
+  return diff === 0 ? 'σήμερα ' + lbl : diff === 1 ? 'αύριο ' + lbl : lbl;
+}
+const confirmUrl = token => new URL('confirm.html?t=' + token, location.href).href;
+function fillTemplate(tpl, a){
+  const c = a.client || a.clients || {}, d = new Date(a.starts_at);
+  const map = { 'όνομα': (c.name || '').split(' ')[0], 'επιχείρηση': S.ctx.org.name, 'κατάστημα': storeName(a.store_id) || '', 'ημέρα': dayWord(d),
+    'ώρα': hm(d.getHours() * 60 + d.getMinutes()), 'υπηρεσίες': (a.appointment_services || []).map(x => x.name).join(', '), 'τεχνίτρια': tech(a.tech_id).name,
+    'σύνδεσμος': a.confirm_token ? confirmUrl(a.confirm_token) : '' };
+  return String(tpl || '').replace(/\{([^}]+)\}/g, (m, k) => k in map ? map[k] : m);
+}
+function msgUrl(phone, text){
+  const ch = (S.ctx.settings || {}).confirm_channel || 'whatsapp';
+  let d = String(phone || '').replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.length === 10) d = '30' + d;
+  const t = encodeURIComponent(text);
+  if (ch === 'viber') return 'viber://forward?text=' + t;
+  if (ch === 'sms') return 'sms:+' + d + '&body=' + t;
+  return 'https://wa.me/' + d + '?text=' + t;
+}
+async function loadConfirm(){
+  const st = S.ctx.settings || {};
+  if (isTech() || !st.confirm_enabled || !S.store){ S.conf.list = []; S.conf.loaded = true; return; }
+  const now = new Date(), to = new Date(now.getTime() + ((st.confirm_hours || 24) + 7 * 24) * 3600e3);
+  const { data, error } = await sb.from('appointments')
+    .select('id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,created_at,confirm_state,confirm_attempts,confirm_note,confirm_token,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)')
+    .eq('store_id', S.store).eq('status', 'booked').gte('starts_at', now.toISOString()).lt('starts_at', to.toISOString()).order('starts_at').limit(500);
+  if (error) throw error;
+  S.conf.list = data.map(a => ({ ...a, client: a.clients, svcText: (a.appointment_services || []).map(x => x.name).join(', ') }))
+    .map(a => ({ a, ci: confInfo(a) })).filter(x => x.ci && x.ci.k !== 'ok')
+    .sort((x, y) => (x.ci.k === 'chg' ? 0 : 1) - (y.ci.k === 'chg' ? 0 : 1) || (y.ci.urg ? 1 : 0) - (x.ci.urg ? 1 : 0) || new Date(x.a.starts_at) - new Date(y.a.starts_at));
+  S.conf.loaded = true;
+}
+async function confAction(a, kind, extra){
+  const org = S.ctx.org.id, upd = {};
+  if (kind === 'sent'){ if (a.confirm_state !== 'confirmed' && a.confirm_state !== 'change_requested') upd.confirm_state = 'sent'; }
+  if (kind === 'no_answer'){ upd.confirm_state = 'no_answer'; upd.confirm_attempts = (a.confirm_attempts || 0) + 1; }
+  if (kind === 'confirmed'){ upd.confirm_state = 'confirmed'; upd.confirmed_at = new Date().toISOString(); upd.confirmed_via = 'staff'; }
+  if (kind === 'cancelled') upd.status = 'cancelled';
+  if (Object.keys(upd).length){ const r = await sb.from('appointments').update(upd).eq('id', a.id); if (r.error) throw r.error; Object.assign(a, upd); }
+  await sb.from('appointment_confirm_log').insert({ org_id: org, appointment_id: a.id, action: kind, channel: (extra && extra.channel) || null, member_id: S.ctx.member.id, note: (extra && extra.note) || null });
+}
 async function refresh(){
   try {
     S.busy = true; render();
@@ -588,7 +679,9 @@ async function refresh(){
     else if (S.tab === 'clients') await loadClients();
     else if (S.tab === 'cash') await loadCash();
     else if (S.view === 'wait') await loadWait();
+    else if (S.view === 'conf') await loadConfirm();
     else if (S.day) await loadDay(); else await loadMonth();
+    if (S.tab === 'appts' && S.view !== 'conf' && !isTech()) loadConfirm().then(() => paint()).catch(() => {});
   } catch(e) { toast(friendlyError(e)); }
   S.busy = false; render();
 }
@@ -608,7 +701,7 @@ function render(){
       <button class="rbtn sq" data-a="dayStep" data-v="1" aria-label="Επόμενη μέρα">${I.fwd}</button>
       <button class="tg dark ${S.freeOnly?'on':''}" data-a="freeOnly" aria-pressed="${S.freeOnly}"><span class="k"></span>Κενά</button>`;
   } else if (S.tab === 'settings'){
-    const pt = { hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
+    const pt = { confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
     const titles = { appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
@@ -617,7 +710,8 @@ function render(){
       ${role() === 'admin' ? `<button class="rbtn" data-a="settings" aria-label="Ρυθμίσεις">${I.gear}</button>` : ''}<button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
   }
   const tabs = [['appts','Ραντεβού',I.cal],['clients','Πελάτες',I.users],['cash','Ταμείο',I.cash],['sched','Πρόγραμμα',I.clock],['expenses','Έξοδα',I.exp],['pl','P&L',I.pl]].filter(([t]) => t === 'sched' || can(t));
-  const badge = S.freed && matches().length ? `<span class="badge">${matches().length}</span>` : '';
+  const nb = (S.freed && matches().length) || S.conf.list.length;
+  const badge = nb ? `<span class="badge">${nb}</span>` : '';
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
     <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : renderSoon()}</main>
@@ -647,9 +741,11 @@ function storeSeg(){
 function renderAppts(){
   if (!S.ctx.stores.length) return `<div class="center">Δεν σου έχει ανατεθεί κατάστημα. Μίλα με τον υπεύθυνο.</div>`;
   let h = '';
-  if (!isTech() && !S.day) h += `<div class="seg"><button class="${S.view==='cal'?'on':''}" data-a="view" data-v="cal">Ημερολόγιο</button><button class="${S.view==='wait'?'on':''}" data-a="view" data-v="wait">Αναμονή${S.wait.length?' ('+S.wait.length+')':''}</button></div>`;
+  const cfOn = (S.ctx.settings || {}).confirm_enabled;
+  if (!isTech() && !S.day) h += `<div class="seg"><button class="${S.view==='cal'?'on':''}" data-a="view" data-v="cal">Ημερολόγιο</button><button class="${S.view==='wait'?'on':''}" data-a="view" data-v="wait">Αναμονή${S.wait.length?' ('+S.wait.length+')':''}</button>${cfOn ? `<button class="${S.view==='conf'?'on':''}" data-a="view" data-v="conf">Επιβεβ.${S.conf.list.length ? ' <span class="cf ' + (S.conf.list.some(x => x.ci.urg || x.ci.k === 'chg') ? 'urg' : 'need') + '">' + S.conf.list.length + '</span>' : ''}</button>` : ''}</div>`;
   if (S.freed && matches().length && !isTech() && S.view === 'cal') h += freedBanner();
   if (S.view === 'wait' && !isTech()) return h + storeSeg() + renderWait();
+  if (S.view === 'conf' && !isTech()) return h + storeSeg() + renderConfirm();
   if (S.day) return h + renderDay();
   return h + storeSeg() + renderMonth();
 }
@@ -725,7 +821,7 @@ function renderDay(){
       const pos = ovs.length ? (lane ? 'left:50%;right:3px;' : 'left:3px;right:50%;') : '';
       const ovTag = ovs.length ? `<span class="ov" title="Υπερκάλυψη">⚠ ${Math.max(...ovs.map(o => o.min))}΄</span>` : '';
       const nm = a.client ? (isTech() ? a.client.name : a.client.name.split(' ')[0] + (a.client.name.split(' ')[1] ? ' ' + a.client.name.split(' ')[1][0] + '.' : '')) : '—';
-      const w = !isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '';
+      const w = (!isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '') + cfTag(confInfo({ ...a, store_id: a.store_id || S.store }));
       const hpx = (e-s)*PX-2, short = hpx < 46;
       c += short
         ? `<button class="blk short b-${a.status}${ovs.length?' ovl':''}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
@@ -895,6 +991,7 @@ function renderSettings(){
       ['team','Ομάδα', `${act} ενεργά άτομα · βάρδιες, ρεπό, κωδικοί`],
       ['perm','Δικαιώματα','Τι βλέπει η γραμματεία και οι τεχνίτριες'],
       ['services','Υπηρεσίες', `${S.ctx.services.filter(x => x.active).length} ενεργές · χρόνος και τιμή`],
+      ['confirm','Επιβεβαίωση ραντεβού', st.confirm_enabled ? `${st.confirm_hours} ώρες πριν · ${({ whatsapp:'WhatsApp', viber:'Viber', sms:'SMS' })[st.confirm_channel]}` : 'Ανενεργή'],
       ['seg','Πελάτες & segment','Όρια σκαλιών, VIP, Χ/Κ, ποιος βλέπει τα σήματα'],
       ['cash','Ταμείο', 'Διόρθωση παλιών ημερών: ' + (st.allow_past_cash_edit ? 'επιτρέπεται' : 'κλειστή')]
     ];
@@ -908,13 +1005,17 @@ function renderSettings(){
         return { closed: !!h.closed, opens: hhmm(h.opens) || '10:00', closes: hhmm(h.closes) || '20:00' }; });
     }
     let h = S.ctx.stores.length > 1 ? `<div class="seg">${S.ctx.stores.map(x => `<button class="${sid===x.id?'on':''}" data-a="hStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '';
+    const so = S.ctx.stores.find(x => x.id === sid) || {};
+    if (X.sInfoFor !== sid){ X.sInfoFor = sid; X.sPhone = so.phone || ''; X.sAddr = so.address || ''; }
+    h += `<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="lbl">Στοιχεία καταστήματος · φαίνονται στη σελίδα επιβεβαίωσης</div>
+      <div class="pair"><div class="field"><label for="sPhone">Τηλέφωνο</label><input id="sPhone" class="inp num" inputmode="tel" value="${esc(X.sPhone)}" placeholder="210 1234567"></div><div class="field"><label for="sAddr">Διεύθυνση</label><input id="sAddr" class="inp" value="${esc(X.sAddr)}" placeholder="Οδός 12, Περιοχή"></div></div></div>`;
     h += `<div class="card" style="padding:8px 14px">${X.hDraft.map((d, w) => `<div class="hrow"><b style="font-size:14px">${WD[w]}</b>${tgl(!d.closed, 'hOpen', w, 'Ανοιχτό ' + WDF[w])}${d.closed
       ? `<div class="off">Κλειστό</div>`
       : `<select id="hO${w}" class="inp num" aria-label="Ανοίγει ${WDF[w]}">${timeOpts(d.opens)}</select><select id="hC${w}" class="inp num" aria-label="Κλείνει ${WDF[w]}">${timeOpts(d.closes)}</select>`}</div>`).join('')}</div>
       <button class="pill" style="align-self:flex-start" data-a="hCopy">Αντιγραφή Δευτέρας σε Τρ–Παρ</button>
       <div class="t2" style="margin:0 2px">Τα ραντεβού που υπάρχουν ήδη δεν αλλάζουν. Νέα ραντεβού κλείνονται μόνο μέσα στο ωράριο.</div>`;
     if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
-    return h + `<button class="btn primary" data-a="hSave" ${S.busy?'disabled':''}>Αποθήκευση ωραρίου ${esc(storeName(sid))}</button>`;
+    return h + `<button class="btn primary" data-a="hSave" ${S.busy?'disabled':''}>Αποθήκευση ${esc(storeName(sid))}</button>`;
   }
   if (X.page === 'team'){
     const groups = [['admin','Admin'],['store','Γραμματεία'],['user','Τεχνίτριες']];
@@ -969,6 +1070,31 @@ function renderSettings(){
         <div class="prm"><span class="tx">Προτεραιότητα Χ στην αναμονή<span class="t2" style="display:block">Οι πελάτισσες χειμώνα εμφανίζονται πρώτες στα ταιριάσματα</span></span>${tgl(D.waitlist_x_priority, 'sTog', 'waitlist_x_priority')}</div></div>`;
     if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
     return h + `<button class="btn primary" data-a="sSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`;
+  }
+  if (X.page === 'confirm'){
+    if (!X.cDraft) X.cDraft = { ...st };
+    const D = X.cDraft;
+    const sample = { starts_at: (() => { const d = addDays(today(), 1); d.setHours(11, 0, 0, 0); return d.toISOString(); })(), store_id: S.ctx.stores[0] && S.ctx.stores[0].id,
+      tech_id: (S.ctx.techs[0] || {}).id, client: { name:'Μαρία Καραλή' }, appointment_services: [{ name:'Gel χέρια' }], confirm_token: '00000000-0000-0000-0000-000000000000' };
+    const PH = ['όνομα','επιχείρηση','κατάστημα','ημέρα','ώρα','υπηρεσίες','τεχνίτρια','σύνδεσμος'];
+    let h = `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx"><b>Επιβεβαίωση ραντεβού</b><span class="t2" style="display:block">Λίστα επιβεβαιώσεων και σήματα στο ημερολόγιο</span></span>${tgl(D.confirm_enabled, 'cTog', 'confirm_enabled')}</div></div>`;
+    if (D.confirm_enabled){
+      h += `<div class="card" style="padding:8px 16px">
+        <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πότε ξεκινά</b><span class="t2" style="display:block">Ώρες πριν το ραντεβού</span></span><div class="seg" style="width:100%">${[12,24,48,72].map(n => `<button class="${+D.confirm_hours===n?'on':''}" data-a="cSet" data-k="confirm_hours" data-v="${n}">${n} ώρες</button>`).join('')}</div></div>
+        <div class="prm"><span class="tx">Αν πέφτει σε κλειστή μέρα, ξεκινά την προηγούμενη ανοιχτή<span class="t2" style="display:block">Π.χ. τα ραντεβού Δευτέρας επιβεβαιώνονται το Σάββατο</span></span>${tgl(D.confirm_shift_closed, 'cTog', 'confirm_shift_closed')}</div>
+        <div class="prm"><span class="tx">Ραντεβού που κλείνεται μέσα στο παράθυρο θεωρείται επιβεβαιωμένο</span>${tgl(D.confirm_auto_inside, 'cTog', 'confirm_auto_inside')}</div>
+        <div class="prm"><span class="tx">Επείγον όταν μένουν<span class="t2" style="display:block">ώρες χωρίς επιβεβαίωση · γίνεται κόκκινο</span></span><div class="step"><button data-a="cStep" data-v="-1" aria-label="Μείωση">−</button><span class="num">${D.confirm_urgent_hours} ώρ.</span><button data-a="cStep" data-v="1" aria-label="Αύξηση">+</button></div></div></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="lbl">Κανάλι μηνύματος</div><div class="seg">${[['whatsapp','WhatsApp'],['viber','Viber'],['sms','SMS']].map(([k, n]) => `<button class="${D.confirm_channel===k?'on':''}" data-a="cSet" data-k="confirm_channel" data-v="${k}">${n}</button>`).join('')}</div>
+        ${D.confirm_channel === 'viber' ? '<div class="t2" style="margin:0">Το Viber ανοίγει με έτοιμο κείμενο και διαλέγεις την επαφή της πελάτισσας. Δεν γίνεται να ανοίξει κατευθείαν στη συνομιλία.</div>' : '<div class="t2" style="margin:0">Ανοίγει κατευθείαν στη συνομιλία με την πελάτισσα, με έτοιμο κείμενο.</div>'}</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px"><label class="lbl" for="cTpl">Κείμενο μηνύματος</label>
+        <textarea id="cTpl" class="inp" style="min-height:120px">${esc(D.confirm_template)}</textarea>
+        <div class="t2" style="margin:0">Πάτα για να προσθέσεις στοιχείο από τη βάση:</div><div class="tplchips">${PH.map(k => `<button data-a="cIns" data-v="${k}">{${k}}</button>`).join('')}</div>
+        ${/\{σύνδεσμος\}/.test(D.confirm_template) ? '' : '<div class="warn" style="padding:8px 12px"><span>!</span><span>Χωρίς {σύνδεσμος} η πελάτισσα δεν μπορεί να επιβεβαιώσει μόνη της.</span></div>'}
+        <div class="lbl" style="margin-top:4px">Προεπισκόπηση</div><div class="bubble">${esc(fillTemplate(D.confirm_template, sample)).replace(esc(confirmUrl(sample.confirm_token)), '<u>σύνδεσμος επιβεβαίωσης</u>')}</div>
+        <button class="pill" style="align-self:flex-start" data-a="cReset">Επαναφορά προεπιλογής</button></div>`;
+    }
+    if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
+    return h + `<button class="btn primary" data-a="cSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`;
   }
   if (X.page === 'cash'){
     return `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx">Διόρθωση παλιών ημερών<span class="t2" style="display:block">Όταν είναι ανοιχτό, η γραμματεία μπορεί να αλλάζει κινήσεις και ταμεία προηγούμενων ημερών. Ο admin μπορεί πάντα.</span></span>${tgl(st.allow_past_cash_edit, 'cashPastTog')}</div></div>
@@ -1118,6 +1244,32 @@ function renderExpenses(){
   return h + `</div>`;
 }
 
+function renderConfirm(){
+  const C = S.conf, wr = can('appts','write');
+  if (!C.loaded) return S.busy ? `<div class="center"><div class="spin"></div></div>` : `<div class="center">Δεν φόρτωσαν οι επιβεβαιώσεις.<button class="pill" data-a="refresh">Δοκίμασε ξανά</button></div>`;
+  const chg = C.list.filter(x => x.ci.k === 'chg'), pend = C.list.filter(x => x.ci.k !== 'chg');
+  const when = a => { const d = new Date(a.starts_at); return `${dayWord(d)} · ${hm(d.getHours()*60 + d.getMinutes())} · ${esc(tech(a.tech_id).name)}`; };
+  const head = (x) => `<div style="display:flex;align-items:center;gap:10px">${av(x.a.client.name, 40)}<div style="flex:1;min-width:0"><div class="t1" style="display:flex;align-items:center;gap:6px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.a.client.name)}</span>${cfTag(x.ci)}</div><div class="t2">${when(x.a)}</div><div class="t2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.a.svcText)}</div></div>${x.ci.urg ? '<span class="tag t-neg">Επείγον</span>' : ''}</div>`;
+  const tel = a => a.client.phone ? `<a class="btn ghost" href="tel:${esc(a.client.phone)}"><span>☎</span>Κλήση</a>` : `<button class="btn ghost" disabled><span>☎</span>Χωρίς τηλ.</button>`;
+  let h = '';
+  if (!C.list.length) return h + `<div class="card" style="text-align:center;padding:28px 16px"><div style="font-size:30px">✓</div><div class="t1" style="margin-top:6px">Όλα επιβεβαιωμένα</div><div class="t2">Τα επόμενα ραντεβού θα εμφανιστούν εδώ ${(S.ctx.settings || {}).confirm_hours || 24} ώρες πριν.</div></div>`;
+  if (chg.length){
+    h += `<div class="lbl" style="margin:2px 2px -4px;color:var(--neg)">Για επικοινωνία · ${chg.length}</div>`;
+    chg.forEach(x => {
+      h += `<div class="cfc">${head(x)}<div class="warn" style="padding:8px 12px"><span>!</span><span>Πάτησε «Δεν μπορώ».${x.a.confirm_note ? ` Έγραψε: «${esc(x.a.confirm_note)}»` : ''}</span></div>
+        ${wr ? `<div class="acts">${tel(x.a)}<button class="btn ghost" data-a="cfMove" data-v="${x.a.id}"><span>⇄</span>Άλλη ώρα</button><button class="btn ghost" style="color:var(--neg)" data-a="cfCancel" data-v="${x.a.id}"><span>✕</span>Ακύρωση</button><button class="btn primary" data-a="cfOk" data-v="${x.a.id}"><span>✓</span>Έρχεται</button></div>` : ''}</div>`;
+    });
+  }
+  if (pend.length){
+    h += `<div class="lbl" style="margin:6px 2px -4px">Για επιβεβαίωση · ${pend.length}</div>`;
+    pend.forEach(x => {
+      h += `<div class="cfc${x.ci.urg ? ' urg' : ''}">${head(x)}${x.ci.k !== 'need' ? `<div class="t2" style="margin:-4px 0 0 50px">${esc(x.ci.label)}</div>` : ''}
+        ${wr ? `<div class="acts"><button class="btn ghost" data-a="cfMsg" data-v="${x.a.id}"><span>✉</span>Μήνυμα</button>${tel(x.a)}<button class="btn ghost" data-a="cfNa" data-v="${x.a.id}"><span>☎✕</span>Δεν απαντά</button><button class="btn primary" data-a="cfOk" data-v="${x.a.id}"><span>✓</span>Επιβεβ.</button></div>` : ''}</div>`;
+    });
+  }
+  return h + `<div class="t2" style="margin:0 2px">Το μήνυμα ανοίγει στο ${({ whatsapp:'WhatsApp', viber:'Viber', sms:'SMS' })[(S.ctx.settings || {}).confirm_channel || 'whatsapp']} με έτοιμο κείμενο και προσωπικό σύνδεσμο. Όταν η πελάτισσα πατήσει «Θα έρθω», γίνεται αυτόματα ✓.</div>`;
+}
+
 // ===== Sheets =====
 let lastSheet = null;
 function sheet(title, body, foot, sub){
@@ -1172,6 +1324,21 @@ function renderSheet(){
     const st = { booked:['Κλεισμένο','t-lilac'], arrived:['Ήρθε','t-teal'], done:['Ολοκληρώθηκε','t-gray'] }[a.status] || ['—','t-gray'];
     const s = minsOf(a.starts_at), e = minsOf(a.ends_at);
     let b = `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 50)}<div style="flex:1;min-width:0"><div class="t1" style="font-size:17px">${esc(c.name)} ${S.winter.has(a.client_id)?'<span class="mk">Χ</span>':''}</div>${!isTech() && c.phone ? `<div class="t2 num" style="user-select:all">${esc(c.phone)}</div>` : ''}</div><span class="tag ${st[1]}">${st[0]}</span></div>`;
+    const ci = confInfo({ ...a, store_id: a.store_id || S.store });
+    if (ci){
+      b += `<div class="card" style="border:1.5px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:8px"><span class="cf ${ci.urg ? 'urg' : ci.k}" style="height:22px;min-width:22px;font-size:12px">${ci.sym}</span><b style="flex:1">${esc(ci.label)}</b>${ci.urg ? '<span class="tag t-neg">Επείγον</span>' : ''}</div>`;
+      if (ci.k === 'chg' && a.confirm_note) b += `<div class="t2" style="margin:0">Έγραψε: «${esc(a.confirm_note)}»</div>`;
+      if (sh.log && sh.log.length) b += `<div class="cflog">${sh.log.map(l => { const t = new Date(l.at); const who = l.member_id ? ((S.ctx.members || []).find(m => m.id === l.member_id) || {}).name || '' : 'η πελάτισσα';
+        const txt = { sent:'✉ Στάλθηκε μήνυμα', no_answer:'☎ Δεν απάντησε', confirmed: l.member_id ? '✓ Επιβεβαιώθηκε τηλεφωνικά' : '✓ Επιβεβαίωσε από τον σύνδεσμο', change_requested:'! Ζήτησε αλλαγή', rescheduled:'⇄ Άλλαξε ώρα', cancelled:'✕ Ακυρώθηκε' }[l.action] || l.action;
+        return `<span>${txt} · ${dlabel(t)} ${hm(t.getHours()*60 + t.getMinutes())}${who ? ' · ' + esc(who) : ''}</span>`; }).join('')}</div>`;
+      if (!isTech() && can('appts','write') && !ci.auto){
+        const telB = c.phone ? `<a class="btn ghost" href="tel:${esc(c.phone)}"><span>☎</span>Κλήση</a>` : `<button class="btn ghost" disabled><span>☎</span>Χωρίς τηλ.</button>`;
+        b += ci.k === 'chg'
+          ? `<div class="cfc" style="padding:0"><div class="acts">${telB}<button class="btn ghost" data-a="cfMove" data-v="${a.id}"><span>⇄</span>Άλλη ώρα</button><button class="btn ghost" style="color:var(--neg)" data-a="cfCancel" data-v="${a.id}"><span>✕</span>Ακύρωση</button><button class="btn primary" data-a="cfOk" data-v="${a.id}"><span>✓</span>Έρχεται</button></div></div>`
+          : ci.k !== 'ok' ? `<div class="cfc" style="padding:0"><div class="acts"><button class="btn ghost" data-a="cfMsg" data-v="${a.id}"><span>✉</span>Μήνυμα</button>${telB}<button class="btn ghost" data-a="cfNa" data-v="${a.id}"><span>☎✕</span>Δεν απαντά</button><button class="btn primary" data-a="cfOk" data-v="${a.id}"><span>✓</span>Επιβεβ.</button></div></div>` : '';
+      }
+      b += `</div>`;
+    }
     const ovs = overlapMap(S.dayAppts)[a.id] || [];
     if (ovs.length) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Υπερκάλυψη</b><br>${ovs.map(o => `${o.min}΄ με ${esc(o.a.client ? o.a.client.name : 'άλλο ραντεβού')} (${hm(minsOf(o.a.starts_at))}–${hm(minsOf(o.a.ends_at))})`).join('<br>')}<br>Χρειάζεται πιο γρήγορη εξυπηρέτηση για να μην υπάρξει καθυστέρηση.</span></div>`;
     if (c.note && !isTech()) b += `<div style="background:var(--goldbg);color:var(--gold);border-radius:12px;padding:9px 12px;font-size:13px">Σημείωση: ${esc(c.note)}</div>`;
@@ -1223,7 +1390,8 @@ function renderSheet(){
     if (ov && ov.total) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Υπερκάλυψη ${ov.total}΄</b><br>${ov.items.map(o => `${o.min}΄ με ${esc(o.name)} (${hm(o.s)}–${hm(o.e)})`).join('<br>')}${ov.late ? `<br>Ξεπερνά το ωράριο κατά ${ov.late}΄.` : ''}<br>Θα σημειωθεί με κόκκινο στο πρόγραμμα, για πιο γρήγορη εξυπηρέτηση.</span></div>`;
     else if (ov && ov.late) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Ξεπερνά το ωράριο κατά ${ov.late}΄</b></span></div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
-    return sheet('Νέο ραντεβού', b, `<button class="btn ${ov && ov.total ? 'danger' : 'primary'} split" data-a="saveAppt" ${S.busy?'disabled':''}${ov && ov.total ? ' style="border:1.5px solid var(--neg)"' : ''}><span>${ov && ov.total ? 'Κλείσε με υπερκάλυψη' : 'Κλείσε ραντεβού'}</span><span class="num">${min}΄ · ${eur0(e)}</span></button>`, esc(storeName(st)));
+    if (sh.replace){ const od = new Date(sh.replace.starts_at); b = `<div class="banner" style="padding:10px 12px;font-size:13px">Αλλαγή ώρας για το ραντεβού ${dlabel(od)} ${hm(od.getHours()*60 + od.getMinutes())}. Το παλιό ακυρώνεται όταν κλείσεις το νέο, και το νέο μπαίνει ήδη επιβεβαιωμένο.</div>` + b; }
+    return sheet(sh.replace ? 'Αλλαγή ώρας' : 'Νέο ραντεβού', b, `<button class="btn ${ov && ov.total ? 'danger' : 'primary'} split" data-a="saveAppt" ${S.busy?'disabled':''}${ov && ov.total ? ' style="border:1.5px solid var(--neg)"' : ''}><span>${ov && ov.total ? 'Κλείσε με υπερκάλυψη' : 'Κλείσε ραντεβού'}</span><span class="num">${min}΄ · ${eur0(e)}</span></button>`, esc(storeName(st)));
   }
   if (sh.type === 'wait'){
     let b = clientPicker(sh) + servicePicker(sh);
@@ -1470,9 +1638,10 @@ async function ensureClient(sh){
   sh.client = data; sh.newClient = false;
   return data.id;
 }
-async function bookSlot({ storeId, techId, clientId, start, end, svcs, squeezed }){
-  const { data: ap, error } = await sb.from('appointments').insert({ org_id: S.ctx.org.id, store_id: storeId, tech_id: techId, client_id: clientId,
-    starts_at: start.toISOString(), ends_at: end.toISOString(), squeezed: !!squeezed }).select('id').single();
+async function bookSlot({ storeId, techId, clientId, start, end, svcs, squeezed, confirmed }){
+  const row = { org_id: S.ctx.org.id, store_id: storeId, tech_id: techId, client_id: clientId, starts_at: start.toISOString(), ends_at: end.toISOString(), squeezed: !!squeezed };
+  if (confirmed) Object.assign(row, { confirm_state:'confirmed', confirmed_at: new Date().toISOString(), confirmed_via:'staff' });
+  const { data: ap, error } = await sb.from('appointments').insert(row).select('id').single();
   if (error) throw error;
   if (svcs.length){
     const rows = svcs.map(s => ({ org_id: S.ctx.org.id, store_id: storeId, appointment_id: ap.id, service_id: s.id, name: s.name, duration_min: s.duration_min, price: s.price }));
@@ -1522,7 +1691,16 @@ document.addEventListener('click', async ev => {
       for (let i = 0; i < 14; i++){ d = addDays(d, +v); if (storeHours(S.store, d)) break; }
       S.day = d; S.dayAppts = []; return refresh();
     }
-    case 'openAppt': { const ap = S.dayAppts.find(x => x.id === v); if (ap) S.sheet = { type:'appt', a: ap }; break; }
+    case 'openAppt': {
+      const ap = S.dayAppts.find(x => x.id === v); if (!ap) break;
+      const nsh = { type:'appt', a: ap }; S.sheet = nsh;
+      if (!isTech() && (ap.confirm_state || confInfo({ ...ap, store_id: ap.store_id || S.store }))){
+        paint();
+        const r = await sb.from('appointment_confirm_log').select('*').eq('appointment_id', ap.id).order('at');
+        if (S.sheet === nsh && !r.error) nsh.log = r.data;
+      }
+      break;
+    }
     case 'newAppt': await openNew(S.day, el.dataset.t, el.dataset.m != null ? +el.dataset.m : null); return;
     case 'pickClient': { sh.client = (sh.results||[]).find(c => c.id === v); sh.err = null; if (sh.miss) sh.miss.client = false; break; }
     case 'squeeze': sh.squeeze = !sh.squeeze; if (sh.miss) sh.miss.time = false; sh.err = null; break;
@@ -1556,7 +1734,8 @@ document.addEventListener('click', async ev => {
       S.busy = true; paint();
       try {
         const cid = await ensureClient(sh);
-        await bookSlot({ storeId: sh.store, techId: sh.t, clientId: cid, start: at(sh.d, sh.m), end: at(sh.d, sh.m + dur), svcs, squeezed: sqz });
+        await bookSlot({ storeId: sh.store, techId: sh.t, clientId: cid, start: at(sh.d, sh.m), end: at(sh.d, sh.m + dur), svcs, squeezed: sqz, confirmed: !!sh.replace });
+        if (sh.replace){ await confAction(sh.replace, 'rescheduled'); const r2 = await sb.from('appointments').update({ status:'cancelled' }).eq('id', sh.replace.id); if (r2.error) throw r2.error; loadConfirm().catch(() => {}); }
         if (S.freed && S.freed.tech === sh.t && sameDay(S.freed.day, sh.d)) S.freed = null;
         const d = sh.d; S.sheet = null; S.busy = false;
         toast((sqz ? 'Κλείστηκε με υπερκάλυψη · ' : 'Κλείστηκε · ') + dlabel(d) + ' ' + hm(sh.m));
@@ -1753,9 +1932,9 @@ document.addEventListener('click', async ev => {
     case 'weekStep': { if (+v === 0){ const t = today(); S.week = addDays(t, -wdOf(t)); } else S.week = addDays(S.week, 7 * (+v)); break; }
     case 'settings': S.tab = 'settings'; S.set.page = v || null; S.set.err = null; S.sheet = null; return refresh();
     case 'setBack':
-      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; break; }
+      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; break; }
       S.tab = 'appts'; S.day = null; S.view = 'cal'; return refresh();
-    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; document.getElementById('main').scrollTop = 0; break;
+    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; document.getElementById('main').scrollTop = 0; break;
     case 'hStore': S.set.hStore = v; S.set.hDraft = null; S.set.err = null; break;
     case 'hOpen': { const d = S.set.hDraft[+v]; d.closed = !d.closed; break; }
     case 'hCopy': { const m = S.set.hDraft[0]; for (let w = 1; w <= 4; w++) S.set.hDraft[w] = { ...m }; toast('Αντιγράφηκε · πάτα Αποθήκευση'); break; }
@@ -1768,6 +1947,9 @@ document.addEventListener('click', async ev => {
         const rows = X.hDraft.map((d, w) => ({ store_id: sid, org_id: S.ctx.org.id, weekday: w, closed: d.closed, opens: d.closed ? null : d.opens, closes: d.closed ? null : d.closes }));
         const r = await sb.from('store_hours').upsert(rows, { onConflict: 'store_id,weekday' });
         if (r.error) throw r.error;
+        const r3 = await sb.from('stores').update({ phone: (X.sPhone || '').trim() || null, address: (X.sAddr || '').trim() || null }).eq('id', sid);
+        if (r3.error) throw r3.error;
+        const so2 = S.ctx.stores.find(x => x.id === sid); if (so2){ so2.phone = (X.sPhone || '').trim() || null; so2.address = (X.sAddr || '').trim() || null; }
         const h2 = await sb.from('store_hours').select('*').eq('org_id', S.ctx.org.id); if (!h2.error) S.ctx.hours = h2.data;
         S.busy = false; toast('Αποθηκεύτηκε το ωράριο ' + storeName(sid));
       } catch(e){ S.busy = false; X.err = friendlyError(e); }
@@ -1911,6 +2093,29 @@ document.addEventListener('click', async ev => {
       } catch(e){ S.busy = false; S.set.err = friendlyError(e); }
       break;
     }
+    case 'cTog': S.set.cDraft[v] = !S.set.cDraft[v]; break;
+    case 'cSet': S.set.cDraft[el.dataset.k] = el.dataset.k === 'confirm_hours' ? +v : v; break;
+    case 'cStep': { const D = S.set.cDraft; D.confirm_urgent_hours = Math.max(0, Math.min(24, (+D.confirm_urgent_hours || 0) + (+v))); break; }
+    case 'cIns': {
+      const ta = document.getElementById('cTpl'), D = S.set.cDraft, ins = '{' + v + '}';
+      if (ta){ const a0 = ta.selectionStart ?? D.confirm_template.length, a1 = ta.selectionEnd ?? a0; D.confirm_template = D.confirm_template.slice(0, a0) + ins + D.confirm_template.slice(a1); }
+      else D.confirm_template += ' ' + ins;
+      break;
+    }
+    case 'cReset': S.set.cDraft.confirm_template = 'Καλησπέρα {όνομα}! Σας θυμίζουμε το ραντεβού σας {ημέρα} στις {ώρα} στο {επιχείρηση} {κατάστημα}. Πατήστε εδώ για επιβεβαίωση ή αλλαγή: {σύνδεσμος}'; break;
+    case 'cSave': {
+      const D = S.set.cDraft;
+      if (!(D.confirm_template || '').trim()){ S.set.err = 'Το κείμενο του μηνύματος δεν μπορεί να είναι κενό.'; break; }
+      S.busy = true; paint();
+      try {
+        const keys = ['confirm_enabled','confirm_hours','confirm_shift_closed','confirm_auto_inside','confirm_urgent_hours','confirm_channel','confirm_template'], row = {};
+        keys.forEach(k => row[k] = D[k]);
+        const r = await sb.from('org_settings').update(row).eq('org_id', S.ctx.org.id).select('*').single();
+        if (r.error) throw r.error;
+        S.ctx.settings = r.data; S.set.err = null; S.busy = false; S.conf.loaded = false; toast('Αποθηκεύτηκε');
+      } catch(e){ S.busy = false; S.set.err = friendlyError(e); }
+      break;
+    }
     case 'cashPastTog': {
       const nv = !S.ctx.settings.allow_past_cash_edit;
       const r = await sb.from('org_settings').update({ allow_past_cash_edit: nv }).eq('org_id', S.ctx.org.id).select('*').single();
@@ -1985,6 +2190,34 @@ document.addEventListener('click', async ev => {
       } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
       break;
     }
+    case 'cfMsg': {
+      const x = findConf(v); if (!x) break;
+      const a = x.a, c = a.client || a.clients || {};
+      if (!c.phone && (S.ctx.settings || {}).confirm_channel !== 'viber'){ toast('Η πελάτισσα δεν έχει τηλέφωνο'); break; }
+      const url = msgUrl(c.phone, fillTemplate((S.ctx.settings || {}).confirm_template, a));
+      if (url.startsWith('https:')){ const w = window.open(url, '_blank'); if (!w) location.href = url; } else location.href = url;
+      await confAction(a, 'sent', { channel: (S.ctx.settings || {}).confirm_channel });
+      toast('Σημειώθηκε: στάλθηκε μήνυμα'); await afterConf(); return;
+    }
+    case 'cfOk': { const x = findConf(v); if (!x) break; await confAction(x.a, 'confirmed', { channel:'phone' }); toast('Επιβεβαιώθηκε ✓'); await afterConf(); return; }
+    case 'cfNa': { const x = findConf(v); if (!x) break; await confAction(x.a, 'no_answer', { channel:'phone' }); toast('Σημειώθηκε: δεν απαντά · μένει στη λίστα'); await afterConf(); return; }
+    case 'cfCancel': {
+      const x = findConf(v); if (!x) break; const ap = x.a;
+      await confAction(ap, 'cancelled');
+      S.freed = { store: ap.store_id || S.store, day: new Date(ap.starts_at), tech: ap.tech_id, start: minsOf(ap.starts_at), dur: minsOf(ap.ends_at) - minsOf(ap.starts_at) };
+      S.sheet = null; await loadWait();
+      const n = matches().length; toast('Το ραντεβού ακυρώθηκε' + (n ? ' · ' + n + ' στην αναμονή ταιριάζουν' : '')); await afterConf(); return;
+    }
+    case 'cfMove': {
+      const x = findConf(v); if (!x) break; const ap = x.a, d = new Date(ap.starts_at); d.setHours(0,0,0,0);
+      await openNew(d);
+      if (S.sheet && S.sheet.type === 'new'){
+        Object.assign(S.sheet, { store: ap.store_id || S.store, client: { id: ap.client_id, name: (ap.client || {}).name, phone: (ap.client || {}).phone, note: (ap.client || {}).note },
+          svcs: (ap.appointment_services || []).map(q => q.service_id).filter(Boolean), replace: ap, m: null });
+        await loadNewDay(ap.tech_id);
+      }
+      return;
+    }
     case 'call': S.sheet = { type:'call', id: v }; break;
     case 'fillFromWait': {
       const w = S.wait.find(x => x.id === v), f = S.freed;
@@ -2015,6 +2248,9 @@ document.addEventListener('click', async ev => {
 document.addEventListener('input', ev => {
   const id = ev.target.id, val = ev.target.value, sh = S.sheet;
   if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
+  if (id === 'cTpl' && S.set.cDraft){ S.set.cDraft.confirm_template = val; clearTimeout(window.__tplT); window.__tplT = setTimeout(paint, 350); return; }
+  if (id === 'sPhone'){ S.set.sPhone = val; return; }
+  if (id === 'sAddr'){ S.set.sAddr = val; return; }
   if (!sh) return;
   if (sh.type === 'exEdit'){ if (id === 'exAmt'){ sh.amt = val; if (sh.miss) sh.miss.amt = false; sh.err = null; paint(); return; } if (id === 'exSup'){ sh.sup = val; paint(); return; } if (id === 'exNote'){ sh.note = val; return; } }
   if (sh.type === 'recEdit'){ const k = { reLabel:'label', reAmt:'amt', reSup:'sup' }[id]; if (k){ sh[k] = val; return; } }
@@ -2057,7 +2293,7 @@ document.addEventListener('change', async ev => {
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false };
+  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }; S.conf = { list:[], loaded:false };
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
   try {
@@ -2065,12 +2301,13 @@ async function boot(session){
     if (S.ctx && S.ctx.stores.length){
       S.store = S.ctx.stores[0].id; S.month = new Date(today().getFullYear(), today().getMonth(), 1); S.day = null; S.view = 'cal'; S.tab = 'appts';
       S.loading = false;
-      if (!isTech()) { try { await loadWait(); } catch(e) {} }
+      if (!isTech()) { try { await loadWait(); } catch(e) {} try { await loadConfirm(); } catch(e) {} }
       await refresh(); return;
     }
   } catch(e){ S.loading = false; render(); toast(friendlyError(e)); return; }
   S.loading = false; render();
 }
+setInterval(() => { if (S.ctx && !isTech() && S.tab === 'appts' && !S.sheet) loadConfirm().then(() => paint()).catch(() => {}); }, 5 * 60 * 1000);
 let bootedFor;
 sb.auth.onAuthStateChange((evt, session) => {
   const uid = session ? session.user.id : null;
