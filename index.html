@@ -41,6 +41,7 @@ header .sub{font-family:var(--font-display);font-size:12px;color:var(--headmuted
 .rbtn{width:42px;height:42px;border-radius:50%;border:none;background:var(--head2);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
 .rbtn.sq{border-radius:12px}
 main{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px 28px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+main>*{flex-shrink:0}
 nav{flex-shrink:0;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px))}
 nav button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);min-height:48px;position:relative;padding:0}
 nav button.on{color:var(--teal);font-weight:700}
@@ -59,7 +60,7 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .tg .k{width:40px;height:24px;border-radius:12px;background:var(--line);position:relative;flex-shrink:0;transition:background .15s}
 .tg .k::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .tg.on{border-color:var(--teal)}.tg.on .k{background:var(--teal)}.tg.on .k::after{left:19px}
-.tg.dark{background:transparent;border-color:var(--head2);color:#fff;padding-right:10px}.tg.dark .k{background:var(--head2)}.tg.dark.on{border-color:var(--teal)}.tg.dark.on .k{background:var(--teal)}
+.tg.dark{background:transparent;border-color:var(--head2);color:#fff;padding-right:10px;flex-shrink:0}.tg.dark .k{background:var(--head2)}.tg.dark.on{border-color:var(--teal)}.tg.dark.on .k{background:var(--teal)}
 .btn{border:none;border-radius:18px;min-height:52px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;width:100%}
 .btn:active{transform:scale(.98)}
 .btn.primary{background:var(--teal);color:#fff}.btn.navy{background:var(--ink);color:var(--surface)}
@@ -94,7 +95,10 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .tl .hours{width:42px;position:relative;font-size:11px;color:var(--muted);flex-shrink:0}
 .tl .col{flex:1;min-width:0;position:relative;border-left:1px solid var(--line)}
 .tl .hl{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
-.blk{position:absolute;left:3px;right:3px;border-radius:10px;padding:4px 6px;font-size:11px;line-height:1.3;overflow:hidden;border:none;text-align:left}
+.blk{position:absolute;left:3px;right:3px;border-radius:10px;padding:4px 7px;font-size:12px;line-height:1.3;overflow:hidden;border:none;text-align:left;box-shadow:0 0 0 1.5px var(--bg)}
+.blk.short{display:flex;align-items:center;gap:6px;padding:0 7px;white-space:nowrap}
+.blk.short b{flex-shrink:0}
+.blk.short .sv{overflow:hidden;text-overflow:ellipsis;color:inherit;opacity:.8}
 .blk b{font-weight:700;display:flex;gap:4px;align-items:center;white-space:nowrap;overflow:hidden}
 .b-booked{background:var(--lilac);color:var(--ink)}.b-arrived{background:var(--tealbg);color:var(--tealink)}.b-done{background:var(--chip);color:var(--muted)}
 .gap{position:absolute;left:3px;right:3px;border-radius:10px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -103,17 +107,25 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .slot{border:1.5px solid var(--line);border-radius:14px;min-height:44px;background:var(--surface);font-size:15px;color:var(--ink)}
 /* sheet */
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--surface);width:100%;max-width:520px;max-height:92%;border-radius:28px 28px 0 0;display:flex;flex-direction:column;animation:up .22s ease-out}
+.sheet{background:var(--surface);width:100%;max-width:520px;max-height:92%;border-radius:28px 28px 0 0;display:flex;flex-direction:column}
+.sheet.anim{animation:up .22s ease-out}
+.sheet.tall{height:92%}
+.sheet .sb>*{flex-shrink:0}
 .sheet .grip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 0}
 .sheet .sh{display:flex;align-items:center;gap:10px;padding:10px 16px 6px;flex-shrink:0}
 .sheet .sb{overflow-y:auto;padding:6px 16px 16px;display:flex;flex-direction:column;gap:14px}
 .sheet .sf{padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);display:flex;gap:10px;flex-shrink:0}
 .x{width:40px;height:40px;border-radius:50%;border:none;background:var(--chip);font-size:16px;flex-shrink:0}
 @keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+@media (prefers-reduced-motion:reduce){.sheet.anim{animation:none}}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:13px;font-weight:700}
-.inp,select.inp{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;min-height:48px;padding:0 14px;font-size:16px;color:var(--ink);width:100%}
+.inp,select.inp{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;height:50px;min-height:50px;padding:0 14px;font-size:16px;font-family:inherit;color:var(--ink);width:100%;margin:0;-webkit-appearance:none;appearance:none;display:block;line-height:50px;text-align:left}
+input[type=date].inp{display:flex;align-items:center;line-height:normal}
+input[type=date].inp::-webkit-date-and-time-value{text-align:left;margin:0}
+select.inp{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2366678A' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pair .field{min-width:0}
 .svc{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);width:100%;text-align:left;min-height:48px}
 .svc.on{border:2px solid var(--teal);background:var(--tealbg)}
 .svc .box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:transparent;font-size:13px}
@@ -325,7 +337,7 @@ function render(){
   if (S.tab === 'appts' && S.day && S.view === 'cal'){
     const n = S.dayAppts.length;
     head = `<button class="rbtn sq" data-a="dayStep" data-v="-1" aria-label="Προηγούμενη μέρα">${I.back}</button>
-      <button style="flex:1;min-width:0;border:none;background:none;color:#fff;text-align:center;padding:0" data-a="toMonth" aria-label="Πίσω στον μήνα"><h1>${WD[wdOf(S.day)]} ${S.day.getDate()} ${MSHORT[S.day.getMonth()]}</h1><div class="sub">${n} ραντεβού · μήνας</div></button>
+      <button style="flex:1;min-width:0;border:none;background:none;color:#fff;text-align:center;padding:0" data-a="toMonth" aria-label="Πίσω στον μήνα"><h1 style="font-size:17px">${WD[wdOf(S.day)]} ${S.day.getDate()} ${MSHORT[S.day.getMonth()]}</h1><div class="sub">${n} ραντεβού</div></button>
       <button class="rbtn sq" data-a="dayStep" data-v="1" aria-label="Επόμενη μέρα">${I.fwd}</button>
       <button class="tg dark ${S.freeOnly?'on':''}" data-a="freeOnly" aria-pressed="${S.freeOnly}"><span class="k"></span>Κενά</button>`;
   } else {
@@ -428,7 +440,7 @@ function renderDay(){
     off.forEach(t => { h += `<div class="card" style="display:flex;align-items:center;gap:10px;color:var(--muted)">${av(tech(t).name, 34)}<span class="t1">${esc(tech(t).name)} · Ρεπό</span></div>`; });
     return h;
   }
-  const PX = 52/60, H = (hrs[1]-hrs[0]) * PX, cols = on.concat(off);
+  const PX = 84/60, H = (hrs[1]-hrs[0]) * PX, cols = on.concat(off);
   let hours = '', lines = '';
   for (let m = hrs[0]; m <= hrs[1]; m += 60){ hours += `<span class="num" style="position:absolute;top:${(m-hrs[0])*PX-6}px">${hm(m)}</span>`; lines += `<span class="hl" style="top:${(m-hrs[0])*PX}px"></span>`; }
   h += `<div style="display:flex;padding-left:42px">${cols.map(t => `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;${off.includes(t)?'opacity:.55':''}">${av(tech(t).name, 30, tech(t).color[0], tech(t).color[1])}<span style="font-size:12px;font-weight:700">${esc(tech(t).name)}</span></div>`).join('')}</div>`;
@@ -440,7 +452,10 @@ function renderDay(){
       const s = minsOf(a.starts_at), e = minsOf(a.ends_at);
       const nm = a.client ? (isTech() ? a.client.name : a.client.name.split(' ')[0] + (a.client.name.split(' ')[1] ? ' ' + a.client.name.split(' ')[1][0] + '.' : '')) : '—';
       const w = !isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '';
-      c += `<button class="blk b-${a.status}" style="top:${(s-hrs[0])*PX+1}px;height:${Math.max(18,(e-s)*PX-2)}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}</b>${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
+      const hpx = (e-s)*PX-2, short = hpx < 46;
+      c += short
+        ? `<button class="blk short b-${a.status}" style="top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
+        : `<button class="blk b-${a.status}" style="top:${(s-hrs[0])*PX+1}px;height:${hpx}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}</b>${hm(s)}–${hm(e)} · ${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
     });
     if (!isTech() && can('appts','write')) gapsFor(S.store, d, t, S.dayAppts).forEach(g => {
       c += `<button class="gap" style="top:${(g[0]-hrs[0])*PX+2}px;height:${(g[1]-g[0])*PX-4}px" data-a="newAppt" data-t="${t}" data-m="${g[0]}" aria-label="Νέο ραντεβού ${hm(g[0])}"><span style="font-size:16px;line-height:1">+</span><span class="num">${hm(g[0])}</span></button>`;
@@ -488,8 +503,11 @@ function renderWait(){
 }
 
 // ===== Sheets =====
+let lastSheet = null;
 function sheet(title, body, foot, sub){
-  return `<div class="scrim" data-a="closeSheet"><div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="grip"></div>
+  const first = S.sheet !== lastSheet; lastSheet = S.sheet;
+  const tall = S.sheet && ['new','wait'].includes(S.sheet.type);
+  return `<div class="scrim" data-a="closeSheet"><div class="sheet${first?' anim':''}${tall?' tall':''}" role="dialog" aria-label="${esc(title)}"><div class="grip"></div>
     <div class="sh"><div style="flex:1;min-width:0"><div style="font-family:var(--font-display);font-size:19px;font-weight:600">${title}</div>${sub?`<div class="t2">${sub}</div>`:''}</div><button class="x" data-a="closeSheet" aria-label="Κλείσιμο">✕</button></div>
     <div class="sb">${body}</div>${foot?`<div class="sf">${foot}</div>`:''}</div></div>`;
 }
@@ -561,7 +579,7 @@ function renderSheet(){
     const need = Math.max(min, 15), times = [];
     g.forEach(x => { for (let m = x[0]; m + need <= x[1]; m += 15) times.push(m); });
     if (sh.m != null && !times.includes(sh.m) && min === 0 && g.some(x => sh.m >= x[0] && sh.m < x[1])) times.unshift(sh.m);
-    let b = `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+    let b = `<div class="pair">
       <div class="field"><label for="nDay">Ημέρα</label><input id="nDay" class="inp" type="date" value="${ymd(d)}"></div>
       <div class="field"><label for="nTech">Τεχνίτρια</label><select id="nTech" class="inp">${on.length ? on.map(t => `<option value="${t}" ${sh.t===t?'selected':''}>${esc(tech(t).name)}</option>`).join('') : '<option value="">Καμία σε βάρδια</option>'}</select></div></div>`;
     b += clientPicker(sh) + servicePicker(sh);
