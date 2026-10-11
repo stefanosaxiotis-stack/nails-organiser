@@ -91,6 +91,16 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .months i.sea{outline:1.5px dashed var(--summer);outline-offset:-1.5px}
 .months i b{position:absolute;left:0;right:0;bottom:0;background:var(--teal)}
 textarea.inp{height:auto;min-height:80px;line-height:1.4;padding:12px 14px;resize:vertical}
+.kpi{background:var(--ink);color:var(--surface);border-radius:22px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.kpi .lbl{color:var(--headmuted)}
+.kpi .split3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kpi .split3 div{background:var(--head2);border-radius:14px;padding:8px 12px;font-size:12px;color:var(--headmuted)}
+.kpi .split3 b{display:block;color:#fff;font-size:17px;margin-top:2px}
+.dl{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;font-size:14px;border-top:1px solid var(--line)}
+.dl:first-of-type{border-top:none}.dl.tot{font-weight:800;font-size:16px;border-top:1.5px solid var(--ink);margin-top:2px;padding-top:9px}
+.ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:800}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.amt{font-size:30px;font-weight:800;height:64px;min-height:64px;line-height:64px;text-align:center}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -221,7 +231,8 @@ const S = {
   tab:'appts', store:null, view:'cal', month:null, day:null, freeOnly:false,
   monthAppts:[], dayAppts:[], wait:[], winter:new Set(), freed:null,
   sheet:null, toast:null, busy:false,
-  cl:{ list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }
+  cl:{ list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 },
+  cash:{ day:null, cd:null, mv:[], hist:[], loaded:false }
 };
 
 // ===== Δεδομένα =====
@@ -364,10 +375,58 @@ function marks(sg, opt){
   if (sg.birthday_soon) h += '<span class="mk m-bd" title="Γενέθλια σύντομα">🎂</span>';
   return h;
 }
+// ----- Ταμείο -----
+const num = v => { const x = parseFloat(String(v ?? '').replace(/\s/g,'').replace(',', '.')); return isFinite(x) ? Math.round(x * 100) / 100 : NaN; };
+const cashDayStr = () => S.cash.day || ymd(today());
+const isTodayCash = () => cashDayStr() === ymd(today());
+function cashEditable(){
+  const cd = S.cash.cd;
+  if (!can('cash','write')) return false;
+  if (role() === 'admin') return true;
+  if (S.ctx.settings && S.ctx.settings.allow_past_cash_edit) return true;
+  return isTodayCash() && !(cd && cd.closed_at);
+}
+function cashTotals(mv, opening){
+  const t = { cash:0, card:0, out:0, appt:0, prod:0, n:0 };
+  mv.forEach(m => {
+    const a = Number(m.amount);
+    if (m.kind === 'drawer_out'){ t.out += a; return; }
+    t[m.method] += a; t.n++; if (m.kind === 'product') t.prod += a; else t.appt += a;
+  });
+  t.total = t.cash + t.card;
+  t.expected = Number(opening || 0) + t.cash - t.out;
+  return t;
+}
+async function loadCash(){
+  const st = S.store, d = cashDayStr();
+  const [cd, mv] = await Promise.all([
+    sb.from('cash_days').select('*').eq('store_id', st).eq('day', d).maybeSingle(),
+    sb.from('cash_movements').select('id,kind,method,amount,list_amount,note,created_at,appointment_id,cash_day_id,appointments(id,clients(name))').eq('store_id', st).eq('day', d).order('created_at', { ascending:false })
+  ]);
+  if (cd.error) throw cd.error;
+  if (mv.error) throw mv.error;
+  S.cash.cd = cd.data; S.cash.mv = mv.data || [];
+  const from = ymd(addDays(today(), -30));
+  if (seesMoney()){
+    const [days, mvs] = await Promise.all([
+      sb.from('cash_days').select('id,day,opening,counted,expected,difference,closed_at').eq('store_id', st).gte('day', from).lt('day', ymd(today())).order('day', { ascending:false }),
+      sb.from('cash_movements').select('day,kind,method,amount').eq('store_id', st).gte('day', from).lt('day', ymd(today())).limit(10000)
+    ]);
+    if (days.error) throw days.error;
+    const tot = {};
+    (mvs.data || []).forEach(m => { if (m.kind !== 'drawer_out') tot[m.day] = (tot[m.day] || 0) + Number(m.amount); });
+    S.cash.hist = (days.data || []).map(x => ({ day:x.day, closed:!!x.closed_at, diff:x.difference == null ? null : Number(x.difference), total: tot[x.day] || 0 }));
+  } else {
+    const r = await sb.rpc('cash_day_history', { p_store: st, p_days: 30 });
+    S.cash.hist = r.error ? [] : (r.data || []).map(x => ({ day:x.day, closed:x.closed, hasDiff:x.has_difference }));
+  }
+  S.cash.loaded = true;
+}
 async function refresh(){
   try {
     S.busy = true; render();
     if (S.tab === 'clients') await loadClients();
+    else if (S.tab === 'cash') await loadCash();
     else if (S.view === 'wait') await loadWait();
     else if (S.day) await loadDay(); else await loadMonth();
   } catch(e) { toast(friendlyError(e)); }
@@ -398,7 +457,7 @@ function render(){
   const badge = S.freed && matches().length ? `<span class="badge">${matches().length}</span>` : '';
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : renderSoon()}</main>
+    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${S.tab===t?'on':''}" data-a="tab" data-v="${t}">${t==='appts'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
@@ -552,7 +611,7 @@ function renderWait(){
 
 function renderClients(){
   const C = S.cl;
-  if (!C.loaded) return `<div class="center"><div class="spin"></div></div>`;
+  if (!C.loaded) return S.busy ? `<div class="center"><div class="spin"></div></div>` : `<div class="center">Δεν φόρτωσαν οι πελάτες.<button class="pill" data-a="refresh">Δοκίμασε ξανά</button></div>`;
   const mOn = marksOn(), q = norm(C.q.trim()), qd = C.q.replace(/\D/g, '');
   const all = C.list.map(c => ({ c, g: segOf(c.id) }));
   const tagOk = g => C.tags.every(t => g[t]);
@@ -596,6 +655,64 @@ function clientWhy(c, g){
   if (g.no_shows) out.push(`<div><span class="mk m-ns">NS</span><span>${g.no_shows === 1 ? 'Μία φορά' : g.no_shows + ' φορές'} δεν ήρθε στο ραντεβού.</span></div>`);
   if (g.birthday_soon && c.birthday){ const b = parseYmd(c.birthday); out.push(`<div><span class="mk m-bd">🎂</span><span>Γενέθλια ${b.getDate()} ${MSHORT[b.getMonth()]}.</span></div>`); }
   return out.join('');
+}
+
+const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + eur(Math.abs(v));
+function mvLabel(m){
+  if (m.kind === 'drawer_out') return ['Έξοδο από συρτάρι', m.note || '—', '−', 'var(--negbg)', 'var(--neg)'];
+  if (m.kind === 'product') return ['Πώληση προϊόντος', m.note || '', '€', 'var(--goldbg)', 'var(--gold)'];
+  const n = m.appointments && m.appointments.clients ? m.appointments.clients.name : 'Ραντεβού';
+  const disc = m.list_amount != null && Number(m.list_amount) > Number(m.amount) ? 'έκπτωση ' + eur(Number(m.list_amount) - Number(m.amount)) : '';
+  return [n, disc, '✓', 'var(--tealbg)', 'var(--tealink)'];
+}
+function renderCash(){
+  if (!S.ctx.stores.length) return `<div class="center">Δεν σου έχει ανατεθεί κατάστημα.</div>`;
+  const C = S.cash;
+  if (!C.loaded) return storeSeg() + (S.busy ? `<div class="center"><div class="spin"></div></div>` : `<div class="center">Δεν φόρτωσε το ταμείο.<button class="pill" data-a="refresh">Δοκίμασε ξανά</button></div>`);
+  const cd = C.cd, t = cashTotals(C.mv, cd && cd.opening), ed = cashEditable(), closed = !!(cd && cd.closed_at), dd = parseYmd(cashDayStr());
+  let h = storeSeg();
+  if (!isTodayCash()) h += `<div style="display:flex;align-items:center;gap:8px"><button class="pill" data-a="cashDay" data-v="">${I.back} Σήμερα</button><div style="flex:1;text-align:right;font-family:var(--font-display);font-weight:600">${WDF[wdOf(dd)]} ${dd.getDate()} ${MSHORT[dd.getMonth()]}</div></div>`;
+  h += `<div class="kpi"><div class="lbl">${isTodayCash() ? 'Σημερινές εισπράξεις' : 'Εισπράξεις ημέρας'}</div><div class="big num">${eur(t.total)}</div>
+    <div class="split3"><div>Μετρητά<b class="num">${eur(t.cash)}</b></div><div>Κάρτα<b class="num">${eur(t.card)}</b></div></div>
+    <div style="font-size:12px;color:var(--headmuted)" class="num">${t.n} ${t.n === 1 ? 'κίνηση' : 'κινήσεις'}${t.prod ? ' · προϊόντα ' + eur(t.prod) : ''}</div></div>`;
+  h += `<div class="card"><div style="display:flex;align-items:center;margin-bottom:4px"><div class="lbl" style="flex:1">Συρτάρι μετρητών</div>${ed && !closed ? `<button class="pill" style="min-height:32px" data-a="cashOpening">Αρχικό ποσό</button>` : ''}</div>
+    <div class="dl"><span>Αρχικό ποσό</span><span class="num">${eur(Number(cd && cd.opening || 0))}</span></div>
+    <div class="dl"><span>+ Μετρητά εισπράξεις</span><span class="num">${eur(t.cash)}</span></div>
+    <div class="dl"><span>− Πληρωμές από συρτάρι</span><span class="num" style="${t.out ? 'color:var(--neg)' : ''}">${t.out ? '−' + eur(t.out) : eur(0)}</span></div>
+    <div class="dl tot"><span>Πρέπει να υπάρχουν</span><span class="num">${eur(t.expected)}</span></div></div>`;
+  if (closed){
+    const df = Number(cd.difference || 0), tm = new Date(cd.closed_at);
+    const col = df === 0 ? ['var(--posbg)','var(--pos)'] : ['var(--negbg)','var(--neg)'];
+    h += `<div class="card" style="background:${col[0]};color:${col[1]};display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:800;font-size:15px">Το ταμείο έκλεισε ${sameDay(tm, dd) ? 'στις ' + hm(tm.getHours()*60 + tm.getMinutes()) : dlabel(tm)}</div>
+      <div class="num" style="font-size:14px">Μετρήθηκαν ${eur(Number(cd.counted))} · ${df === 0 ? 'χωρίς διαφορά ✓' : (df > 0 ? 'περισσεύουν ' : 'λείπουν ') + eur(Math.abs(df))}</div>
+      ${role() === 'admin' ? `<button class="btn ghost" style="min-height:44px;font-size:14px;margin-top:4px" data-a="cashReopen">Άνοιγμα ξανά</button>` : ''}</div>`;
+  }
+  if (ed && !closed){
+    h += `<div class="grid2"><button class="btn ghost" style="font-size:14px" data-a="cashAdd" data-v="product">+ Πώληση προϊόντος</button><button class="btn ghost" style="font-size:14px;color:var(--neg)" data-a="cashAdd" data-v="drawer_out">− Πλήρωσα από συρτάρι</button></div>
+      <button class="btn navy" data-a="cashClose">Κλείσιμο ταμείου</button>`;
+  } else if (!can('cash','write')) h += `<div class="lock">${I.lock} Μόνο προβολή.</div>`;
+  h += `<div class="lbl" style="margin:4px 2px -4px">Κινήσεις ${isTodayCash() ? 'σήμερα' : 'ημέρας'}</div><div class="card flush">`;
+  if (!C.mv.length) h += `<div style="padding:22px;text-align:center;color:var(--muted)">Καμία κίνηση ακόμα. Οι πληρωμές ραντεβού γράφονται εδώ αυτόματα.</div>`;
+  C.mv.forEach(m => {
+    const [t1, t2, ic, bg, fg] = mvLabel(m), tm = new Date(m.created_at), out = m.kind === 'drawer_out';
+    h += `<button class="row" data-a="cashMv" data-v="${m.id}"><span class="ic" style="background:${bg};color:${fg}">${ic}</span><span style="flex:1;min-width:0"><span class="t1" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t1)}</span><span class="t2 num" style="display:block">${hm(tm.getHours()*60 + tm.getMinutes())} · ${m.method === 'cash' ? 'Μετρητά' : 'Κάρτα'}${t2 ? ' · ' + esc(t2) : ''}</span></span><b class="num" style="${out ? 'color:var(--neg)' : ''}">${out ? '−' : ''}${eur(Number(m.amount))}</b></button>`;
+  });
+  h += `</div>`;
+  if (C.hist.length){
+    h += `<div class="lbl" style="margin:4px 2px -4px">Προηγούμενες μέρες</div><div class="card flush">`;
+    C.hist.slice(0, 14).forEach(x => {
+      const d = parseYmd(x.day);
+      const badge = !x.closed ? '<span class="tag t-gold">Δεν έκλεισε</span>'
+        : seesMoney() ? (x.diff ? `<span class="tag t-neg num">${sgn(x.diff)}</span>` : '<span class="tag t-teal">✓</span>')
+        : (x.hasDiff ? '<span class="tag t-neg">Με διαφορά</span>' : '<span class="tag t-teal">✓</span>');
+      const inner = `<span style="flex:1"><span class="t1" style="display:block;font-size:14px">${WDF[wdOf(d)]} ${d.getDate()} ${MSHORT[d.getMonth()]}</span>${seesMoney() ? `<span class="t2 num" style="display:block">Εισπράξεις ${eur(x.total)}</span>` : ''}</span>${badge}`;
+      h += seesMoney() ? `<button class="row" data-a="cashDay" data-v="${x.day}">${inner}</button>` : `<div class="row">${inner}</div>`;
+    });
+    h += `</div>`;
+    if (!seesMoney()) h += `<div class="t2" style="margin:0 2px">Τα ποσά προηγούμενων ημερών τα βλέπει μόνο ο υπεύθυνος.</div>`;
+  }
+  return h;
 }
 
 // ===== Sheets =====
@@ -668,21 +785,22 @@ function renderSheet(){
     return sheet('Πληρωμή', b, `<button class="btn primary split" data-a="payDone" ${S.busy?'disabled':''}><span>Πληρώθηκε</span><span class="num">${eur(fin)}</span></button>`, esc((a.client||{}).name));
   }
   if (sh.type === 'new'){
-    const d = sh.d, hrs = storeHours(S.store, d), { on } = techsFor(S.store, d);
+    const d = sh.d, st = sh.store, hrs = storeHours(st, d), { on } = techsFor(st, d);
     const picked = S.ctx.services.filter(s => sh.svcs.includes(s.id));
     const min = picked.reduce((s, x) => s + x.duration_min, 0), e = picked.reduce((s, x) => s + Number(x.price), 0);
-    const g = sh.t ? gapsFor(S.store, d, sh.t, sh.appts || []) : [];
+    const g = sh.t ? gapsFor(st, d, sh.t, sh.appts || []) : [];
     const need = Math.max(min, 15), times = [];
     g.forEach(x => { for (let m = x[0]; m + need <= x[1]; m += 15) times.push(m); });
     if (sh.m != null && !times.includes(sh.m) && min === 0 && g.some(x => sh.m >= x[0] && sh.m < x[1])) times.unshift(sh.m);
-    let b = `<div class="pair">
+    let b = S.ctx.stores.length > 1 ? `<div class="field"><label>Κατάστημα</label><div class="seg">${S.ctx.stores.map(x => `<button class="${st===x.id?'on':''}" data-a="newStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>` : '';
+    b += `<div class="pair">
       <div class="field"><label for="nDay">Ημέρα</label><input id="nDay" class="inp" type="date" value="${ymd(d)}"></div>
       <div class="field"><label for="nTech">Τεχνίτρια</label><select id="nTech" class="inp">${on.length ? on.map(t => `<option value="${t}" ${sh.t===t?'selected':''}>${esc(tech(t).name)}</option>`).join('') : '<option value="">Καμία σε βάρδια</option>'}</select></div></div>`;
     b += clientPicker(sh) + servicePicker(sh);
     b += `<div class="field"><label for="nTime">Ώρα ${min ? `<span style="font-weight:400;color:var(--muted)">· κενά που χωράνε ${min}΄</span>` : ''}</label>
       ${!hrs ? '<div class="t2">Το κατάστημα είναι κλειστό αυτή τη μέρα.</div>' : times.length ? `<select id="nTime" class="inp num">${times.map(m => `<option value="${m}" ${sh.m===m?'selected':''}>${hm(m)}</option>`).join('')}</select>` : '<div class="t2">Δεν υπάρχει κενό που να χωράει. Δοκίμασε άλλη τεχνίτρια ή μέρα.</div>'}</div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
-    return sheet('Νέο ραντεβού', b, `<button class="btn primary split" data-a="saveAppt" ${S.busy?'disabled':''}><span>Κλείσε ραντεβού</span><span class="num">${min}΄ · ${eur0(e)}</span></button>`, esc(storeName(S.store)));
+    return sheet('Νέο ραντεβού', b, `<button class="btn primary split" data-a="saveAppt" ${S.busy?'disabled':''}><span>Κλείσε ραντεβού</span><span class="num">${min}΄ · ${eur0(e)}</span></button>`, esc(storeName(st)));
   }
   if (sh.type === 'wait'){
     let b = clientPicker(sh) + servicePicker(sh);
@@ -697,6 +815,46 @@ function renderSheet(){
     const w = S.wait.find(x => x.id === sh.id), c = (w && w.clients) || {};
     return sheet('Κάλεσε', `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 48)}<div><div class="t1">${esc(c.name)}</div><div class="num" style="font-size:22px;font-weight:800;margin-top:4px;user-select:all">${esc(c.phone || 'Χωρίς τηλέφωνο')}</div></div></div>
       ${c.phone ? `<a class="btn ghost" href="tel:${esc(c.phone)}" style="text-decoration:none">${I.phone} Κλήση από αυτή τη συσκευή</a>` : ''}<div class="t2">Κάλεσε από το τηλέφωνο του καταστήματος και κλείσε από τη λίστα αν συμφωνήσει.</div>`, `<button class="btn ghost" data-a="closeSheet">Κλείσιμο</button>`);
+  }
+  if (sh.type === 'cashAdd'){
+    const out = sh.kind === 'drawer_out';
+    let b = `<input id="caAmt" class="inp amt num" inputmode="decimal" placeholder="0,00 €" value="${esc(sh.amt||'')}" autocomplete="off">`;
+    if (!out) b += `<div class="field"><label>Τρόπος πληρωμής</label><div class="seg"><button class="${sh.m==='cash'?'on':''}" data-a="caM" data-v="cash">Μετρητά</button><button class="${sh.m==='card'?'on':''}" data-a="caM" data-v="card">Κάρτα</button></div></div>`;
+    b += `<div class="field"><label for="caNote">${out ? 'Τι πλήρωσες;' : 'Τι πούλησες; (προαιρετικό)'}</label><input id="caNote" class="inp" value="${esc(sh.note||'')}" placeholder="${out ? 'π.χ. καφέδες, courier, βαμβάκια' : 'π.χ. λάδι επωνυχίων'}"></div>`;
+    if (out) b += `<div class="t2">Βγαίνει από τα μετρητά του συρταριού και γράφεται αυτόματα στα Έξοδα του καταστήματος.</div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(out ? 'Πληρωμή από συρτάρι' : 'Πώληση προϊόντος', b, `<button class="btn ${out?'navy':'primary'}" data-a="caSave" ${S.busy?'disabled':''}>Καταχώριση</button>`, esc(storeName(S.store)));
+  }
+  if (sh.type === 'cashOpening'){
+    let b = `<div class="t2" style="margin:0">Τα μετρητά που υπήρχαν στο συρτάρι όταν άνοιξε το κατάστημα (ρέστα).</div><input id="coAmt" class="inp amt num" inputmode="decimal" placeholder="0,00 €" value="${esc(sh.amt||'')}" autocomplete="off">`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet('Αρχικό ποσό συρταριού', b, `<button class="btn primary" data-a="coSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, esc(storeName(S.store)));
+  }
+  if (sh.type === 'cashClose'){
+    const t = cashTotals(S.cash.mv, S.cash.cd && S.cash.cd.opening), c = num(sh.amt), df = isNaN(c) ? null : Math.round((c - t.expected) * 100) / 100;
+    let b = `<div class="dl"><span>Πρέπει να υπάρχουν</span><b class="num">${eur(t.expected)}</b></div>
+      <div class="field"><label for="ccAmt">Πόσα μετρητά μέτρησες;</label><input id="ccAmt" class="inp amt num" inputmode="decimal" placeholder="0,00 €" value="${esc(sh.amt||'')}" autocomplete="off"></div>`;
+    if (df != null) b += `<div class="card" style="padding:12px 14px;text-align:center;font-weight:800;background:${df === 0 ? 'var(--posbg)' : 'var(--negbg)'};color:${df === 0 ? 'var(--pos)' : 'var(--neg)'}">${df === 0 ? 'Ακριβώς ✓' : (df > 0 ? 'Περισσεύουν ' : 'Λείπουν ') + eur(Math.abs(df))}</div>`;
+    b += `<div class="chips"><span class="stat num">Κάρτα <b>${eur(t.card)}</b></span><span class="stat num">Σύνολο ημέρας <b>${eur(t.total)}</b></span></div>
+      <div class="t2">Μετά το κλείσιμο δεν μπαίνουν άλλες κινήσεις σε αυτή τη μέρα. ${role() === 'admin' ? 'Μπορείς να το ανοίξεις ξανά.' : 'Μόνο ο admin μπορεί να το ανοίξει ξανά.'}</div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet('Κλείσιμο ταμείου', b, `<button class="btn navy" data-a="ccSave" ${S.busy || df == null ? 'disabled' : ''}>Κλείσιμο</button>`, esc(storeName(S.store)) + ' · ' + dlabel(parseYmd(cashDayStr())));
+  }
+  if (sh.type === 'cashMv'){
+    const m = S.cash.mv.find(x => x.id === sh.id); if (!m) return '';
+    const [t1, t2] = mvLabel(m), tm = new Date(m.created_at), ok = cashEditable() && !(S.cash.cd && S.cash.cd.closed_at);
+    let b = `<div class="dl"><span>Ποσό</span><b class="num">${m.kind === 'drawer_out' ? '−' : ''}${eur(Number(m.amount))}</b></div>
+      ${m.list_amount != null && Number(m.list_amount) !== Number(m.amount) ? `<div class="dl"><span>Τιμή καταλόγου</span><span class="num">${eur(Number(m.list_amount))}</span></div>` : ''}
+      <div class="dl"><span>Τρόπος</span><span>${m.method === 'cash' ? 'Μετρητά' : 'Κάρτα'}</span></div>
+      <div class="dl"><span>Ώρα</span><span class="num">${hm(tm.getHours()*60 + tm.getMinutes())}</span></div>
+      ${t2 ? `<div class="dl"><span>Σημείωση</span><span>${esc(t2)}</span></div>` : ''}`;
+    if (ok){
+      b += sh.del
+        ? `<div class="card" style="background:var(--negbg);color:var(--neg);display:flex;flex-direction:column;gap:10px"><div style="font-size:13px">${m.kind === 'appointment' ? 'Η πληρωμή σβήνεται και το ραντεβού γυρίζει σε «Ήρθε», για να πληρωθεί ξανά σωστά.' : m.kind === 'drawer_out' ? 'Σβήνεται και το αντίστοιχο έξοδο.' : 'Η κίνηση σβήνεται από το ταμείο.'}</div><div style="display:flex;gap:8px"><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="mvDelNo">Άκυρο</button><button class="btn danger" style="min-height:44px;font-size:14px;border:1.5px solid var(--neg)" data-a="mvDelYes">Διαγραφή</button></div></div>`
+        : `<button class="btn danger" style="min-height:44px;font-size:14px" data-a="mvDel">Διαγραφή κίνησης</button>`;
+    }
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(esc(t1), b, '', mvLabel(m)[0] === t1 && m.kind === 'appointment' ? 'Πληρωμή ραντεβού' : '');
   }
   if (sh.type === 'client'){
     const c = S.cl.list.find(x => x.id === sh.id); if (!c) return '';
@@ -760,18 +918,18 @@ function paint(){
 }
 async function openNew(d, t, m){
   const day = d || (S.day || today());
-  S.sheet = { type:'new', d: day, t: null, m: m ?? null, svcs: [], cat: S.ctx.cats[0] && S.ctx.cats[0].id, q:'', results:[], client:null, appts: [] };
+  S.sheet = { type:'new', store: S.store, d: day, t: null, m: m ?? null, svcs: [], cat: S.ctx.cats[0] && S.ctx.cats[0].id, q:'', results:[], client:null, appts: [] };
   await loadNewDay(t);
 }
 async function loadNewDay(preferTech){
   const sh = S.sheet, d0 = at(sh.d, 0);
-  const { data, error } = await sb.from('appointments').select('id,tech_id,starts_at,ends_at,status').eq('store_id', S.store)
+  const { data, error } = await sb.from('appointments').select('id,tech_id,starts_at,ends_at,status').eq('store_id', sh.store)
     .gte('starts_at', d0.toISOString()).lt('starts_at', addDays(d0, 1).toISOString()).in('status', ['booked','arrived','done']);
   if (error){ sh.err = friendlyError(error); paint(); return; }
   sh.appts = data;
-  const on = techsFor(S.store, sh.d).on;
-  sh.t = preferTech && on.includes(preferTech) ? preferTech : (on.find(t => gapsFor(S.store, sh.d, t, data).length) || on[0] || null);
-  if (sh.m == null && sh.t){ const g = gapsFor(S.store, sh.d, sh.t, data)[0]; sh.m = g ? g[0] : null; }
+  const on = techsFor(sh.store, sh.d).on;
+  sh.t = preferTech && on.includes(preferTech) ? preferTech : (on.find(t => gapsFor(sh.store, sh.d, t, data).length) || on[0] || null);
+  if (sh.m == null && sh.t){ const g = gapsFor(sh.store, sh.d, sh.t, data)[0]; sh.m = g ? g[0] : null; }
   paint();
 }
 let searchT;
@@ -812,10 +970,10 @@ async function bookSlot({ storeId, techId, clientId, start, end, svcs }){
   }
   return ap.id;
 }
-async function ensureCashDay(storeId){
-  const d = ymd(today());
+async function ensureCashDay(storeId, dayStr){
+  const d = dayStr || ymd(today());
   const { data } = await sb.from('cash_days').select('id,closed_at').eq('store_id', storeId).eq('day', d).maybeSingle();
-  if (data){ if (data.closed_at) throw new Error('Το σημερινό ταμείο έχει κλείσει. Ο admin μπορεί να το ξανανοίξει.'); return data.id; }
+  if (data){ if (data.closed_at) throw new Error('Το ταμείο αυτής της μέρας έχει κλείσει. Ο admin μπορεί να το ανοίξει ξανά.'); return data.id; }
   const r = await sb.from('cash_days').insert({ org_id: S.ctx.org.id, store_id: storeId, day: d, opening: 0 }).select('id').single();
   if (r.error) throw r.error;
   return r.data.id;
@@ -840,9 +998,9 @@ document.addEventListener('click', async ev => {
     case 'logout': S.sheet = null; await sb.auth.signOut(); return;
     case 'me': S.sheet = { type:'me' }; break;
     case 'closeSheet': S.sheet = null; break;
-    case 'tab': S.tab = v; S.sheet = null; if (v === 'clients' && !S.cl.loaded) return refresh(); render(); return;
+    case 'tab': S.tab = v; S.sheet = null; if ((v === 'clients' && !S.cl.loaded) || v === 'cash') return refresh(); render(); return;
     case 'refresh': return refresh();
-    case 'store': S.store = v; S.freed = null; return refresh();
+    case 'store': S.store = v; S.freed = null; S.cash.day = null; S.cash.loaded = false; return refresh();
     case 'view': S.view = v; S.day = null; return refresh();
     case 'freeOnly': S.freeOnly = !S.freeOnly; break;
     case 'monthStep': S.month = new Date(S.month.getFullYear(), S.month.getMonth() + (+v), 1); return refresh();
@@ -860,6 +1018,7 @@ document.addEventListener('click', async ev => {
     case 'newClient': sh.newClient = true; sh.ncName = sh.q || ''; break;
     case 'pickExisting': sh.newClient = false; break;
     case 'sheetCat': sh.cat = v; break;
+    case 'newStore': if (sh.store !== v){ sh.store = v; sh.t = null; sh.m = null; await loadNewDay(); return; } break;
     case 'pickSvc': sh.svcs = sh.svcs.includes(v) ? sh.svcs.filter(x => x !== v) : sh.svcs.concat(v); sh.err = null; break;
     case 'saveAppt': {
       sh.err = null;
@@ -869,11 +1028,11 @@ document.addEventListener('click', async ev => {
       if (!sh.t){ sh.err = 'Δεν υπάρχει τεχνίτρια σε βάρδια αυτή τη μέρα.'; break; }
       const tEl = document.getElementById('nTime'); if (tEl) sh.m = +tEl.value;
       const dur = svcs.reduce((s, x) => s + x.duration_min, 0);
-      if (sh.m == null || !gapsFor(S.store, sh.d, sh.t, sh.appts).some(g => sh.m >= g[0] && sh.m + dur <= g[1])){ sh.err = 'Η ώρα δεν χωράει ' + dur + ' λεπτά. Διάλεξε άλλη ώρα.'; break; }
+      if (sh.m == null || !gapsFor(sh.store, sh.d, sh.t, sh.appts).some(g => sh.m >= g[0] && sh.m + dur <= g[1])){ sh.err = 'Η ώρα δεν χωράει ' + dur + ' λεπτά. Διάλεξε άλλη ώρα.'; break; }
       S.busy = true; paint();
       try {
         const cid = await ensureClient(sh);
-        await bookSlot({ storeId: S.store, techId: sh.t, clientId: cid, start: at(sh.d, sh.m), end: at(sh.d, sh.m + dur), svcs });
+        await bookSlot({ storeId: sh.store, techId: sh.t, clientId: cid, start: at(sh.d, sh.m), end: at(sh.d, sh.m + dur), svcs });
         if (S.freed && S.freed.tech === sh.t && sameDay(S.freed.day, sh.d)) S.freed = null;
         const d = sh.d; S.sheet = null; S.busy = false;
         toast('Κλείστηκε · ' + dlabel(d) + ' ' + hm(sh.m));
@@ -997,9 +1156,71 @@ document.addEventListener('click', async ev => {
     }
     case 'bookClient': {
       const c = S.cl.list.find(x => x.id === sh.id);
-      await openNew(today());
+      let d0 = today(); for (let i = 0; i < 14 && !storeHours(S.store, d0); i++) d0 = addDays(d0, 1);
+      await openNew(d0);
       if (S.sheet && S.sheet.type === 'new'){ S.sheet.client = { id:c.id, name:c.name, phone:c.phone, note:c.note }; }
       break;
+    }
+    case 'cashDay': S.cash.day = v || null; S.cash.loaded = false; return refresh();
+    case 'cashAdd': S.sheet = { type:'cashAdd', kind: v, m: v === 'drawer_out' ? 'cash' : 'card', amt:'', note:'' }; break;
+    case 'caM': sh.m = v; break;
+    case 'caSave': {
+      const a = num(sh.amt);
+      if (!(a > 0)){ sh.err = 'Γράψε ποσό μεγαλύτερο από 0.'; break; }
+      if (sh.kind === 'drawer_out' && !(sh.note||'').trim()){ sh.err = 'Γράψε τι πλήρωσες, για να φαίνεται στα Έξοδα.'; break; }
+      S.busy = true; paint();
+      try {
+        const d = cashDayStr(), dayId = await ensureCashDay(S.store, d);
+        const r = await sb.from('cash_movements').insert({ org_id: S.ctx.org.id, store_id: S.store, cash_day_id: dayId, day: d, kind: sh.kind,
+          amount: a, list_amount: sh.kind === 'product' ? a : null, method: sh.kind === 'drawer_out' ? 'cash' : sh.m, note: (sh.note||'').trim() || null });
+        if (r.error) throw r.error;
+        S.busy = false; S.sheet = null; toast(sh.kind === 'drawer_out' ? 'Καταχωρίστηκε · γράφτηκε και στα Έξοδα' : 'Καταχωρίστηκε η πώληση ' + eur(a));
+        return refresh();
+      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      break;
+    }
+    case 'cashOpening': S.sheet = { type:'cashOpening', amt: S.cash.cd && Number(S.cash.cd.opening) ? String(S.cash.cd.opening).replace('.', ',') : '' }; break;
+    case 'coSave': {
+      const a = num(sh.amt === '' ? '0' : sh.amt);
+      if (isNaN(a) || a < 0){ sh.err = 'Μη έγκυρο ποσό.'; break; }
+      S.busy = true; paint();
+      try {
+        const id = await ensureCashDay(S.store, cashDayStr());
+        const r = await sb.from('cash_days').update({ opening: a }).eq('id', id);
+        if (r.error) throw r.error;
+        S.busy = false; S.sheet = null; toast('Αρχικό ποσό ' + eur(a)); return refresh();
+      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      break;
+    }
+    case 'cashClose': S.sheet = { type:'cashClose', amt:'' }; break;
+    case 'ccSave': {
+      const c = num(sh.amt);
+      if (isNaN(c) || c < 0){ sh.err = 'Γράψε τα μετρητά που μέτρησες.'; break; }
+      S.busy = true; paint();
+      try {
+        const id = await ensureCashDay(S.store, cashDayStr());
+        const r = await sb.rpc('close_cash_day', { p_day: id, p_counted: c });
+        if (r.error) throw r.error;
+        const df = Number((r.data && r.data[0] && r.data[0].difference) || 0);
+        S.busy = false; S.sheet = null; toast('Το ταμείο έκλεισε' + (df ? ' · ' + (df > 0 ? 'περισσεύουν ' : 'λείπουν ') + eur(Math.abs(df)) : ' ✓')); return refresh();
+      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      break;
+    }
+    case 'cashReopen': {
+      const r = await sb.from('cash_days').update({ closed_at:null, closed_by:null, counted:null, expected:null, difference:null }).eq('id', S.cash.cd.id);
+      if (r.error) throw r.error;
+      toast('Το ταμείο άνοιξε ξανά'); return refresh();
+    }
+    case 'cashMv': S.sheet = { type:'cashMv', id: v }; break;
+    case 'mvDel': sh.del = true; break;
+    case 'mvDelNo': sh.del = false; break;
+    case 'mvDelYes': {
+      const m = S.cash.mv.find(x => x.id === sh.id);
+      const r = await sb.from('cash_movements').delete().eq('id', m.id).select('id');
+      if (r.error) throw r.error;
+      if (!r.data || !r.data.length) throw new Error('permission denied');
+      if (m.kind === 'appointment' && m.appointment_id) await sb.from('appointments').update({ status:'arrived' }).eq('id', m.appointment_id);
+      S.sheet = null; toast('Η κίνηση διαγράφηκε'); return refresh();
     }
     case 'call': S.sheet = { type:'call', id: v }; break;
     case 'fillFromWait': {
@@ -1032,6 +1253,8 @@ document.addEventListener('input', ev => {
   const id = ev.target.id, val = ev.target.value, sh = S.sheet;
   if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
   if (!sh) return;
+  if (id === 'caAmt' || id === 'coAmt' || id === 'ccAmt'){ sh.amt = val; if (id === 'ccAmt') paint(); return; }
+  if (id === 'caNote'){ sh.note = val; return; }
   if (sh.type === 'cedit'){ const k = { ceName:'name', cePhone:'phone', ceBd:'birthday', ceEmail:'email', ceNote:'note' }[id]; if (k) sh[k] = val; return; }
   if (id === 'clientQ') return searchClients(val);
   if (id === 'ncName') sh.ncName = val;
@@ -1044,13 +1267,13 @@ document.addEventListener('change', async ev => {
   if (id === 'ceGdpr') sh.gdpr = ev.target.checked;
   if (id === 'ceBd') sh.birthday = ev.target.value;
   if (id === 'nTime') sh.m = +ev.target.value;
-  if (id === 'nTech'){ sh.t = ev.target.value; const g = gapsFor(S.store, sh.d, sh.t, sh.appts)[0]; sh.m = g ? g[0] : null; paint(); }
+  if (id === 'nTech'){ sh.t = ev.target.value; const g = gapsFor(sh.store, sh.d, sh.t, sh.appts)[0]; sh.m = g ? g[0] : null; paint(); }
   if (id === 'nDay' && ev.target.value){ const [y, m, d] = ev.target.value.split('-').map(Number); sh.d = new Date(y, m-1, d); sh.m = null; await loadNewDay(sh.t); }
 });
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 };
+  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false };
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
   try {
