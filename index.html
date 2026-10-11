@@ -43,7 +43,7 @@ header .sub{font-family:var(--font-display);font-size:12px;color:var(--headmuted
 main{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px 28px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
 main>*{flex-shrink:0}
 nav{flex-shrink:0;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px))}
-nav button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);min-height:48px;position:relative;padding:0}
+nav button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;letter-spacing:-.2px;color:var(--muted);min-height:48px;position:relative;padding:0}
 nav button.on{color:var(--teal);font-weight:700}
 nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3px;border-radius:2px;background:var(--teal)}
 .badge{position:absolute;top:-4px;right:calc(50% - 22px);min-width:18px;height:18px;border-radius:9px;background:var(--coral);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
@@ -121,6 +121,18 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .warn b{font-size:14px}
 .blk.ovl{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg)}
 .blk .ov{display:inline-flex;align-items:center;gap:2px;background:var(--neg);color:#fff;border-radius:6px;padding:0 5px;font-size:10px;font-weight:800;flex-shrink:0;line-height:16px}
+.sday{background:var(--surface);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.sday.now{outline:2.5px solid var(--teal)}
+.sday h3{margin:0;font-family:var(--font-display);font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sst{border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.sst:first-of-type{border-top:none;padding-top:0}
+.sst .hd{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:700}
+.sst .hd span{font-weight:400;color:var(--muted);font-size:12px}
+.pp{display:inline-flex;align-items:center;gap:6px;border-radius:12px;padding:4px 10px 4px 4px;font-size:13px;font-weight:600;background:var(--chip)}
+.pp.me{background:var(--tealbg);color:var(--tealink);box-shadow:inset 0 0 0 1.5px var(--teal)}
+.pp small{font-weight:500;color:var(--muted);font-size:11px}.pp.me small{color:var(--tealink)}
+.soff{font-size:12px;color:var(--muted)}
+.shrs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:6px}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -239,6 +251,7 @@ const I = {
   fwd:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
   gear:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   chev:'<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+  clock:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4"/><path d="M8 13.5h3M8 17h6"/></svg>',
   refresh:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
   search:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
   lock:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
@@ -291,7 +304,7 @@ async function loadContext(){
   const techs = members.data.filter(m => m.role === 'user');
   techs.forEach((t, i) => t.color = TECH_COLORS[i % TECH_COLORS.length]);
   return { member, org: org.data, settings: settings.data, stores: stores.data.filter(s => myStoreIds.includes(s.id)),
-           levels, techs, hours: hours.data, schedule: sched.data, timeOff: off.data, cats: cats.data, services: svcs.data };
+           levels, techs, members: members.data, hours: hours.data, schedule: sched.data, timeOff: off.data, cats: cats.data, services: svcs.data };
 }
 const can = (tab, need) => S.ctx && LV.indexOf(S.ctx.levels[tab]) >= LV.indexOf(need || 'view');
 const role = () => S.ctx.member.role;
@@ -308,7 +321,7 @@ function storeHours(storeId, d){
 }
 function techsFor(storeId, d){
   const w = wdOf(d), ds = ymd(d);
-  const sched = S.ctx.schedule.filter(s => s.store_id === storeId && s.weekday === w).map(s => s.member_id);
+  const sched = S.ctx.schedule.filter(s => s.store_id === storeId && s.weekday === w && S.ctx.techs.some(t => t.id === s.member_id)).map(s => s.member_id);
   const on = [], off = [];
   sched.forEach(id => {
     const isOff = S.ctx.timeOff.some(o => o.member_id === id && ds >= o.date_from && ds <= o.date_to);
@@ -331,8 +344,16 @@ function overlapMap(list){
   });
   return out;
 }
+// Ώρες βάρδιας: το ωράριο του καταστήματος, περιορισμένο από τις ώρες του προγράμματος (αν έχουν οριστεί)
+function shiftOf(storeId, d, memberId){
+  const h = storeHours(storeId, d); if (!h) return null;
+  const sc = S.ctx.schedule.find(x => x.member_id === memberId && x.weekday === wdOf(d) && x.store_id === storeId);
+  if (!sc || !sc.starts) return h;
+  const a = Math.max(h[0], toTime(sc.starts)), b = Math.min(h[1], toTime(sc.ends));
+  return b > a ? [a, b] : null;
+}
 function gapsFor(storeId, d, techId, appts){
-  const h = storeHours(storeId, d); if (!h) return [];
+  const h = shiftOf(storeId, d, techId); if (!h) return [];
   const list = appts.filter(a => a.tech_id === techId && sameDay(new Date(a.starts_at), d) && ['booked','arrived','done'].includes(a.status))
                     .map(a => [minsOf(a.starts_at), minsOf(a.ends_at)]).sort((a,b) => a[0]-b[0]);
   let m = h[0];
@@ -462,9 +483,10 @@ async function loadCash(){
 // ----- Ρυθμίσεις (admin) -----
 function openMemberSheet(v){
   const X = S.set, m = X.members.find(x => x.id === v), sched = {}, perms = {};
-  X.sched.filter(x => x.member_id === v).forEach(x => sched[x.weekday] = x.store_id);
+  const hrs = {};
+  X.sched.filter(x => x.member_id === v).forEach(x => { sched[x.weekday] = x.store_id; if (x.starts) hrs[x.weekday] = { s: hhmm(x.starts), e: hhmm(x.ends) }; });
   X.mperms.filter(x => x.member_id === v).forEach(x => perms[x.tab] = x.level);
-  S.sheet = { type:'member', id: v, name: m.name, role: m.role, active: m.active, stores: X.mstores.filter(x => x.member_id === v).map(x => x.store_id), sched, perms, offKind:'day_off' };
+  S.sheet = { type:'member', id: v, name: m.name, role: m.role, active: m.active, stores: X.mstores.filter(x => x.member_id === v).map(x => x.store_id), sched, hrs, perms, offKind:'day_off' };
 }
 function genPw(){ const a = 'abcdefghjkmnpqrstuvwxyz', A = 'ABCDEFGHJKLMNPQRSTUVWXYZ', d = '23456789'; const r = s => s[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 * s.length)];
   return r(A) + r(a) + r(a) + r(a) + r(a) + '-' + r(d) + r(d) + r(d) + r(d); }
@@ -498,10 +520,23 @@ async function loadSettings(){
   S.ctx.hours = hrs.data; S.ctx.settings = set.data; S.ctx.services = svc.data; S.ctx.cats = cats.data;
   if (!S.set.emails){ S.set.emails = {}; fnCall({ action:'emails' }).then(d => { S.set.emails = (d && d.emails) || {}; paint(); }).catch(() => {}); }
 }
+// ----- Πρόγραμμα εργασίας -----
+async function loadSchedule(){
+  const org = S.ctx.org.id;
+  const [sc, off, mem] = await Promise.all([
+    sb.from('tech_schedule').select('*').eq('org_id', org),
+    sb.from('tech_time_off').select('*').eq('org_id', org).gte('date_to', ymd(addDays(today(), -60))),
+    sb.from('members').select('id,name,role,active').eq('org_id', org).eq('active', true).order('name')
+  ]);
+  for (const r of [sc, off, mem]) if (r.error) throw r.error;
+  S.ctx.schedule = sc.data; S.ctx.timeOff = off.data; S.ctx.members = mem.data;
+  if (!S.week){ const t = today(); S.week = addDays(t, -wdOf(t)); }
+}
 async function refresh(){
   try {
     S.busy = true; render();
     if (S.tab === 'settings') await loadSettings();
+    else if (S.tab === 'sched') await loadSchedule();
     else if (S.tab === 'clients') await loadClients();
     else if (S.tab === 'cash') await loadCash();
     else if (S.view === 'wait') await loadWait();
@@ -528,16 +563,16 @@ function render(){
     const pt = { hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
-    const titles = { appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'P&L' };
+    const titles = { appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
     const d = today();
     head = `<div style="flex:1;min-width:0"><h1>${esc(titles[S.tab])}</h1><div class="sub">${WDF[wdOf(d)]}, ${d.getDate()} ${MSHORT[d.getMonth()]} · ${ROLE_NAME[m.role]}</div></div>
       ${role() === 'admin' ? `<button class="rbtn" data-a="settings" aria-label="Ρυθμίσεις">${I.gear}</button>` : ''}<button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
   }
-  const tabs = [['appts','Ραντεβού',I.cal],['clients','Πελάτες',I.users],['cash','Ταμείο',I.cash],['expenses','Έξοδα',I.exp],['pl','P&L',I.pl]].filter(([t]) => can(t));
+  const tabs = [['appts','Ραντεβού',I.cal],['clients','Πελάτες',I.users],['cash','Ταμείο',I.cash],['sched','Πρόγραμμα',I.clock],['expenses','Έξοδα',I.exp],['pl','P&L',I.pl]].filter(([t]) => t === 'sched' || can(t));
   const badge = S.freed && matches().length ? `<span class="badge">${matches().length}</span>` : '';
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : renderSoon()}</main>
+    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${S.tab===t?'on':''}" data-a="tab" data-v="${t}">${t==='appts'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
@@ -584,7 +619,7 @@ function renderMonth(){
     if (!hrs && !ap.length){ cells.push(`<div class="dcell closed${sameDay(d, t0) ? ' today' : ''}"${sameDay(d, t0) ? ' aria-current="date"' : ''}><span class="n" style="font-weight:400">${dn}</span><span class="c">κλειστά</span></div>`); continue; }
     const past = d < t0, isToday = sameDay(d, t0);
     let ts = techsFor(S.store, d).on; if (isTech()) ts = ts.filter(x => x === S.ctx.member.id);
-    const cap = hrs ? ts.length * (hrs[1] - hrs[0]) : 0;
+    const cap = hrs ? ts.reduce((sum, t) => { const x = shiftOf(S.store, d, t); return sum + (x ? x[1] - x[0] : 0); }, 0) : 0;
     const free = hrs ? ts.reduce((s, t) => s + gapsFor(S.store, d, t, S.monthAppts).reduce((x, g) => x + g[1] - g[0], 0), 0) : 0;
     const ratio = cap ? free / cap : 0;
     let cls = 'dcell' + (past ? ' past' : '') + (isToday ? ' today' : ''), extra = '';
@@ -842,7 +877,7 @@ function renderSettings(){
       h += `<div class="lbl" style="margin:4px 2px -4px">${n}</div><div class="card flush">${list.map(m => {
         const sts = r === 'admin' ? 'Όλα τα καταστήματα' : r === 'user'
           ? [...new Set(X.sched.filter(x => x.member_id === m.id).map(x => storeName(x.store_id)))].join(', ') || 'Χωρίς βάρδιες'
-          : X.mstores.filter(x => x.member_id === m.id).map(x => storeName(x.store_id)).join(', ') || 'Χωρίς κατάστημα';
+          : [...new Set(X.mstores.filter(x => x.member_id === m.id).map(x => storeName(x.store_id)))].join(', ') || 'Χωρίς κατάστημα';
         return `<button class="row" data-a="openMember" data-v="${m.id}" style="${m.active ? '' : 'opacity:.55'}">${av(m.name, 40)}<span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(m.name)}${m.active ? '' : ' <span class="tag t-gray">Ανενεργό</span>'}</span><span class="t2" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sts)}${X.emails && X.emails[m.id] ? ' · ' + esc(X.emails[m.id]) : ''}</span></span>${I.chev}</button>`; }).join('')}</div>`;
     });
     return h + `<button class="btn navy" data-a="newMember">+ Νέο άτομο</button><div class="t2" style="margin:0 2px">Όταν κάποιος φύγει, τον κάνεις ανενεργό. Δεν σβήνεται, για να μένει το ιστορικό του.</div>`;
@@ -894,6 +929,45 @@ function renderSettings(){
   return '';
 }
 
+function renderSchedule(){
+  if (!S.week){ const t = today(); S.week = addDays(t, -wdOf(t)); }
+  const w0 = S.week, w6 = addDays(w0, 6), me = S.ctx.member.id, t0 = today();
+  const mem = id => (S.ctx.members || []).find(m => m.id === id);
+  const offOn = (id, ds) => S.ctx.timeOff.find(o => o.member_id === id && ds >= o.date_from && ds <= o.date_to);
+  const myStores = S.ctx.stores.map(x => x.id);
+  const people = [...new Set(S.ctx.schedule.filter(x => myStores.includes(x.store_id) && mem(x.member_id)).map(x => x.member_id))];
+  const thisWeek = sameDay(w0, addDays(t0, -wdOf(t0)));
+  let h = `<div style="display:flex;align-items:center;gap:6px">
+      <button class="x" data-a="weekStep" data-v="-1" aria-label="Προηγούμενη εβδομάδα" style="background:transparent">${I.back}</button>
+      <div style="flex:1;text-align:center"><div style="font-family:var(--font-display);font-size:18px;font-weight:600">${w0.getDate()} ${MSHORT[w0.getMonth()]} – ${w6.getDate()} ${MSHORT[w6.getMonth()]}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${thisWeek ? 'Αυτή η εβδομάδα' : `<button class="pill" style="min-height:26px;padding:0 10px;font-size:12px" data-a="weekStep" data-v="0">Σήμερα</button>`}</div></div>
+      <button class="x" data-a="weekStep" data-v="1" aria-label="Επόμενη εβδομάδα" style="background:transparent">${I.fwd}</button></div>`;
+  if (!people.length) h += `<div class="card" style="font-size:14px;color:var(--muted)">Δεν έχει οριστεί πρόγραμμα ακόμα.${role() === 'admin' ? ' Όρισέ το από Ρυθμίσεις → Ομάδα.' : ''}</div>`;
+  for (let i = 0; i < 7; i++){
+    const d = addDays(w0, i), ds = ymd(d), wd = wdOf(d), isNow = sameDay(d, t0);
+    let body = '';
+    S.ctx.stores.forEach(st => {
+      const hrs = storeHours(st.id, d);
+      const rows = S.ctx.schedule.filter(x => x.store_id === st.id && x.weekday === wd && mem(x.member_id) && !offOn(x.member_id, ds));
+      if (!hrs && !rows.length) return;
+      rows.sort((a, b) => (mem(a.member_id).role === 'store' ? 0 : 1) - (mem(b.member_id).role === 'store' ? 0 : 1) || mem(a.member_id).name.localeCompare(mem(b.member_id).name));
+      body += `<div class="sst"><div class="hd">${esc(st.name)} <span>${hrs ? hm(hrs[0]) + '–' + hm(hrs[1]) : 'Κλειστό'}</span></div>
+        <div class="chips" style="gap:6px">${rows.length ? rows.map(x => { const m = mem(x.member_id), sh = shiftOf(st.id, d, m.id) || hrs;
+          const t = m.role === 'user' ? tech(m.id) : null;
+          return `<span class="pp${m.id === me ? ' me' : ''}">${av(m.name, 24, t ? t.color[0] : 'var(--ink)', t ? t.color[1] : 'var(--surface)')}${esc(m.name)}${m.role === 'store' ? ' <small>γραμματεία</small>' : ''}${sh && x.starts ? ` <small class="num">${hm(sh[0])}–${hm(sh[1])}</small>` : ''}</span>`; }).join('') : '<span class="soff">Κανείς σε βάρδια</span>'}</div></div>`;
+    });
+    const offs = people.filter(id => !S.ctx.schedule.some(x => x.member_id === id && x.weekday === wd));
+    const ex = people.filter(id => S.ctx.schedule.some(x => x.member_id === id && x.weekday === wd) && offOn(id, ds));
+    if (offs.length) body += `<div class="soff">Ρεπό: ${offs.map(id => `<b style="${id === me ? 'color:var(--teal)' : ''}">${esc(mem(id).name)}</b>`).join(', ')}</div>`;
+    if (ex.length) body += `<div class="soff" style="color:var(--gold)">Έκτακτο ρεπό / άδεια: ${ex.map(id => `<b>${esc(mem(id).name)}</b> (${offOn(id, ds).kind === 'leave' ? 'άδεια' : 'ρεπό'})`).join(', ')}</div>`;
+    const myShift = S.ctx.schedule.find(x => x.member_id === me && x.weekday === wd && myStores.includes(x.store_id));
+    const meTag = people.includes(me) ? (myShift && !offOn(me, ds) ? `<span class="tag t-teal">Δουλεύεις · ${esc(storeName(myShift.store_id))}</span>` : '<span class="tag t-gray">Ρεπό σου</span>') : '';
+    h += `<div class="sday${isNow ? ' now' : ''}"><h3>${WDF[wd]} ${d.getDate()} ${MSHORT[d.getMonth()]}${isNow ? ' <span class="tag t-teal">Σήμερα</span>' : ''}<span style="flex:1"></span>${meTag}</h3>${body || '<div class="soff">Όλα τα καταστήματα κλειστά</div>'}</div>`;
+  }
+  if (role() === 'admin') h += `<button class="btn ghost" data-a="settings" data-v="team">Αλλαγή προγράμματος</button>`;
+  return h;
+}
+
 // ===== Sheets =====
 let lastSheet = null;
 function sheet(title, body, foot, sub){
@@ -933,7 +1007,7 @@ function squeezeInfo(sh, m, min){
     const s2 = minsOf(a.starts_at), e2 = minsOf(a.ends_at), o = Math.min(e, e2) - Math.max(m, s2);
     if (o > 0) items.push({ min: o, s: s2, e: e2, name: a.clients ? a.clients.name : 'άλλο ραντεβού' });
   });
-  const h = storeHours(sh.store, sh.d), late = h && e > h[1] ? e - h[1] : 0;
+  const h = shiftOf(sh.store, sh.d, sh.t), late = h && e > h[1] ? e - h[1] : 0;
   return { items, total: items.reduce((x, o) => x + o.min, 0), late };
 }
 function renderSheet(){
@@ -1020,12 +1094,17 @@ function renderSheet(){
     const self = m.id === S.ctx.member.id, isAdm = m.role === 'admin';
     let b = `<div class="field"><label for="mName">Όνομα</label><input id="mName" class="inp" value="${esc(sh.name)}"></div>`;
     if (X.emails && X.emails[m.id]) b += `<div class="t2" style="margin:-6px 2px 0">Σύνδεση με: <b>${esc(X.emails[m.id])}</b></div>`;
-    if (!isAdm) b += `<div class="field"><label>Ρόλος</label><div class="seg"><button class="${sh.role==='store'?'on':''}" data-a="mRole" data-v="store">Γραμματεία</button><button class="${sh.role==='user'?'on':''}" data-a="mRole" data-v="user">Τεχνίτρια</button></div></div>`;
-    if (sh.role === 'store') b += `<div class="field"><label>Καταστήματα που καλύπτει</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="mStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>`;
-    if (sh.role === 'user'){
-      b += `<div class="field"><label>Εβδομαδιαίο πρόγραμμα</label><div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${[0,1,2,3,4,5,6].map(w => `<div class="prm"><b class="tx">${WDF[w]}</b><select class="inp sm" style="width:150px" data-sched="${w}">${['', ...S.ctx.stores.map(x => x.id)].map(id => `<option value="${id}" ${(sh.sched[w]||'')===id?'selected':''}>${id ? esc(storeName(id)) : 'Ρεπό'}</option>`).join('')}</select></div>`).join('')}</div></div>`;
+    if (sh.role === 'store') b += `<div class="field"><label>Καταστήματα που βλέπει στην εφαρμογή</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="mStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>`;
+    if (!isAdm){
+      const hOpt = (cur, ph) => `<option value="" ${!cur ? 'selected' : ''}>${ph}</option>` + timeOpts(cur);
+      b += `<div class="field"><label>Σταθερό εβδομαδιαίο πρόγραμμα</label><div class="t2" style="margin:-2px 2px 2px">Ισχύει κάθε εβδομάδα, μέχρι να το αλλάξεις. Το «Ρεπό» είναι το σταθερό ρεπό.</div>
+        <div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${[0,1,2,3,4,5,6].map(w => { const sid = sh.sched[w] || '', hr = sh.hrs[w] || {};
+          return `<div class="prm" style="flex-wrap:wrap"><b class="tx">${WDF[w]}</b><select class="inp sm" style="width:150px" data-sched="${w}">${['', ...S.ctx.stores.map(x => x.id)].map(id => `<option value="${id}" ${sid===id?'selected':''}>${id ? esc(storeName(id)) : 'Ρεπό'}</option>`).join('')}</select>
+          ${sid ? `<div class="shrs" style="width:100%"><select class="inp sm" data-shs="${w}" aria-label="Από ${WDF[w]}">${hOpt(hr.s, 'Από το άνοιγμα')}</select><select class="inp sm" data-she="${w}" aria-label="Έως ${WDF[w]}">${hOpt(hr.e, 'Έως το κλείσιμο')}</select></div>` : ''}</div>`; }).join('')}</div></div>`;
+    }
+    if (!isAdm){
       const offs = X.off.filter(o => o.member_id === m.id);
-      b += `<div class="field"><label>Ρεπό & άδειες</label>${offs.map(o => `<div class="svc" style="cursor:default"><span style="flex:1;font-size:14px"><b>${o.kind === 'leave' ? 'Άδεια' : 'Ρεπό'}</b> · ${dlabel(parseYmd(o.date_from))}${o.date_to !== o.date_from ? ' – ' + dlabel(parseYmd(o.date_to)) : ''}</span><button class="x" data-a="offDel" data-v="${o.id}" aria-label="Αφαίρεση" style="width:34px;height:34px">✕</button></div>`).join('') || '<div class="t2">Κανένα προγραμματισμένο.</div>'}
+      b += `<div class="field"><label>Έκτακτο ρεπό / άδεια <span style="font-weight:400;color:var(--muted)">· μία φορά</span></label>${offs.map(o => `<div class="svc" style="cursor:default"><span style="flex:1;font-size:14px"><b>${o.kind === 'leave' ? 'Άδεια' : 'Ρεπό'}</b> · ${dlabel(parseYmd(o.date_from))}${o.date_to !== o.date_from ? ' – ' + dlabel(parseYmd(o.date_to)) : ''}</span><button class="x" data-a="offDel" data-v="${o.id}" aria-label="Αφαίρεση" style="width:34px;height:34px">✕</button></div>`).join('') || '<div class="t2">Κανένα προγραμματισμένο.</div>'}
         <div class="pair"><div class="field"><label for="offFrom" style="font-weight:400">Από</label><input id="offFrom" class="inp" type="date" value="${esc(sh.offFrom||'')}"></div><div class="field"><label for="offTo" style="font-weight:400">Έως</label><input id="offTo" class="inp" type="date" value="${esc(sh.offTo||'')}"></div></div>
         <div style="display:flex;gap:8px"><div class="seg" style="flex:1"><button class="${sh.offKind!=='leave'?'on':''}" data-a="offKind" data-v="day_off">Ρεπό</button><button class="${sh.offKind==='leave'?'on':''}" data-a="offKind" data-v="leave">Άδεια</button></div><button class="pill" data-a="offAdd">Προσθήκη</button></div></div>`;
     }
@@ -1036,14 +1115,14 @@ function renderSheet(){
     b += `<div class="field"><label for="mPw">Νέος κωδικός</label><div style="display:flex;gap:8px"><input id="mPw" class="inp" type="text" autocomplete="off" placeholder="τουλάχιστον 8 χαρακτήρες" value="${esc(sh.pw||'')}"><button class="pill" data-a="mPwGen" style="flex-shrink:0">Τυχαίος</button></div><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="mPwSave">Αλλαγή κωδικού</button></div>`;
     if (!self) b += `<div class="prm" style="border-top:1px solid var(--line)"><span class="tx"><b>Ενεργό</b><span class="t2" style="display:block">Αν το κλείσεις, δεν μπορεί να συνδεθεί. Το ιστορικό μένει.</span></span>${tgl(sh.active, 'mActive')}</div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
-    return sheet(esc(m.name), b, `<button class="btn primary" data-a="mSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, ROLE_NAME[m.role]);
+    return sheet(esc(m.name), b, `<button class="btn primary" data-a="mSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, ROLE_NAME[m.role] + (isAdm ? '' : ' · ο ρόλος δεν αλλάζει'));
   }
   if (sh.type === 'newMember'){
     let b = `<div class="field"><label for="nmName">Όνομα</label><input id="nmName" class="inp" value="${esc(sh.name||'')}" placeholder="π.χ. Ελένη Π."></div>
       <div class="field"><label for="nmEmail">Email σύνδεσης</label><input id="nmEmail" class="inp" type="email" autocomplete="off" value="${esc(sh.email||'')}" placeholder="name@example.com"></div>
       <div class="field"><label for="nmPw">Κωδικός</label><div style="display:flex;gap:8px"><input id="nmPw" class="inp" type="text" autocomplete="off" value="${esc(sh.pw||'')}" placeholder="τουλάχιστον 8 χαρακτήρες"><button class="pill" data-a="nmPwGen" style="flex-shrink:0">Τυχαίος</button></div></div>
       <div class="field"><label>Ρόλος</label><div class="seg"><button class="${sh.role==='store'?'on':''}" data-a="nmRole" data-v="store">Γραμματεία</button><button class="${sh.role==='user'?'on':''}" data-a="nmRole" data-v="user">Τεχνίτρια</button></div></div>
-      ${sh.role === 'store' ? `<div class="field"><label>Καταστήματα</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="nmStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>` : `<div class="t2">Τις μέρες και τα καταστήματα της τεχνίτριας τα ορίζεις μετά, από το πρόγραμμά της.</div>`}
+      ${sh.role === 'store' ? `<div class="field"><label>Καταστήματα</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="nmStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>` : `<div class="t2">Τις μέρες και τα καταστήματα της τεχνίτριας τα ορίζεις μετά, από το πρόγραμμά της.</div>`}<div class="t2">Ο ρόλος δεν αλλάζει μετά τη δημιουργία.</div>
       <div class="t2">Δώσε στο άτομο το email και τον κωδικό. Δεν στέλνεται email επιβεβαίωσης.</div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
     return sheet('Νέο άτομο', b, `<button class="btn primary" data-a="nmSave" ${S.busy?'disabled':''}>Δημιουργία λογαριασμού</button>`);
@@ -1243,7 +1322,7 @@ document.addEventListener('click', async ev => {
     case 'logout': S.sheet = null; await sb.auth.signOut(); return;
     case 'me': S.sheet = { type:'me' }; break;
     case 'closeSheet': S.sheet = null; break;
-    case 'tab': S.tab = v; S.sheet = null; if ((v === 'clients' && !S.cl.loaded) || v === 'cash') return refresh(); render(); return;
+    case 'tab': S.tab = v; S.sheet = null; if ((v === 'clients' && !S.cl.loaded) || v === 'cash' || v === 'sched') return refresh(); render(); return;
     case 'refresh': return refresh();
     case 'store': S.store = v; S.freed = null; S.cash.day = null; S.cash.loaded = false; return refresh();
     case 'view': S.view = v; S.day = null; return refresh();
@@ -1480,7 +1559,8 @@ document.addEventListener('click', async ev => {
       if (m.kind === 'appointment' && m.appointment_id) await sb.from('appointments').update({ status:'arrived' }).eq('id', m.appointment_id);
       S.sheet = null; toast('Η κίνηση διαγράφηκε'); return refresh();
     }
-    case 'settings': S.tab = 'settings'; S.set.page = null; S.set.err = null; S.sheet = null; return refresh();
+    case 'weekStep': { if (+v === 0){ const t = today(); S.week = addDays(t, -wdOf(t)); } else S.week = addDays(S.week, 7 * (+v)); break; }
+    case 'settings': S.tab = 'settings'; S.set.page = v || null; S.set.err = null; S.sheet = null; return refresh();
     case 'setBack':
       if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; break; }
       S.tab = 'appts'; S.day = null; S.view = 'cal'; return refresh();
@@ -1536,17 +1616,30 @@ document.addEventListener('click', async ev => {
     case 'mSave': {
       const X = S.set, m = X.members.find(x => x.id === sh.id), org = S.ctx.org.id;
       if (!(sh.name || '').trim()){ sh.err = 'Γράψε όνομα.'; break; }
-      if (sh.role === 'store' && !sh.stores.length){ sh.err = 'Διάλεξε τουλάχιστον ένα κατάστημα.'; break; }
+      if (sh.role === 'store' && !sh.stores.length && !Object.values(sh.sched).some(Boolean)){ sh.err = 'Διάλεξε τουλάχιστον ένα κατάστημα.'; break; }
+      const schedRows = [];
+      for (const [w, sid] of Object.entries(sh.sched)){
+        if (!sid) continue;
+        const sh0 = S.ctx.hours.find(x => x.store_id === sid && x.weekday === +w), hr = sh.hrs[w] || {};
+        let a = hr.s || null, z = hr.e || null;
+        if (a || z){
+          a = a || (sh0 && hhmm(sh0.opens)) || '10:00'; z = z || (sh0 && hhmm(sh0.closes)) || '20:00';
+          if (toTime(z) <= toTime(a)){ sh.err = WDF[+w] + ': η ώρα λήξης πρέπει να είναι μετά την έναρξη.'; break; }
+          if (sh0 && !sh0.closed && a === hhmm(sh0.opens) && z === hhmm(sh0.closes)){ a = null; z = null; }
+        }
+        schedRows.push({ member_id: sh.id, org_id: S.ctx.org.id, weekday: +w, store_id: sid, starts: a, ends: z });
+      }
+      if (sh.err) break;
       S.busy = true; paint();
       try {
         const chk = r => { if (r.error) throw r.error; };
-        chk(await sb.from('members').update({ name: sh.name.trim(), role: m.role === 'admin' ? 'admin' : sh.role, active: sh.id === S.ctx.member.id ? true : sh.active }).eq('id', sh.id));
+        chk(await sb.from('members').update({ name: sh.name.trim(), role: m.role, active: sh.id === S.ctx.member.id ? true : sh.active }).eq('id', sh.id));
         if (m.role !== 'admin'){
           chk(await sb.from('member_stores').delete().eq('member_id', sh.id));
-          const stIds = sh.role === 'store' ? sh.stores : [...new Set(Object.values(sh.sched).filter(Boolean))];
+          const stIds = [...new Set((sh.role === 'store' ? sh.stores : []).concat(Object.values(sh.sched).filter(Boolean)))];
           if (stIds.length) chk(await sb.from('member_stores').insert(stIds.map(x => ({ member_id: sh.id, store_id: x, org_id: org }))));
           chk(await sb.from('tech_schedule').delete().eq('member_id', sh.id));
-          if (sh.role === 'user'){ const rows = Object.entries(sh.sched).filter(([, x]) => x).map(([w, x]) => ({ member_id: sh.id, org_id: org, weekday: +w, store_id: x })); if (rows.length) chk(await sb.from('tech_schedule').insert(rows)); }
+          if (schedRows.length) chk(await sb.from('tech_schedule').insert(schedRows));
           chk(await sb.from('member_permissions').delete().eq('member_id', sh.id));
           const pr = Object.entries(sh.perms).filter(([, l]) => l).map(([t, l]) => ({ member_id: sh.id, org_id: org, tab: t, level: l }));
           if (pr.length) chk(await sb.from('member_permissions').insert(pr));
@@ -1571,7 +1664,7 @@ document.addEventListener('click', async ev => {
         await reloadCtx(); await loadSettings();
         S.busy = false;
         const em = sh.email.trim(), pw = sh.pw, nm = sh.name.trim();
-        if (d && d.member_id && sh.role === 'user' && S.set.members.some(x => x.id === d.member_id)){ openMemberSheet(d.member_id); toast('Δημιουργήθηκε · όρισε τώρα το πρόγραμμά της'); }
+        if (d && d.member_id && S.set.members.some(x => x.id === d.member_id)){ openMemberSheet(d.member_id); toast('Δημιουργήθηκε · όρισε τώρα το πρόγραμμα'); }
         else { S.sheet = null; toast('Δημιουργήθηκε ο λογαριασμός ' + em); }
       } catch(e){ S.busy = false; sh.err = e.message; }
       break;
@@ -1685,7 +1778,8 @@ document.addEventListener('change', async ev => {
     toast(ROLE_NAME[r] + ' · ' + TAB_NAMES[t] + ': ' + LV_NAMES[lv]); return;
   }
   if (!sh) return;
-  if (ds.sched != null){ sh.sched[+ds.sched] = ev.target.value || null; return; }
+  if (ds.sched != null){ sh.sched[+ds.sched] = ev.target.value || null; if (!ev.target.value) delete sh.hrs[+ds.sched]; paint(); return; }
+  if (ds.shs != null || ds.she != null){ const w = +(ds.shs ?? ds.she); sh.hrs[w] = sh.hrs[w] || {}; sh.hrs[w][ds.shs != null ? 's' : 'e'] = ev.target.value || null; return; }
   if (ds.mperm){ sh.perms[ds.mperm] = ev.target.value || null; return; }
   if (id === 'svCat'){ sh.cat = ev.target.value; return; }
   if (id === 'offFrom' || id === 'offTo'){ sh[id] = ev.target.value; return; }
