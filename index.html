@@ -114,6 +114,13 @@ textarea.inp{height:auto;min-height:80px;line-height:1.4;padding:12px 14px;resiz
 select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;padding:0 30px 0 10px;background-position:right 10px center;border-radius:12px}
 .pgrid{display:grid;grid-template-columns:minmax(0,1fr) 116px 116px;gap:8px;align-items:center}
 .pgrid .h{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+.field.bad>label{color:var(--neg)}
+.field.bad>label::after{content:" · Υποχρεωτικό";font-weight:600;font-size:12px}
+.field.bad .inp:not(.ok),.field.bad .svc:not(.on),.inp.bad{border-color:var(--neg)!important;background:var(--negbg)}
+.warn{background:var(--negbg);color:var(--neg);border:1.5px solid var(--neg);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.4}
+.warn b{font-size:14px}
+.blk.ovl{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg)}
+.blk .ov{display:inline-flex;align-items:center;gap:2px;background:var(--neg);color:#fff;border-radius:6px;padding:0 5px;font-size:10px;font-weight:800;flex-shrink:0;line-height:16px}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -309,6 +316,20 @@ function techsFor(storeId, d){
   });
   const order = id => S.ctx.techs.findIndex(t => t.id === id);
   return { on: on.sort((a,b) => order(a)-order(b)), off };
+}
+// Υπερκαλύψεις ραντεβού της ίδιας τεχνίτριας (στριμωγμένα)
+function overlapMap(list){
+  const act = list.filter(a => ['booked','arrived','done'].includes(a.status)), out = {};
+  act.forEach(a => {
+    const s1 = new Date(a.starts_at), e1 = new Date(a.ends_at);
+    act.forEach(b => {
+      if (a === b || a.tech_id !== b.tech_id) return;
+      const s2 = new Date(b.starts_at), e2 = new Date(b.ends_at);
+      const ov = Math.min(e1, e2) - Math.max(s1, s2);
+      if (ov > 0) (out[a.id] = out[a.id] || []).push({ a: b, min: Math.round(ov / 60000) });
+    });
+  });
+  return out;
 }
 function gapsFor(storeId, d, techId, appts){
   const h = storeHours(storeId, d); if (!h) return [];
@@ -614,21 +635,25 @@ function renderDay(){
   cols.forEach(t => {
     if (off.includes(t)) { h += `<div class="col offcol"><span class="tag t-gray" style="background:var(--surface)">Ρεπό</span></div>`; return; }
     let c = `<div class="col">${lines}`;
+    const ovm = overlapMap(S.dayAppts);
     S.dayAppts.filter(a => a.tech_id === t).forEach(a => {
-      const s = minsOf(a.starts_at), e = minsOf(a.ends_at);
+      const s = minsOf(a.starts_at), e = minsOf(a.ends_at), ovs = ovm[a.id] || [];
+      const lane = ovs.filter(o => new Date(o.a.starts_at) < new Date(a.starts_at) || (o.a.starts_at === a.starts_at && o.a.id < a.id)).length % 2;
+      const pos = ovs.length ? (lane ? 'left:50%;right:3px;' : 'left:3px;right:50%;') : '';
+      const ovTag = ovs.length ? `<span class="ov" title="Υπερκάλυψη">⚠ ${Math.max(...ovs.map(o => o.min))}΄</span>` : '';
       const nm = a.client ? (isTech() ? a.client.name : a.client.name.split(' ')[0] + (a.client.name.split(' ')[1] ? ' ' + a.client.name.split(' ')[1][0] + '.' : '')) : '—';
       const w = !isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '';
       const hpx = (e-s)*PX-2, short = hpx < 46;
       c += short
-        ? `<button class="blk short b-${a.status}" style="top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
-        : `<button class="blk b-${a.status}" style="top:${(s-hrs[0])*PX+1}px;height:${hpx}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}</b>${hm(s)}–${hm(e)} · ${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
+        ? `<button class="blk short b-${a.status}${ovs.length?' ovl':''}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
+        : `<button class="blk b-${a.status}${ovs.length?' ovl':''}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${hpx}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b>${hm(s)}–${hm(e)} · ${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
     });
     if (!isTech() && can('appts','write')) gapsFor(S.store, d, t, S.dayAppts).forEach(g => {
       c += `<button class="gap" style="top:${(g[0]-hrs[0])*PX+2}px;height:${(g[1]-g[0])*PX-4}px" data-a="newAppt" data-t="${t}" data-m="${g[0]}" aria-label="Νέο ραντεβού ${hm(g[0])}"><span style="font-size:16px;line-height:1">+</span><span class="num">${hm(g[0])}</span></button>`;
     });
     h += c + '</div>';
   });
-  h += `</div><div class="legend"><span><i style="background:var(--lilac)"></i>Κλεισμένο</span><span><i style="background:var(--tealbg)"></i>Ήρθε</span><span><i style="background:var(--chip)"></i>Ολοκληρώθηκε</span></div>`;
+  h += `</div><div class="legend"><span><i style="background:var(--lilac)"></i>Κλεισμένο</span><span><i style="background:var(--tealbg)"></i>Ήρθε</span><span><i style="background:var(--chip)"></i>Ολοκληρώθηκε</span>${Object.keys(overlapMap(S.dayAppts)).length ? '<span><i style="background:var(--neg)"></i>Υπερκάλυψη</span>' : ''}</div>`;
   if (!isTech() && can('appts','write')) h += `<button class="btn navy" data-a="newAppt">+ Νέο ραντεβού</button>`;
   return h;
 }
@@ -879,11 +904,12 @@ function sheet(title, body, foot, sub){
     <div class="sb">${body}</div>${foot?`<div class="sf">${foot}</div>`:''}</div></div>`;
 }
 function clientPicker(sh){
-  let h = `<div class="field"><label for="clientQ">Πελάτισσα</label>`;
+  const bad = sh.miss && sh.miss.client;
+  let h = `<div class="field${bad ? ' bad' : ''}" id="fClient"><label for="clientQ">Πελάτισσα</label>`;
   if (sh.client){
     h += `<div class="svc on">${av(sh.client.name, 36)}<span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(sh.client.name)}</span><span class="t2 num" style="display:block">${esc(sh.client.phone||'')}${sh.client.note?' · «'+esc(sh.client.note)+'»':''}</span></span><button class="pill" data-a="clearClient">Αλλαγή</button></div>`;
   } else if (sh.newClient){
-    h += `<input id="ncName" class="inp" placeholder="Ονοματεπώνυμο" value="${esc(sh.ncName||'')}"><input id="ncPhone" class="inp num" inputmode="tel" placeholder="Τηλέφωνο" value="${esc(sh.ncPhone||'')}">
+    h += `<input id="ncName" class="inp" placeholder="Ονοματεπώνυμο" value="${esc(sh.ncName||'')}"><input id="ncPhone" class="inp num ok" inputmode="tel" placeholder="Τηλέφωνο" value="${esc(sh.ncPhone||'')}">
       <label style="display:flex;gap:10px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="ncGdpr" ${sh.ncGdpr?'checked':''} style="width:20px;height:20px"> Συγκατάθεση για αποθήκευση στοιχείων</label>
       <button class="pill" data-a="pickExisting" style="align-self:flex-start">Υπάρχουσα πελάτισσα</button>`;
   } else {
@@ -897,9 +923,18 @@ function clientPicker(sh){
 function servicePicker(sh){
   const picked = S.ctx.services.filter(s => sh.svcs.includes(s.id));
   const min = picked.reduce((s, x) => s + x.duration_min, 0);
-  return `<div class="field"><label>Υπηρεσίες <span style="font-weight:400;color:var(--muted)">· ${picked.length} επιλεγμένες · ${min}΄</span></label>
+  return `<div class="field${sh.miss && sh.miss.svcs ? ' bad' : ''}" id="fSvcs"><label>Υπηρεσίες <span style="font-weight:400;color:var(--muted)">· ${picked.length} επιλεγμένες · ${min}΄</span></label>
     <div class="seg sm">${S.ctx.cats.map(c => `<button class="${sh.cat===c.id?'on':''}" data-a="sheetCat" data-v="${c.id}">${esc(c.name)}</button>`).join('')}</div>
     ${S.ctx.services.filter(s => s.active && s.category_id === sh.cat).map(s => `<button class="svc ${sh.svcs.includes(s.id)?'on':''}" data-a="pickSvc" data-v="${s.id}"><span class="box">✓</span><span style="flex:1;font-size:14px;font-weight:600">${esc(s.name)}</span><span class="t2 num" style="margin:0">${s.duration_min}΄</span><b class="num" style="min-width:48px;text-align:right">${eur0(s.price)}</b></button>`).join('')}</div>`;
+}
+function squeezeInfo(sh, m, min){
+  const e = m + min, items = [];
+  (sh.appts || []).filter(a => a.tech_id === sh.t && ['booked','arrived','done'].includes(a.status)).forEach(a => {
+    const s2 = minsOf(a.starts_at), e2 = minsOf(a.ends_at), o = Math.min(e, e2) - Math.max(m, s2);
+    if (o > 0) items.push({ min: o, s: s2, e: e2, name: a.clients ? a.clients.name : 'άλλο ραντεβού' });
+  });
+  const h = storeHours(sh.store, sh.d), late = h && e > h[1] ? e - h[1] : 0;
+  return { items, total: items.reduce((x, o) => x + o.min, 0), late };
 }
 function renderSheet(){
   const sh = S.sheet;
@@ -913,6 +948,8 @@ function renderSheet(){
     const st = { booked:['Κλεισμένο','t-lilac'], arrived:['Ήρθε','t-teal'], done:['Ολοκληρώθηκε','t-gray'] }[a.status] || ['—','t-gray'];
     const s = minsOf(a.starts_at), e = minsOf(a.ends_at);
     let b = `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 50)}<div style="flex:1;min-width:0"><div class="t1" style="font-size:17px">${esc(c.name)} ${S.winter.has(a.client_id)?'<span class="mk">Χ</span>':''}</div>${!isTech() && c.phone ? `<div class="t2 num" style="user-select:all">${esc(c.phone)}</div>` : ''}</div><span class="tag ${st[1]}">${st[0]}</span></div>`;
+    const ovs = overlapMap(S.dayAppts)[a.id] || [];
+    if (ovs.length) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Υπερκάλυψη</b><br>${ovs.map(o => `${o.min}΄ με ${esc(o.a.client ? o.a.client.name : 'άλλο ραντεβού')} (${hm(minsOf(o.a.starts_at))}–${hm(minsOf(o.a.ends_at))})`).join('<br>')}<br>Χρειάζεται πιο γρήγορη εξυπηρέτηση για να μην υπάρξει καθυστέρηση.</span></div>`;
     if (c.note && !isTech()) b += `<div style="background:var(--goldbg);color:var(--gold);border-radius:12px;padding:9px 12px;font-size:13px">Σημείωση: ${esc(c.note)}</div>`;
     if (isTech()) b += `<div><div class="lbl" style="margin-bottom:6px">Υπηρεσίες</div><div>${esc(a.svcText || '')}</div></div><div class="lock">${I.lock} Μόνο προβολή. Αλλαγές κάνει η γραμματεία.</div>`;
     else {
@@ -946,15 +983,23 @@ function renderSheet(){
     const need = Math.max(min, 15), times = [];
     g.forEach(x => { for (let m = x[0]; m + need <= x[1]; m += 15) times.push(m); });
     if (sh.m != null && !times.includes(sh.m) && min === 0 && g.some(x => sh.m >= x[0] && sh.m < x[1])) times.unshift(sh.m);
+    const sq = !!sh.squeeze, sqTimes = [];
+    if (sq) g.forEach(x => { for (let m = x[0]; m < x[1]; m += 15) sqTimes.push(m); });
+    const list = sq ? sqTimes : times;
+    const selM = list.includes(sh.m) ? sh.m : (list[0] ?? null);
+    const ov = sq && selM != null && min ? squeezeInfo(sh, selM, min) : null;
     let b = S.ctx.stores.length > 1 ? `<div class="field"><label>Κατάστημα</label><div class="seg">${S.ctx.stores.map(x => `<button class="${st===x.id?'on':''}" data-a="newStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>` : '';
     b += `<div class="pair">
       <div class="field"><label for="nDay">Ημέρα</label><input id="nDay" class="inp" type="date" value="${ymd(d)}"></div>
       <div class="field"><label for="nTech">Τεχνίτρια</label><select id="nTech" class="inp">${on.length ? on.map(t => `<option value="${t}" ${sh.t===t?'selected':''}>${esc(tech(t).name)}</option>`).join('') : '<option value="">Καμία σε βάρδια</option>'}</select></div></div>`;
     b += clientPicker(sh) + servicePicker(sh);
-    b += `<div class="field"><label for="nTime">Ώρα ${min ? `<span style="font-weight:400;color:var(--muted)">· κενά που χωράνε ${min}΄</span>` : ''}</label>
-      ${!hrs ? '<div class="t2">Το κατάστημα είναι κλειστό αυτή τη μέρα.</div>' : times.length ? `<select id="nTime" class="inp num">${times.map(m => `<option value="${m}" ${sh.m===m?'selected':''}>${hm(m)}</option>`).join('')}</select>` : '<div class="t2">Δεν υπάρχει κενό που να χωράει. Δοκίμασε άλλη τεχνίτρια ή μέρα.</div>'}</div>`;
+    b += `<div class="field${sh.miss && sh.miss.time ? ' bad' : ''}" id="fTime"><label for="nTime">Ώρα ${min ? `<span style="font-weight:400;color:var(--muted)">· ${sq ? 'όλες οι ώρες μέσα σε κενά' : 'κενά που χωράνε ' + min + '΄'}</span>` : ''}</label>
+      ${!hrs ? '<div class="t2">Το κατάστημα είναι κλειστό αυτή τη μέρα.</div>' : list.length ? `<select id="nTime" class="inp num${ov && ov.total ? ' bad' : ''}">${list.map(m => `<option value="${m}" ${selM===m?'selected':''}>${hm(m)}${sq && !times.includes(m) ? ' · δεν χωράει' : ''}</option>`).join('')}</select>` : `<div class="t2">${sq ? 'Η τεχνίτρια δεν έχει κανένα κενό αυτή τη μέρα.' : 'Δεν υπάρχει κενό που να χωράει ολόκληρο το ραντεβού.'}</div>`}
+      ${hrs && sh.t && min ? `<div class="prm" style="border:none;padding:4px 0 0"><span class="tx"><b>Στρίμωγμα</b><span class="t2" style="display:block">Κλείσε σε κενό που δεν χωράει ολόκληρο το ραντεβού</span></span>${tgl(sq, 'squeeze', null, 'Στρίμωγμα')}</div>` : ''}</div>`;
+    if (ov && ov.total) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Υπερκάλυψη ${ov.total}΄</b><br>${ov.items.map(o => `${o.min}΄ με ${esc(o.name)} (${hm(o.s)}–${hm(o.e)})`).join('<br>')}${ov.late ? `<br>Ξεπερνά το ωράριο κατά ${ov.late}΄.` : ''}<br>Θα σημειωθεί με κόκκινο στο πρόγραμμα, για πιο γρήγορη εξυπηρέτηση.</span></div>`;
+    else if (ov && ov.late) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Ξεπερνά το ωράριο κατά ${ov.late}΄</b></span></div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
-    return sheet('Νέο ραντεβού', b, `<button class="btn primary split" data-a="saveAppt" ${S.busy?'disabled':''}><span>Κλείσε ραντεβού</span><span class="num">${min}΄ · ${eur0(e)}</span></button>`, esc(storeName(st)));
+    return sheet('Νέο ραντεβού', b, `<button class="btn ${ov && ov.total ? 'danger' : 'primary'} split" data-a="saveAppt" ${S.busy?'disabled':''}${ov && ov.total ? ' style="border:1.5px solid var(--neg)"' : ''}><span>${ov && ov.total ? 'Κλείσε με υπερκάλυψη' : 'Κλείσε ραντεβού'}</span><span class="num">${min}΄ · ${eur0(e)}</span></button>`, esc(storeName(st)));
   }
   if (sh.type === 'wait'){
     let b = clientPicker(sh) + servicePicker(sh);
@@ -1123,7 +1168,7 @@ async function openNew(d, t, m){
 }
 async function loadNewDay(preferTech){
   const sh = S.sheet, d0 = at(sh.d, 0);
-  const { data, error } = await sb.from('appointments').select('id,tech_id,starts_at,ends_at,status').eq('store_id', sh.store)
+  const { data, error } = await sb.from('appointments').select('id,tech_id,starts_at,ends_at,status,clients(name)').eq('store_id', sh.store)
     .gte('starts_at', d0.toISOString()).lt('starts_at', addDays(d0, 1).toISOString()).in('status', ['booked','arrived','done']);
   if (error){ sh.err = friendlyError(error); paint(); return; }
   sh.appts = data;
@@ -1159,9 +1204,9 @@ async function ensureClient(sh){
   sh.client = data; sh.newClient = false;
   return data.id;
 }
-async function bookSlot({ storeId, techId, clientId, start, end, svcs }){
+async function bookSlot({ storeId, techId, clientId, start, end, svcs, squeezed }){
   const { data: ap, error } = await sb.from('appointments').insert({ org_id: S.ctx.org.id, store_id: storeId, tech_id: techId, client_id: clientId,
-    starts_at: start.toISOString(), ends_at: end.toISOString() }).select('id').single();
+    starts_at: start.toISOString(), ends_at: end.toISOString(), squeezed: !!squeezed }).select('id').single();
   if (error) throw error;
   if (svcs.length){
     const rows = svcs.map(s => ({ org_id: S.ctx.org.id, store_id: storeId, appointment_id: ap.id, service_id: s.id, name: s.name, duration_min: s.duration_min, price: s.price }));
@@ -1213,29 +1258,42 @@ document.addEventListener('click', async ev => {
     }
     case 'openAppt': { const ap = S.dayAppts.find(x => x.id === v); if (ap) S.sheet = { type:'appt', a: ap }; break; }
     case 'newAppt': await openNew(S.day, el.dataset.t, el.dataset.m != null ? +el.dataset.m : null); return;
-    case 'pickClient': { sh.client = (sh.results||[]).find(c => c.id === v); sh.err = null; break; }
+    case 'pickClient': { sh.client = (sh.results||[]).find(c => c.id === v); sh.err = null; if (sh.miss) sh.miss.client = false; break; }
+    case 'squeeze': sh.squeeze = !sh.squeeze; if (sh.miss) sh.miss.time = false; sh.err = null; break;
     case 'clearClient': sh.client = null; sh.q = ''; sh.results = []; break;
     case 'newClient': sh.newClient = true; sh.ncName = sh.q || ''; break;
     case 'pickExisting': sh.newClient = false; break;
     case 'sheetCat': sh.cat = v; break;
     case 'newStore': if (sh.store !== v){ sh.store = v; sh.t = null; sh.m = null; await loadNewDay(); return; } break;
-    case 'pickSvc': sh.svcs = sh.svcs.includes(v) ? sh.svcs.filter(x => x !== v) : sh.svcs.concat(v); sh.err = null; break;
+    case 'pickSvc': sh.svcs = sh.svcs.includes(v) ? sh.svcs.filter(x => x !== v) : sh.svcs.concat(v); sh.err = null; if (sh.miss){ sh.miss.svcs = false; sh.miss.time = false; } break;
     case 'saveAppt': {
       sh.err = null;
       const svcs = S.ctx.services.filter(s => sh.svcs.includes(s.id));
-      if (!sh.client && !sh.newClient){ sh.err = 'Διάλεξε πελάτισσα.'; break; }
-      if (!svcs.length){ sh.err = 'Διάλεξε τουλάχιστον μία υπηρεσία.'; break; }
-      if (!sh.t){ sh.err = 'Δεν υπάρχει τεχνίτρια σε βάρδια αυτή τη μέρα.'; break; }
-      const tEl = document.getElementById('nTime'); if (tEl) sh.m = +tEl.value;
+      const tEl = document.getElementById('nTime'); sh.m = tEl ? +tEl.value : null;
       const dur = svcs.reduce((s, x) => s + x.duration_min, 0);
-      if (sh.m == null || !gapsFor(sh.store, sh.d, sh.t, sh.appts).some(g => sh.m >= g[0] && sh.m + dur <= g[1])){ sh.err = 'Η ώρα δεν χωράει ' + dur + ' λεπτά. Διάλεξε άλλη ώρα.'; break; }
+      const gaps = sh.t ? gapsFor(sh.store, sh.d, sh.t, sh.appts) : [];
+      const fits = sh.m != null && gaps.some(g => sh.m >= g[0] && sh.m + dur <= g[1]);
+      const inGap = sh.m != null && gaps.some(g => sh.m >= g[0] && sh.m < g[1]);
+      sh.miss = {
+        client: !sh.client && !(sh.newClient && (sh.ncName||'').trim()),
+        svcs: !svcs.length,
+        time: !!sh.t && (sh.m == null || (svcs.length > 0 && !fits && !(sh.squeeze && inGap)))
+      };
+      const missing = Object.keys(sh.miss).filter(k => sh.miss[k]);
+      if (!sh.t){ sh.err = 'Δεν υπάρχει τεχνίτρια σε βάρδια αυτή τη μέρα.'; break; }
+      if (missing.length){
+        sh.err = missing.length > 1 ? 'Συμπλήρωσε τα πεδία με κόκκινο.' : missing[0] === 'client' ? 'Διάλεξε ή γράψε πελάτισσα.' : missing[0] === 'svcs' ? 'Διάλεξε τουλάχιστον μία υπηρεσία.' : 'Η ώρα δεν χωράει ' + dur + '΄. Διάλεξε άλλη ώρα ή άνοιξε το στρίμωγμα.';
+        paint(); const f = document.querySelector('.sheet .field.bad'); if (f) f.scrollIntoView({ block:'center', behavior:'smooth' });
+        return;
+      }
+      const sqz = !fits && sh.squeeze && squeezeInfo(sh, sh.m, dur).total > 0;
       S.busy = true; paint();
       try {
         const cid = await ensureClient(sh);
-        await bookSlot({ storeId: sh.store, techId: sh.t, clientId: cid, start: at(sh.d, sh.m), end: at(sh.d, sh.m + dur), svcs });
+        await bookSlot({ storeId: sh.store, techId: sh.t, clientId: cid, start: at(sh.d, sh.m), end: at(sh.d, sh.m + dur), svcs, squeezed: sqz });
         if (S.freed && S.freed.tech === sh.t && sameDay(S.freed.day, sh.d)) S.freed = null;
         const d = sh.d; S.sheet = null; S.busy = false;
-        toast('Κλείστηκε · ' + dlabel(d) + ' ' + hm(sh.m));
+        toast((sqz ? 'Κλείστηκε με υπερκάλυψη · ' : 'Κλείστηκε · ') + dlabel(d) + ' ' + hm(sh.m));
         if (S.day) S.day = d;
         return refresh();
       } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
@@ -1281,8 +1339,8 @@ document.addEventListener('click', async ev => {
     case 'waitP': sh.wp = v; break;
     case 'saveWait': {
       const svcs = S.ctx.services.filter(s => sh.svcs.includes(s.id));
-      if (!sh.client && !sh.newClient){ sh.err = 'Διάλεξε πελάτισσα.'; break; }
-      if (!svcs.length){ sh.err = 'Διάλεξε τουλάχιστον μία υπηρεσία.'; break; }
+      sh.miss = { client: !sh.client && !(sh.newClient && (sh.ncName||'').trim()), svcs: !svcs.length };
+      if (sh.miss.client || sh.miss.svcs){ sh.err = sh.miss.client && sh.miss.svcs ? 'Συμπλήρωσε τα πεδία με κόκκινο.' : sh.miss.client ? 'Διάλεξε ή γράψε πελάτισσα.' : 'Διάλεξε τουλάχιστον μία υπηρεσία.'; break; }
       S.busy = true; paint();
       try {
         const cid = await ensureClient(sh);
@@ -1612,7 +1670,7 @@ document.addEventListener('input', ev => {
   if (id === 'caNote'){ sh.note = val; return; }
   if (sh.type === 'cedit'){ const k = { ceName:'name', cePhone:'phone', ceBd:'birthday', ceEmail:'email', ceNote:'note' }[id]; if (k) sh[k] = val; return; }
   if (id === 'clientQ') return searchClients(val);
-  if (id === 'ncName') sh.ncName = val;
+  if (id === 'ncName'){ sh.ncName = val; if (sh.miss && sh.miss.client && val.trim()){ sh.miss.client = false; const f = document.getElementById('fClient'); if (f) f.classList.remove('bad'); } }
   if (id === 'ncPhone') sh.ncPhone = val;
   if (id === 'wNote') sh.note = val;
 });
@@ -1634,7 +1692,7 @@ document.addEventListener('change', async ev => {
   if (id === 'ncGdpr') sh.ncGdpr = ev.target.checked;
   if (id === 'ceGdpr') sh.gdpr = ev.target.checked;
   if (id === 'ceBd') sh.birthday = ev.target.value;
-  if (id === 'nTime') sh.m = +ev.target.value;
+  if (id === 'nTime'){ sh.m = +ev.target.value; if (sh.miss) sh.miss.time = false; if (sh.squeeze) paint(); }
   if (id === 'nTech'){ sh.t = ev.target.value; const g = gapsFor(sh.store, sh.d, sh.t, sh.appts)[0]; sh.m = g ? g[0] : null; paint(); }
   if (id === 'nDay' && ev.target.value){ const [y, m, d] = ev.target.value.split('-').map(Number); sh.d = new Date(y, m-1, d); sh.m = null; await loadNewDay(sh.t); }
 });
