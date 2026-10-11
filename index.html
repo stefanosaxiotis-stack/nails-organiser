@@ -16,7 +16,7 @@
   --teal:#0B7F74; --tealbg:#D6EFEB; --tealink:#0B5E55;
   --coral:#C8455F; --neg:#B3344F; --negbg:#FBE7EB; --pos:#2F7D4F; --posbg:#DDEFE2;
   --lilac:#E7E6F5; --gold:#7A4E14; --goldbg:#FBF3E6; --amber:#B9772A;
-  --winter:#1F5FA8; --winterbg:#DCE9F8;
+  --winter:#1F5FA8; --winterbg:#DCE9F8; --summer:#A0521C; --summerbg:#FBEBDD;
   --hatch:#ECEBF1; --scrim:rgba(20,20,45,.45);
   --font-display:Comfortaa, "Varela Round", system-ui, sans-serif;
   --font-body:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
@@ -25,7 +25,7 @@
   --bg:#121329; --surface:#1C1D3A; --chip:#26274A; --track:#2A2B4E; --line:#33345A;
   --ink:#EDEDF7; --ink2:#C2C2DD; --muted:#A3A3C6; --head:#0C0D22; --head2:#2A2B52; --headmuted:#A3A3C6;
   --teal:#13998B; --tealbg:#123F3B; --tealink:#8FE0D4; --coral:#D9607A; --neg:#F08AA0; --negbg:#3D1F2A; --pos:#7FD39C; --posbg:#183A27;
-  --lilac:#2E2D55; --gold:#E6C48A; --goldbg:#3A2E1A; --amber:#E0A458; --winter:#9CC4F2; --winterbg:#1B3352;
+  --lilac:#2E2D55; --gold:#E6C48A; --goldbg:#3A2E1A; --amber:#E0A458; --winter:#9CC4F2; --winterbg:#1B3352; --summer:#F0B27A; --summerbg:#3D2A1A;
   --hatch:#23244A; --scrim:rgba(0,0,0,.6); color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -76,6 +76,21 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:8px;padding:2px 8px}
 .t-teal{background:var(--tealbg);color:var(--tealink)}.t-lilac{background:var(--lilac);color:var(--ink)}.t-gray{background:var(--chip);color:var(--muted)}.t-neg{background:var(--negbg);color:var(--neg)}.t-gold{background:var(--goldbg);color:var(--gold)}
 .mk{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;border-radius:6px;min-width:18px;height:18px;padding:0 4px;background:var(--winterbg);color:var(--winter)}
+.mk.m-x{background:var(--winterbg);color:var(--winter)}.mk.m-k{background:var(--summerbg);color:var(--summer)}.mk.m-v{background:var(--goldbg);color:var(--gold)}.mk.m-ns{background:var(--negbg);color:var(--neg)}.mk.m-bd{background:var(--posbg);color:var(--pos)}
+.stage{font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
+.st-new{background:var(--tealbg);color:var(--tealink)}.st-once,.st-none{background:var(--chip);color:var(--muted)}.st-regular{background:var(--posbg);color:var(--pos)}.st-late{background:var(--goldbg);color:var(--gold)}.st-lost{background:var(--negbg);color:var(--neg)}
+.hs{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}.hs::-webkit-scrollbar{display:none}
+.hs .pill{flex-shrink:0}.pill .ct{font-size:11px;opacity:.7}
+.srch{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:0 14px;min-height:48px}
+.srch input{border:none;outline:none;background:transparent;font-size:16px;flex:1;color:var(--ink);min-width:0;font-family:inherit}
+.why{background:var(--chip);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:8px}
+.why div{display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+.months div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--muted)}
+.months i{display:block;width:100%;height:34px;border-radius:5px;background:var(--chip);position:relative;overflow:hidden}
+.months i.sea{outline:1.5px dashed var(--summer);outline-offset:-1.5px}
+.months i b{position:absolute;left:0;right:0;bottom:0;background:var(--teal)}
+textarea.inp{height:auto;min-height:80px;line-height:1.4;padding:12px 14px;resize:vertical}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -83,8 +98,9 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .dcell .n{font-size:14px;font-weight:700}.dcell .c{font-size:10px;color:var(--muted)}
 .dcell.past{background:var(--chip);border-color:var(--chip)}
 .dcell.closed{background:transparent;border-style:dashed;color:var(--muted)}
-.dcell.today{border:2px solid var(--ink)}
 .dcell.blank{visibility:hidden}
+.dcell.today{border:2.5px solid var(--teal)!important;box-shadow:0 0 0 2px var(--tealbg)}
+.dcell.today .n{color:var(--teal);font-weight:800}
 .dcell .rev{font-size:10px;font-weight:700;color:var(--pos);margin-top:auto}
 .avail{width:70%;height:4px;border-radius:2px;background:var(--track);margin-top:auto;overflow:hidden}.avail i{display:block;height:4px;border-radius:2px}
 .fr-hi{background:var(--posbg)!important;border-color:var(--posbg)!important}.fr-mid{background:var(--goldbg)!important;border-color:var(--goldbg)!important}.fr-full{background:var(--negbg)!important;border-color:var(--negbg)!important}
@@ -204,7 +220,8 @@ const S = {
   ctx:null,               // { member, org, settings, stores, levels, techs, hours, schedule, timeOff, services, cats }
   tab:'appts', store:null, view:'cal', month:null, day:null, freeOnly:false,
   monthAppts:[], dayAppts:[], wait:[], winter:new Set(), freed:null,
-  sheet:null, toast:null, busy:false
+  sheet:null, toast:null, busy:false,
+  cl:{ list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }
 };
 
 // ===== Δεδομένα =====
@@ -317,10 +334,41 @@ async function loadWait(){
     if (!r.error) S.winter = new Set(r.data.filter(x => x.winter).map(x => x.client_id));
   }
 }
+// ----- Πελάτες -----
+const norm = t => String(t||'').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const marksOn = () => { const r = role(), st = S.ctx.settings || {}; return r === 'admin' || (r === 'store' && st.marks_store) || (r === 'user' && st.marks_tech); };
+const STAGES = [['all','Όλες'],['regular','Τακτικές'],['late','Άργησαν'],['lost','Χάθηκαν'],['new','Νέες'],['once','Δεν επέστρεψαν'],['none','Χωρίς επίσκεψη']];
+const STN = { new:'Νέα', once:'Δεν επέστρεψε', regular:'Τακτική', late:'Άργησε', lost:'Χάθηκε', none:'Χωρίς επίσκεψη' };
+const TAGS = [['vip','★ VIP'],['winter','Χ · Χειμώνα'],['summer','Κ · Καλοκαίρι'],['no_shows','No-show'],['birthday_soon','Γενέθλια σύντομα']];
+const daysSince = d => d ? Math.round((today() - parseYmd(d)) / 864e5) : null;
+async function loadClients(){
+  const org = S.ctx.org.id;
+  const [c, g] = await Promise.all([
+    sb.from('clients').select('id,name,phone,email,birthday,note,manual_winter,gdpr_consent').eq('org_id', org).eq('anonymized', false).order('name').limit(5000),
+    sb.rpc('client_segments', { p_org: org })
+  ]);
+  if (c.error) throw c.error;
+  if (g.error) throw g.error;
+  S.cl.list = c.data;
+  S.cl.seg = new Map(g.data.map(x => [x.client_id, x]));
+  S.winter = new Set(g.data.filter(x => x.winter).map(x => x.client_id)); S.winterLoaded = true;
+  S.cl.loaded = true;
+}
+const segOf = id => S.cl.seg.get(id) || { stage:'none', visits_12m:0 };
+function marks(sg, opt){
+  let h = '';
+  if (sg.vip) h += '<span class="mk m-v" title="VIP">★</span>';
+  if (sg.winter) h += '<span class="mk m-x" title="Πελάτισσα χειμώνα">Χ</span>';
+  if (sg.summer) h += '<span class="mk m-k" title="Πελάτισσα καλοκαιριού">Κ</span>';
+  if (opt && opt.ns && sg.no_shows) h += `<span class="mk m-ns" title="Δεν ήρθε ${sg.no_shows} φορές">NS${sg.no_shows > 1 ? ' ' + sg.no_shows : ''}</span>`;
+  if (sg.birthday_soon) h += '<span class="mk m-bd" title="Γενέθλια σύντομα">🎂</span>';
+  return h;
+}
 async function refresh(){
   try {
     S.busy = true; render();
-    if (S.view === 'wait') await loadWait();
+    if (S.tab === 'clients') await loadClients();
+    else if (S.view === 'wait') await loadWait();
     else if (S.day) await loadDay(); else await loadMonth();
   } catch(e) { toast(friendlyError(e)); }
   S.busy = false; render();
@@ -350,7 +398,7 @@ function render(){
   const badge = S.freed && matches().length ? `<span class="badge">${matches().length}</span>` : '';
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'appts' ? renderAppts() : renderSoon()}</main>
+    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${S.tab===t?'on':''}" data-a="tab" data-v="${t}">${t==='appts'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
@@ -394,7 +442,7 @@ function renderMonth(){
     const hrs = storeHours(S.store, d);
     const ap = S.monthAppts.filter(a => sameDay(new Date(a.starts_at), d));
     tot += ap.length;
-    if (!hrs && !ap.length){ cells.push(`<div class="dcell closed"><span class="n" style="font-weight:400">${dn}</span><span class="c">κλειστά</span></div>`); continue; }
+    if (!hrs && !ap.length){ cells.push(`<div class="dcell closed${sameDay(d, t0) ? ' today' : ''}"${sameDay(d, t0) ? ' aria-current="date"' : ''}><span class="n" style="font-weight:400">${dn}</span><span class="c">κλειστά</span></div>`); continue; }
     const past = d < t0, isToday = sameDay(d, t0);
     let ts = techsFor(S.store, d).on; if (isTech()) ts = ts.filter(x => x === S.ctx.member.id);
     const cap = hrs ? ts.length * (hrs[1] - hrs[0]) : 0;
@@ -404,7 +452,7 @@ function renderMonth(){
     if (S.freeOnly && !past){ cls += ratio > .3 ? ' fr-hi' : ratio > .1 ? ' fr-mid' : ' fr-full'; extra = `<span class="c" style="margin-top:auto;font-weight:700;color:var(--ink)">${ratio <= .02 ? 'γεμάτη' : (Math.round(free/6)/10) + ' ώρ.'}</span>`; }
     else if (past && seesMoney() && !isTech()){ const r = ap.filter(a => a.status === 'done').reduce((s, a) => s + (a.appointment_services||[]).reduce((x, q) => x + Number(q.price), 0), 0); rev += r; extra = r ? `<span class="rev num">€${Math.round(r)}</span>` : ''; }
     else if (!past && cap){ const c = ratio > .3 ? 'var(--teal)' : ratio > .1 ? 'var(--amber)' : 'var(--coral)'; extra = `<span class="avail"><i style="width:${Math.round((1-ratio)*100)}%;background:${c}"></i></span>`; }
-    cells.push(`<button class="${cls}" data-a="openDay" data-v="${ymd(d)}" aria-label="${dn} ${MONTHS[mo]}, ${ap.length} ραντεβού"><span class="n">${dn}</span><span class="c">${ap.length} ραντ.</span>${extra}</button>`);
+    cells.push(`<button class="${cls}" ${isToday ? 'aria-current="date" ' : ''}data-a="openDay" data-v="${ymd(d)}" aria-label="${dn} ${MONTHS[mo]}, ${ap.length} ραντεβού"><span class="n">${dn}</span><span class="c">${ap.length} ραντ.</span>${extra}</button>`);
   }
   const sub = seesMoney() && !isTech() && rev ? `${tot} ραντεβού · τζίρος ολοκληρωμένων ${eur0(rev)}` : `${tot} ραντεβού`;
   let h = `<div style="display:flex;align-items:center;gap:6px;padding-top:2px">
@@ -502,11 +550,59 @@ function renderWait(){
   return h;
 }
 
+function renderClients(){
+  const C = S.cl;
+  if (!C.loaded) return `<div class="center"><div class="spin"></div></div>`;
+  const mOn = marksOn(), q = norm(C.q.trim()), qd = C.q.replace(/\D/g, '');
+  const all = C.list.map(c => ({ c, g: segOf(c.id) }));
+  const tagOk = g => C.tags.every(t => g[t]);
+  const stOk = (g, st) => st === 'all' || g.stage === st;
+  const qOk = c => !q || norm(c.name).includes(q) || (qd.length >= 3 && String(c.phone||'').includes(qd));
+  let h = `<label class="srch">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="Όνομα ή τηλέφωνο" value="${esc(C.q)}" autocomplete="off"></label>`;
+  h += `<div><div class="lbl" style="margin:0 2px 6px">Σκαλί</div><div class="hs">${STAGES.map(([k, n]) => {
+      const ct = all.filter(x => stOk(x.g, k) && tagOk(x.g)).length;
+      return (k === 'none' && !ct) ? '' : `<button class="pill ${C.stage===k?'on':''}" data-a="clStage" data-v="${k}" aria-pressed="${C.stage===k}">${n}<span class="ct num">${ct}</span></button>`; }).join('')}</div></div>`;
+  if (mOn) h += `<div><div class="lbl" style="margin:0 2px 6px">Ετικέτες · συνδυάζονται</div><div class="hs">${TAGS.map(([k, n]) => {
+      const ct = all.filter(x => stOk(x.g, C.stage) && x.g[k]).length;
+      return `<button class="pill ${C.tags.includes(k)?'on':''}" data-a="clTag" data-v="${k}" aria-pressed="${C.tags.includes(k)}">${n}<span class="ct num">${ct}</span></button>`; }).join('')}</div></div>`;
+  const list = all.filter(x => stOk(x.g, C.stage) && tagOk(x.g) && qOk(x.c));
+  list.sort((a, b) => C.stage === 'late' || C.stage === 'lost' ? (b.g.visits_12m - a.g.visits_12m) : 0);
+  h += `<div class="t2" style="margin:0 2px">${list.length} πελάτισσες</div><div class="card flush">`;
+  if (!list.length) h += `<div style="padding:22px;text-align:center;color:var(--muted)">${C.q ? 'Δεν βρέθηκε πελάτισσα.' : 'Καμία πελάτισσα σε αυτόν τον συνδυασμό.'}</div>`;
+  list.slice(0, C.show).forEach(({ c, g }) => {
+    const ds = daysSince(g.last_visit);
+    const last = ds == null ? 'χωρίς ολοκληρωμένη επίσκεψη' : ds === 0 ? 'τελ. σήμερα' : ds === 1 ? 'τελ. χθες' : 'τελ. πριν ' + ds + ' μέρες';
+    h += `<button class="row" data-a="openClient" data-v="${c.id}">${av(c.name, 42)}<span style="flex:1;min-width:0"><span class="t1" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span>${esc(c.name)}</span>${mOn ? marks(g, { ns:true }) : (g.birthday_soon ? '<span class="mk m-bd">🎂</span>' : '')}</span><span class="t2 num" style="display:block">${g.visits_12m} επισκ./12μ. · ${last}</span></span><span class="stage st-${g.stage}">${STN[g.stage]}</span></button>`;
+  });
+  h += `</div>`;
+  if (list.length > C.show) h += `<button class="btn ghost" data-a="clMore">Δείξε περισσότερες (${list.length - C.show})</button>`;
+  if (can('clients','write')) h += `<button class="btn navy" data-a="newClientCard">+ Νέα πελάτισσα</button>`;
+  return h;
+}
+function clientWhy(c, g){
+  const st = S.ctx.settings || {}, ds = daysSince(g.last_visit), out = [];
+  const t = {
+    new: `Πρώτη επίσκεψη πριν από ${ds} μέρες (όριο «Νέας»: ${st.seg_new_days}).`,
+    once: `Μία επίσκεψη μόνο, πριν από ${ds} μέρες. Αξίζει ένα τηλέφωνο.`,
+    regular: `Έρχεται κάθε ~${g.cycle_days} μέρες· τελευταία πριν από ${ds} μέρες.`,
+    late: `Έρχεται κάθε ~${g.cycle_days} μέρες και έχουν περάσει ${ds} χωρίς νέο ραντεβού. Καλή στιγμή για τηλέφωνο.`,
+    lost: `Πέρασαν ${ds} μέρες, πάνω από ${st.seg_lost_mult}× τον κύκλο της (~${g.cycle_days}).`,
+    none: 'Δεν έχει ακόμα ολοκληρωμένη επίσκεψη.'
+  }[g.stage];
+  out.push(`<div><span class="stage st-${g.stage}">${STN[g.stage]}</span><span>${t}</span></div>`);
+  if (g.vip) out.push(`<div><span class="mk m-v">★</span><span>${g.visits_12m} επισκέψεις τους τελευταίους 12 μήνες (όριο VIP ${st.seg_vip_visits}).</span></div>`);
+  if (g.winter) out.push(`<div><span class="mk m-x">Χ</span><span>${c.manual_winter ? 'Ορίστηκε χειροκίνητα.' : `Τουλάχιστον ${st.seg_x_visits} επισκέψεις σε ${st.seg_x_months}+ μήνες εκτός σεζόν.`} Παίρνει προτεραιότητα στην αναμονή.</span></div>`);
+  if (g.summer) out.push(`<div><span class="mk m-k">Κ</span><span>Έρχεται κυρίως μέσα στη σεζόν.</span></div>`);
+  if (g.no_shows) out.push(`<div><span class="mk m-ns">NS</span><span>${g.no_shows === 1 ? 'Μία φορά' : g.no_shows + ' φορές'} δεν ήρθε στο ραντεβού.</span></div>`);
+  if (g.birthday_soon && c.birthday){ const b = parseYmd(c.birthday); out.push(`<div><span class="mk m-bd">🎂</span><span>Γενέθλια ${b.getDate()} ${MSHORT[b.getMonth()]}.</span></div>`); }
+  return out.join('');
+}
+
 // ===== Sheets =====
 let lastSheet = null;
 function sheet(title, body, foot, sub){
   const first = S.sheet !== lastSheet; lastSheet = S.sheet;
-  const tall = S.sheet && ['new','wait'].includes(S.sheet.type);
+  const tall = S.sheet && ['new','wait','client'].includes(S.sheet.type);
   return `<div class="scrim" data-a="closeSheet"><div class="sheet${first?' anim':''}${tall?' tall':''}" role="dialog" aria-label="${esc(title)}"><div class="grip"></div>
     <div class="sh"><div style="flex:1;min-width:0"><div style="font-family:var(--font-display);font-size:19px;font-weight:600">${title}</div>${sub?`<div class="t2">${sub}</div>`:''}</div><button class="x" data-a="closeSheet" aria-label="Κλείσιμο">✕</button></div>
     <div class="sb">${body}</div>${foot?`<div class="sf">${foot}</div>`:''}</div></div>`;
@@ -601,6 +697,51 @@ function renderSheet(){
     const w = S.wait.find(x => x.id === sh.id), c = (w && w.clients) || {};
     return sheet('Κάλεσε', `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 48)}<div><div class="t1">${esc(c.name)}</div><div class="num" style="font-size:22px;font-weight:800;margin-top:4px;user-select:all">${esc(c.phone || 'Χωρίς τηλέφωνο')}</div></div></div>
       ${c.phone ? `<a class="btn ghost" href="tel:${esc(c.phone)}" style="text-decoration:none">${I.phone} Κλήση από αυτή τη συσκευή</a>` : ''}<div class="t2">Κάλεσε από το τηλέφωνο του καταστήματος και κλείσε από τη λίστα αν συμφωνήσει.</div>`, `<button class="btn ghost" data-a="closeSheet">Κλείσιμο</button>`);
+  }
+  if (sh.type === 'client'){
+    const c = S.cl.list.find(x => x.id === sh.id); if (!c) return '';
+    const g = segOf(c.id), mOn = marksOn(), st = S.ctx.settings || {};
+    let b = '';
+    if (!isTech() && c.phone) b += `<div style="display:flex;gap:8px"><a class="btn ghost" href="tel:${esc(c.phone)}" style="text-decoration:none;flex:1">${I.phone} <span class="num">${esc(c.phone)}</span></a></div>`;
+    if (c.note) b += `<div style="background:var(--goldbg);color:var(--gold);border-radius:12px;padding:9px 12px;font-size:13px">Σημείωση: ${esc(c.note)}</div>`;
+    b += `<div class="why">${mOn ? clientWhy(c, g) : `<div><span class="stage st-${g.stage}">${STN[g.stage]}</span></div>`}</div>`;
+    if (!sh.hist) b += `<div class="center" style="padding:20px"><div class="spin"></div></div>`;
+    else {
+      const t0 = today(), months = [];
+      for (let i = 11; i >= 0; i--){ const d = new Date(t0.getFullYear(), t0.getMonth() - i, 1); months.push({ y: d.getFullYear(), m: d.getMonth(), n: 0 }); }
+      sh.hist.filter(a => a.status === 'done').forEach(a => { const d = new Date(a.starts_at); const x = months.find(o => o.y === d.getFullYear() && o.m === d.getMonth()); if (x) x.n++; });
+      const mx = Math.max(2, ...months.map(o => o.n)), sea = st.season_months || [];
+      b += `<div><div class="lbl" style="margin-bottom:8px">Επισκέψεις ανά μήνα · ${MSHORT[months[0].m]} ${months[0].y} – ${MSHORT[months[11].m]} ${months[11].y}</div>
+        <div class="months">${months.map(o => `<div><i class="${sea.includes(o.m + 1) ? 'sea' : ''}" title="${o.n}">${o.n ? `<b style="height:${Math.round(o.n / mx * 100)}%"></b>` : ''}</i>${MSHORT[o.m].slice(0, 3)}</div>`).join('')}</div>
+        <div class="legend" style="margin-top:8px;justify-content:flex-start"><span><i style="outline:1.5px dashed var(--summer);outline-offset:-1.5px;background:transparent"></i>Σεζόν</span><span><i style="background:var(--teal)"></i>Επισκέψεις</span></div></div>`;
+      const STL = { booked:['Κλεισμένο','t-lilac'], arrived:['Ήρθε','t-teal'], done:['Ολοκληρώθηκε','t-gray'], no_show:['Δεν ήρθε','t-neg'], cancelled:['Ακυρώθηκε','t-gray'] };
+      const up = sh.hist.filter(a => new Date(a.starts_at) >= t0 && a.status === 'booked').reverse();
+      const past = sh.hist.filter(a => !(new Date(a.starts_at) >= t0 && a.status === 'booked')).slice(0, 12);
+      const line = a => { const d = new Date(a.starts_at), x = STL[a.status] || ['—','t-gray'];
+        return `<div class="row" style="min-height:52px"><span style="flex:1;min-width:0"><span class="t1 num" style="display:block;font-size:14px">${dlabel(d)}/${String(d.getFullYear()).slice(2)} · ${hm(minsOf(a.starts_at))}</span><span class="t2" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((a.appointment_services || []).map(q => q.name).join(', ') || '—')} · ${esc(tech(a.tech_id).name)} · ${esc(storeName(a.store_id) || '')}</span></span><span class="tag ${x[1]}">${x[0]}</span></div>`; };
+      if (up.length) b += `<div><div class="lbl" style="margin-bottom:6px">Επόμενα ραντεβού</div><div class="card flush" style="border:1.5px solid var(--line)">${up.map(line).join('')}</div></div>`;
+      b += `<div><div class="lbl" style="margin-bottom:6px">Ιστορικό</div>${past.length ? `<div class="card flush" style="border:1.5px solid var(--line)">${past.map(line).join('')}</div>` : '<div class="t2">Δεν υπάρχει ακόμα ιστορικό.</div>'}</div>`;
+    }
+    if (can('clients','write') && mOn) b += `<div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:14px">Σήμανση <span class="mk m-x">Χ</span> χειροκίνητα<span class="t2" style="display:block">Για σταθερές πελάτισσες χωρίς ακόμα ιστορικό</span></span><button class="tg ${c.manual_winter?'on':''}" data-a="clManualX" aria-pressed="${!!c.manual_winter}" aria-label="Χειροκίνητο Χ"><span class="k"></span></button></div>`;
+    if (role() === 'admin'){
+      b += sh.anon
+        ? `<div class="card" style="background:var(--negbg);color:var(--neg);display:flex;flex-direction:column;gap:10px"><div style="font-size:13px"><b>Οριστική ανωνυμοποίηση.</b> Σβήνονται όνομα, τηλέφωνο, email, γενέθλια και σημείωση. Τα ραντεβού και τα ποσά μένουν για τα στατιστικά. Δεν αναιρείται.</div><div style="display:flex;gap:8px"><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="clAnonNo">Άκυρο</button><button class="btn danger" style="min-height:44px;font-size:14px;border:1.5px solid var(--neg)" data-a="clAnonYes">Ανωνυμοποίηση</button></div></div>`
+        : `<button class="btn danger" style="min-height:44px;font-size:14px" data-a="clAnon">Διαγραφή στοιχείων (GDPR)</button>`;
+    }
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    const f = (can('clients','write') ? `<button class="btn ghost" style="flex:0 0 auto;width:auto" data-a="editClient">Επεξεργασία</button>` : '')
+            + (can('appts','write') && !isTech() ? `<button class="btn primary" data-a="bookClient">Κλείσε ραντεβού</button>` : '');
+    return sheet(`${esc(c.name)} ${mOn ? marks(g, { ns:true }) : ''}`, b, f, `${g.visits_12m} επισκέψεις τους τελευταίους 12 μήνες`);
+  }
+  if (sh.type === 'cedit'){
+    let b = `<div class="field"><label for="ceName">Ονοματεπώνυμο</label><input id="ceName" class="inp" value="${esc(sh.name||'')}" autocomplete="off"></div>
+      <div class="pair"><div class="field"><label for="cePhone">Τηλέφωνο</label><input id="cePhone" class="inp num" inputmode="tel" value="${esc(sh.phone||'')}"></div>
+      <div class="field"><label for="ceBd">Γενέθλια</label><input id="ceBd" class="inp" type="date" value="${esc(sh.birthday||'')}"></div></div>
+      <div class="field"><label for="ceEmail">Email (προαιρετικό)</label><input id="ceEmail" class="inp" type="email" value="${esc(sh.email||'')}"></div>
+      <div class="field"><label for="ceNote">Σημείωση</label><textarea id="ceNote" class="inp" placeholder="π.χ. προτιμά Ιωάννα, αλλεργία σε…">${esc(sh.note||'')}</textarea></div>
+      <label style="display:flex;gap:10px;align-items:center;font-size:14px"><input type="checkbox" id="ceGdpr" ${sh.gdpr?'checked':''} style="width:20px;height:20px"> Συγκατάθεση για αποθήκευση στοιχείων</label>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(sh.id ? 'Επεξεργασία πελάτισσας' : 'Νέα πελάτισσα', b, `<button class="btn primary" data-a="saveClient" ${S.busy?'disabled':''}>Αποθήκευση</button>`);
   }
   return '';
 }
@@ -699,7 +840,7 @@ document.addEventListener('click', async ev => {
     case 'logout': S.sheet = null; await sb.auth.signOut(); return;
     case 'me': S.sheet = { type:'me' }; break;
     case 'closeSheet': S.sheet = null; break;
-    case 'tab': S.tab = v; S.sheet = null; render(); return;
+    case 'tab': S.tab = v; S.sheet = null; if (v === 'clients' && !S.cl.loaded) return refresh(); render(); return;
     case 'refresh': return refresh();
     case 'store': S.store = v; S.freed = null; return refresh();
     case 'view': S.view = v; S.day = null; return refresh();
@@ -799,6 +940,67 @@ document.addEventListener('click', async ev => {
       if (r.error) throw r.error;
       toast('Αφαιρέθηκε από την αναμονή'); return refresh();
     }
+    case 'clStage': S.cl.stage = v; S.cl.show = 60; break;
+    case 'clTag': S.cl.tags = S.cl.tags.includes(v) ? S.cl.tags.filter(x => x !== v) : S.cl.tags.concat(v); S.cl.show = 60; break;
+    case 'clMore': S.cl.show += 100; break;
+    case 'openClient': {
+      const nsh = { type:'client', id: v, hist: null }; S.sheet = nsh; paint();
+      const { data, error } = await sb.from('appointments').select('id,starts_at,status,store_id,tech_id,appointment_services(name,price)')
+        .eq('client_id', v).order('starts_at', { ascending:false }).limit(200);
+      if (S.sheet !== nsh) return;
+      if (error) nsh.err = friendlyError(error); nsh.hist = data || [];
+      break;
+    }
+    case 'clManualX': {
+      const c = S.cl.list.find(x => x.id === sh.id);
+      const r = await sb.from('clients').update({ manual_winter: !c.manual_winter }).eq('id', c.id);
+      if (r.error) throw r.error;
+      c.manual_winter = !c.manual_winter;
+      const g = await sb.rpc('client_segments', { p_org: S.ctx.org.id });
+      if (!g.error){ S.cl.seg = new Map(g.data.map(x => [x.client_id, x])); S.winter = new Set(g.data.filter(x => x.winter).map(x => x.client_id)); }
+      toast(c.manual_winter ? 'Σημειώθηκε ως πελάτισσα χειμώνα' : 'Αφαιρέθηκε το χειροκίνητο Χ'); break;
+    }
+    case 'clAnon': sh.anon = true; break;
+    case 'clAnonNo': sh.anon = false; break;
+    case 'clAnonYes': {
+      const r = await sb.from('clients').update({ name:'Ανώνυμη πελάτισσα', phone:null, email:null, birthday:null, note:null, manual_winter:false, anonymized:true }).eq('id', sh.id);
+      if (r.error) throw r.error;
+      S.sheet = null; toast('Τα στοιχεία διαγράφηκαν'); return refresh();
+    }
+    case 'newClientCard': S.sheet = { type:'cedit', id:null, name: S.cl.q && !/\d/.test(S.cl.q) ? S.cl.q : '', phone: /\d/.test(S.cl.q) ? S.cl.q : '', gdpr:false }; break;
+    case 'editClient': {
+      const c = S.cl.list.find(x => x.id === sh.id);
+      S.sheet = { type:'cedit', id:c.id, name:c.name, phone:c.phone||'', email:c.email||'', birthday:c.birthday||'', note:c.note||'', gdpr:!!c.gdpr_consent, back: c.id }; break;
+    }
+    case 'saveClient': {
+      sh.err = null;
+      const row = { name:(sh.name||'').trim(), phone:(sh.phone||'').replace(/\s/g,'') || null, email:(sh.email||'').trim() || null, birthday: sh.birthday || null, note:(sh.note||'').trim() || null, gdpr_consent: !!sh.gdpr };
+      if (!row.name){ sh.err = 'Γράψε το ονοματεπώνυμο.'; break; }
+      S.busy = true; paint();
+      try {
+        if (row.phone){
+          const { data: ex } = await sb.from('clients').select('id,name').eq('org_id', S.ctx.org.id).eq('phone', row.phone).eq('anonymized', false).limit(2);
+          const dup = (ex || []).find(x => x.id !== sh.id);
+          if (dup) throw new Error('Υπάρχει ήδη πελάτισσα με αυτό το τηλέφωνο: ' + dup.name + '.');
+        }
+        let id = sh.id;
+        if (id){ const r = await sb.from('clients').update(row).eq('id', id); if (r.error) throw r.error; }
+        else { const r = await sb.from('clients').insert({ ...row, org_id: S.ctx.org.id }).select('id').single(); if (r.error) throw r.error; id = r.data.id; }
+        S.busy = false; await loadClients();
+        toast(sh.id ? 'Αποθηκεύτηκε' : 'Προστέθηκε η ' + row.name);
+        el.dataset.v = id; S.sheet = null;
+        const nsh = { type:'client', id, hist:null }; S.sheet = nsh; paint();
+        const { data } = await sb.from('appointments').select('id,starts_at,status,store_id,tech_id,appointment_services(name,price)').eq('client_id', id).order('starts_at', { ascending:false }).limit(200);
+        if (S.sheet === nsh) nsh.hist = data || [];
+      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      break;
+    }
+    case 'bookClient': {
+      const c = S.cl.list.find(x => x.id === sh.id);
+      await openNew(today());
+      if (S.sheet && S.sheet.type === 'new'){ S.sheet.client = { id:c.id, name:c.name, phone:c.phone, note:c.note }; }
+      break;
+    }
     case 'call': S.sheet = { type:'call', id: v }; break;
     case 'fillFromWait': {
       const w = S.wait.find(x => x.id === v), f = S.freed;
@@ -827,7 +1029,10 @@ document.addEventListener('click', async ev => {
 });
 
 document.addEventListener('input', ev => {
-  const id = ev.target.id, val = ev.target.value, sh = S.sheet; if (!sh) return;
+  const id = ev.target.id, val = ev.target.value, sh = S.sheet;
+  if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
+  if (!sh) return;
+  if (sh.type === 'cedit'){ const k = { ceName:'name', cePhone:'phone', ceBd:'birthday', ceEmail:'email', ceNote:'note' }[id]; if (k) sh[k] = val; return; }
   if (id === 'clientQ') return searchClients(val);
   if (id === 'ncName') sh.ncName = val;
   if (id === 'ncPhone') sh.ncPhone = val;
@@ -836,6 +1041,8 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', async ev => {
   const id = ev.target.id, sh = S.sheet; if (!sh) return;
   if (id === 'ncGdpr') sh.ncGdpr = ev.target.checked;
+  if (id === 'ceGdpr') sh.gdpr = ev.target.checked;
+  if (id === 'ceBd') sh.birthday = ev.target.value;
   if (id === 'nTime') sh.m = +ev.target.value;
   if (id === 'nTech'){ sh.t = ev.target.value; const g = gapsFor(S.store, sh.d, sh.t, sh.appts)[0]; sh.m = g ? g[0] : null; paint(); }
   if (id === 'nDay' && ev.target.value){ const [y, m, d] = ev.target.value.split('-').map(Number); sh.d = new Date(y, m-1, d); sh.m = null; await loadNewDay(sh.t); }
@@ -843,7 +1050,7 @@ document.addEventListener('change', async ev => {
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = [];
+  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 };
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
   try {
