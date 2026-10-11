@@ -834,7 +834,7 @@ function renderCash(){
   return h;
 }
 
-function timeOpts(cur){ let o = ''; for (let m = 6*60; m <= 23*60 + 45; m += 15){ const t = hm(m); o += `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`; } return o; }
+function timeOpts(cur){ let o = ''; if (cur && toTime(cur) % 30) o += `<option value="${cur}" selected>${cur}</option>`; for (let m = 6*60; m <= 23*60 + 30; m += 30){ const t = hm(m); o += `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`; } return o; }
 function renderSettings(){
   if (role() !== 'admin') return `<div class="center">Μόνο ο admin έχει πρόσβαση στις ρυθμίσεις.</div>`;
   const X = S.set;
@@ -931,6 +931,45 @@ function renderSettings(){
 
 function renderSchedule(){
   if (!S.week){ const t = today(); S.week = addDays(t, -wdOf(t)); }
+  const tog = `<div class="seg"><button class="${S.schedView!=='day'?'on':''}" data-a="schedView" data-v="week">Εβδομάδα</button><button class="${S.schedView==='day'?'on':''}" data-a="schedView" data-v="day">Ημέρα</button></div>`;
+  if (S.schedView === 'day') return tog + renderScheduleDay();
+  return tog + renderScheduleWeek();
+}
+function renderScheduleDay(){
+  const d = S.schedDay || today(), me = S.ctx.member.id, ds = ymd(d), wd = wdOf(d);
+  const sid = S.schedStore && S.ctx.stores.some(x => x.id === S.schedStore) ? S.schedStore : (S.ctx.stores[0] || {}).id;
+  const mem = id => (S.ctx.members || []).find(m => m.id === id);
+  const offOn = id => S.ctx.timeOff.find(o => o.member_id === id && ds >= o.date_from && ds <= o.date_to);
+  let h = S.ctx.stores.length > 1 ? `<div class="seg">${S.ctx.stores.map(x => `<button class="${sid===x.id?'on':''}" data-a="schedStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '';
+  h += `<div style="display:flex;align-items:center;gap:6px">
+      <button class="x" data-a="schedDayStep" data-v="-1" aria-label="Προηγούμενη μέρα" style="background:transparent">${I.back}</button>
+      <div style="flex:1;text-align:center"><div style="font-family:var(--font-display);font-size:18px;font-weight:600">${WDF[wd]} ${d.getDate()} ${MSHORT[d.getMonth()]}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${sameDay(d, today()) ? 'Σήμερα' : `<button class="pill" style="min-height:26px;padding:0 10px;font-size:12px" data-a="schedDayStep" data-v="0">Σήμερα</button>`}</div></div>
+      <button class="x" data-a="schedDayStep" data-v="1" aria-label="Επόμενη μέρα" style="background:transparent">${I.fwd}</button></div>`;
+  const hrs = storeHours(sid, d);
+  if (!hrs) return h + `<div class="center"><div class="t1" style="color:var(--ink)">Το κατάστημα είναι κλειστό</div></div>`;
+  const rows = S.ctx.schedule.filter(x => x.store_id === sid && x.weekday === wd && mem(x.member_id));
+  rows.sort((a, b) => (mem(a.member_id).role === 'store' ? 0 : 1) - (mem(b.member_id).role === 'store' ? 0 : 1) || mem(a.member_id).name.localeCompare(mem(b.member_id).name));
+  if (!rows.length) return h + `<div class="center"><div class="t1" style="color:var(--ink)">Κανείς σε βάρδια</div>${role() === 'admin' ? '<div>Όρισε το πρόγραμμα από Ρυθμίσεις → Ομάδα.</div>' : ''}</div>`;
+  const PX = 56/60, H = (hrs[1] - hrs[0]) * PX;
+  let hours = '', lines = '';
+  for (let m = Math.ceil(hrs[0] / 60) * 60; m <= hrs[1]; m += 60){ hours += `<span class="num" style="position:absolute;top:${(m-hrs[0])*PX-6}px">${hm(m)}</span>`; lines += `<span class="hl" style="top:${(m-hrs[0])*PX}px"></span>`; }
+  h += `<div style="display:flex;padding-left:42px">${rows.map(x => { const m = mem(x.member_id), t = m.role === 'user' ? tech(m.id) : null;
+    return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;${offOn(m.id)?'opacity:.55':''}">${av(m.name, 30, t ? t.color[0] : 'var(--ink)', t ? t.color[1] : 'var(--surface)')}<span style="font-size:12px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${m.id===me?'color:var(--teal)':''}">${esc(m.name)}</span><span style="font-size:10px;color:var(--muted)">${m.role === 'store' ? 'Γραμματεία' : 'Τεχνίτρια'}</span></div>`; }).join('')}</div>`;
+  h += `<div class="tl" style="height:${H+8}px"><div class="hours">${hours}</div>`;
+  rows.forEach(x => {
+    const m = mem(x.member_id), o = offOn(m.id);
+    if (o){ h += `<div class="col offcol"><span class="tag t-gray" style="background:var(--surface)">${o.kind === 'leave' ? 'Άδεια' : 'Ρεπό'}</span></div>`; return; }
+    const sh = shiftOf(sid, d, m.id) || hrs, t = m.role === 'user' ? tech(m.id) : null;
+    const bg = t ? t.color[0] : 'var(--lilac)', fg = t ? t.color[1] : 'var(--ink)';
+    h += `<div class="col">${lines}<div class="blk" style="top:${(sh[0]-hrs[0])*PX+1}px;height:${(sh[1]-sh[0])*PX-2}px;background:${bg};color:${fg};${m.id===me?'box-shadow:inset 0 0 0 2px var(--teal),0 0 0 1.5px var(--bg)':''}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</span></b><span class="num">${hm(sh[0])}–${hm(sh[1])}</span><br><span class="num" style="opacity:.75">${Math.round((sh[1]-sh[0])/6)/10} ώρ.</span></div></div>`;
+  });
+  h += `</div>`;
+  const offs = [...new Set(S.ctx.schedule.filter(x => x.store_id === sid && mem(x.member_id)).map(x => x.member_id))].filter(id => !rows.some(r => r.member_id === id));
+  if (offs.length) h += `<div class="soff">Σήμερα δεν δουλεύουν εδώ: ${offs.map(id => `<b>${esc(mem(id).name)}</b>`).join(', ')}</div>`;
+  return h;
+}
+function renderScheduleWeek(){
   const w0 = S.week, w6 = addDays(w0, 6), me = S.ctx.member.id, t0 = today();
   const mem = id => (S.ctx.members || []).find(m => m.id === id);
   const offOn = (id, ds) => S.ctx.timeOff.find(o => o.member_id === id && ds >= o.date_from && ds <= o.date_to);
@@ -962,7 +1001,7 @@ function renderSchedule(){
     if (ex.length) body += `<div class="soff" style="color:var(--gold)">Έκτακτο ρεπό / άδεια: ${ex.map(id => `<b>${esc(mem(id).name)}</b> (${offOn(id, ds).kind === 'leave' ? 'άδεια' : 'ρεπό'})`).join(', ')}</div>`;
     const myShift = S.ctx.schedule.find(x => x.member_id === me && x.weekday === wd && myStores.includes(x.store_id));
     const meTag = people.includes(me) ? (myShift && !offOn(me, ds) ? `<span class="tag t-teal">Δουλεύεις · ${esc(storeName(myShift.store_id))}</span>` : '<span class="tag t-gray">Ρεπό σου</span>') : '';
-    h += `<div class="sday${isNow ? ' now' : ''}"><h3>${WDF[wd]} ${d.getDate()} ${MSHORT[d.getMonth()]}${isNow ? ' <span class="tag t-teal">Σήμερα</span>' : ''}<span style="flex:1"></span>${meTag}</h3>${body || '<div class="soff">Όλα τα καταστήματα κλειστά</div>'}</div>`;
+    h += `<div class="sday${isNow ? ' now' : ''}"><h3><button style="border:none;background:none;padding:0;font:inherit;color:inherit;display:flex;align-items:center;gap:6px" data-a="schedOpenDay" data-v="${ds}">${WDF[wd]} ${d.getDate()} ${MSHORT[d.getMonth()]} ${I.chev}</button>${isNow ? ' <span class="tag t-teal">Σήμερα</span>' : ''}<span style="flex:1"></span>${meTag}</h3>${body || '<div class="soff">Όλα τα καταστήματα κλειστά</div>'}</div>`;
   }
   if (role() === 'admin') h += `<button class="btn ghost" data-a="settings" data-v="team">Αλλαγή προγράμματος</button>`;
   return h;
@@ -1100,7 +1139,7 @@ function renderSheet(){
       b += `<div class="field"><label>Σταθερό εβδομαδιαίο πρόγραμμα</label><div class="t2" style="margin:-2px 2px 2px">Ισχύει κάθε εβδομάδα, μέχρι να το αλλάξεις. Το «Ρεπό» είναι το σταθερό ρεπό.</div>
         <div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${[0,1,2,3,4,5,6].map(w => { const sid = sh.sched[w] || '', hr = sh.hrs[w] || {};
           return `<div class="prm" style="flex-wrap:wrap"><b class="tx">${WDF[w]}</b><select class="inp sm" style="width:150px" data-sched="${w}">${['', ...S.ctx.stores.map(x => x.id)].map(id => `<option value="${id}" ${sid===id?'selected':''}>${id ? esc(storeName(id)) : 'Ρεπό'}</option>`).join('')}</select>
-          ${sid ? `<div class="shrs" style="width:100%"><select class="inp sm" data-shs="${w}" aria-label="Από ${WDF[w]}">${hOpt(hr.s, 'Από το άνοιγμα')}</select><select class="inp sm" data-she="${w}" aria-label="Έως ${WDF[w]}">${hOpt(hr.e, 'Έως το κλείσιμο')}</select></div>` : ''}</div>`; }).join('')}</div></div>`;
+          ${sid ? `<div class="shrs" style="width:100%"><select class="inp sm" data-shs="${w}" aria-label="Από ${WDF[w]}"><option value="__off">Ρεπό</option>${hOpt(hr.s, 'Από το άνοιγμα')}</select><select class="inp sm" data-she="${w}" aria-label="Έως ${WDF[w]}"><option value="__off">Ρεπό</option>${hOpt(hr.e, 'Έως το κλείσιμο')}</select></div>` : ''}</div>`; }).join('')}</div></div>`;
     }
     if (!isAdm){
       const offs = X.off.filter(o => o.member_id === m.id);
@@ -1559,6 +1598,10 @@ document.addEventListener('click', async ev => {
       if (m.kind === 'appointment' && m.appointment_id) await sb.from('appointments').update({ status:'arrived' }).eq('id', m.appointment_id);
       S.sheet = null; toast('Η κίνηση διαγράφηκε'); return refresh();
     }
+    case 'schedView': S.schedView = v; if (v === 'day' && !S.schedDay) S.schedDay = today(); break;
+    case 'schedStore': S.schedStore = v; break;
+    case 'schedDayStep': S.schedDay = +v === 0 ? today() : addDays(S.schedDay || today(), +v); break;
+    case 'schedOpenDay': S.schedDay = parseYmd(v); S.schedView = 'day'; document.getElementById('main').scrollTop = 0; break;
     case 'weekStep': { if (+v === 0){ const t = today(); S.week = addDays(t, -wdOf(t)); } else S.week = addDays(S.week, 7 * (+v)); break; }
     case 'settings': S.tab = 'settings'; S.set.page = v || null; S.set.err = null; S.sheet = null; return refresh();
     case 'setBack':
@@ -1779,6 +1822,7 @@ document.addEventListener('change', async ev => {
   }
   if (!sh) return;
   if (ds.sched != null){ sh.sched[+ds.sched] = ev.target.value || null; if (!ev.target.value) delete sh.hrs[+ds.sched]; paint(); return; }
+  if ((ds.shs != null || ds.she != null) && ev.target.value === '__off'){ const w = +(ds.shs ?? ds.she); sh.sched[w] = null; delete sh.hrs[w]; paint(); toast(WDF[w] + ': σταθερό ρεπό κάθε εβδομάδα · πάτα Αποθήκευση'); return; }
   if (ds.shs != null || ds.she != null){ const w = +(ds.shs ?? ds.she); sh.hrs[w] = sh.hrs[w] || {}; sh.hrs[w][ds.shs != null ? 's' : 'e'] = ev.target.value || null; return; }
   if (ds.mperm){ sh.perms[ds.mperm] = ev.target.value || null; return; }
   if (id === 'svCat'){ sh.cat = ev.target.value; return; }
