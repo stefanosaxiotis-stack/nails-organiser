@@ -17,7 +17,7 @@
   --coral:#C8455F; --neg:#B3344F; --negbg:#FBE7EB; --pos:#2F7D4F; --posbg:#DDEFE2;
   --lilac:#E7E6F5; --gold:#7A4E14; --goldbg:#FBF3E6; --amber:#B9772A;
   --winter:#1F5FA8; --winterbg:#DCE9F8; --summer:#A0521C; --summerbg:#FBEBDD;
-  --hatch:#ECEBF1; --scrim:rgba(20,20,45,.45);
+  --hatch:#ECEBF1; --scrim:rgba(20,20,45,.45); --staff:#DCE2F0; --staffink:#2B3566;
   --font-display:Comfortaa, "Varela Round", system-ui, sans-serif;
   --font-body:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
 }
@@ -26,7 +26,7 @@
   --ink:#EDEDF7; --ink2:#C2C2DD; --muted:#A3A3C6; --head:#0C0D22; --head2:#2A2B52; --headmuted:#A3A3C6;
   --teal:#13998B; --tealbg:#123F3B; --tealink:#8FE0D4; --coral:#D9607A; --neg:#F08AA0; --negbg:#3D1F2A; --pos:#7FD39C; --posbg:#183A27;
   --lilac:#2E2D55; --gold:#E6C48A; --goldbg:#3A2E1A; --amber:#E0A458; --winter:#9CC4F2; --winterbg:#1B3352; --summer:#F0B27A; --summerbg:#3D2A1A;
-  --hatch:#23244A; --scrim:rgba(0,0,0,.6); color-scheme:dark}}
+  --hatch:#23244A; --scrim:rgba(0,0,0,.6); --staff:#27305A; --staffink:#CFD8F5; color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased;overflow:hidden;font-size:15px}
@@ -133,6 +133,28 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .pp small{font-weight:500;color:var(--muted);font-size:11px}.pp.me small{color:var(--tealink)}
 .soff{font-size:12px;color:var(--muted)}
 .shrs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:6px}
+.ga{display:flex;flex-direction:column;gap:10px}
+.gday{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:start}
+.gday + .gday{border-top:1px solid var(--line);padding-top:10px}
+.gday .dn{font-weight:800;font-size:13px;line-height:1.1;padding:3px 0 0;border:none;background:none;text-align:left;color:var(--ink)}
+.gday .dn small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.gday.today .dn{color:var(--teal)}
+.lanes{position:relative;display:flex;flex-direction:column;gap:4px;padding-block:2px;min-width:0}
+.lanes .grid{position:absolute;inset:0;pointer-events:none}
+.lanes .grid i{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line)}
+.bar{position:relative;height:28px;border-radius:14px;display:flex;align-items:center;gap:6px;padding:0 8px 0 2px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;min-width:28px}
+.bar .av{width:24px;height:24px;font-size:10px;border:2px solid var(--surface)}
+.bar small{font-weight:500;opacity:.8}
+.bar.me{box-shadow:inset 0 0 0 2px var(--teal)}
+.offrow{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.offrow .av{width:20px;height:20px;font-size:9px;opacity:.6}
+.axis{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px}
+.axis div{position:relative;height:14px;font-size:10px;color:var(--muted)}
+.axis span{position:absolute;transform:translateX(-50%)}
+.axis span:first-child{transform:none}.axis span:last-child{transform:translateX(-100%)}
+.catbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:13px}
+.catbar .tr{grid-column:1 / -1;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.catbar .tr i{display:block;height:6px;border-radius:3px;background:var(--teal)}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h div{text-align:center;font-size:11px;color:var(--muted)}
@@ -268,7 +290,8 @@ const S = {
   sheet:null, toast:null, busy:false,
   cl:{ list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 },
   cash:{ day:null, cd:null, mv:[], hist:[], loaded:false },
-  set:{ page:null, loaded:false }
+  set:{ page:null, loaded:false },
+  ex:{ month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }
 };
 
 // ===== Δεδομένα =====
@@ -488,6 +511,13 @@ function openMemberSheet(v){
   X.mperms.filter(x => x.member_id === v).forEach(x => perms[x.tab] = x.level);
   S.sheet = { type:'member', id: v, name: m.name, role: m.role, active: m.active, stores: X.mstores.filter(x => x.member_id === v).map(x => x.store_id), sched, hrs, perms, offKind:'day_off' };
 }
+async function ensureSupplier(name){
+  const n = (name || '').trim(); if (!n) return null;
+  const ex = S.ex.sup.find(x => norm(x.name) === norm(n)); if (ex) return ex.id;
+  const r = await sb.from('suppliers').insert({ org_id: S.ctx.org.id, name: n }).select('id,name').single();
+  if (r.error) throw r.error;
+  S.ex.sup.push(r.data); return r.data.id;
+}
 function genPw(){ const a = 'abcdefghjkmnpqrstuvwxyz', A = 'ABCDEFGHJKLMNPQRSTUVWXYZ', d = '23456789'; const r = s => s[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 * s.length)];
   return r(A) + r(a) + r(a) + r(a) + r(a) + '-' + r(d) + r(d) + r(d) + r(d); }
 const TAB_NAMES = { appts:'Ραντεβού', clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'P&L', services:'Υπηρεσίες' };
@@ -532,11 +562,29 @@ async function loadSchedule(){
   S.ctx.schedule = sc.data; S.ctx.timeOff = off.data; S.ctx.members = mem.data;
   if (!S.week){ const t = today(); S.week = addDays(t, -wdOf(t)); }
 }
+// ----- Έξοδα -----
+const VATS = [0, 6, 13, 24];
+const netOf = e => Number(e.gross) / (1 + Number(e.vat_rate) / 100);
+async function loadExpenses(){
+  const org = S.ctx.org.id, X = S.ex;
+  if (!X.month){ const t = today(); X.month = new Date(t.getFullYear(), t.getMonth(), 1); }
+  const m0 = ymd(X.month), m1 = ymd(new Date(X.month.getFullYear(), X.month.getMonth() + 1, 1));
+  await sb.rpc('ensure_recurring_month', { p_org: org, p_month: m0 });
+  const [ex, rec, sup, cats] = await Promise.all([
+    sb.from('expenses').select('*').eq('store_id', S.store).gte('day', m0).lt('day', m1).order('day', { ascending:false }).order('created_at', { ascending:false }),
+    sb.from('recurring_expenses').select('*').eq('store_id', S.store).order('label'),
+    sb.from('suppliers').select('id,name').eq('org_id', org).order('name'),
+    sb.from('expense_categories').select('*').eq('org_id', org).order('name')
+  ]);
+  for (const r of [ex, rec, sup, cats]) if (r.error) throw r.error;
+  X.list = ex.data; X.rec = rec.data; X.sup = sup.data; X.cats = cats.data; X.loaded = true;
+}
 async function refresh(){
   try {
     S.busy = true; render();
     if (S.tab === 'settings') await loadSettings();
     else if (S.tab === 'sched') await loadSchedule();
+    else if (S.tab === 'expenses') await loadExpenses();
     else if (S.tab === 'clients') await loadClients();
     else if (S.tab === 'cash') await loadCash();
     else if (S.view === 'wait') await loadWait();
@@ -572,7 +620,7 @@ function render(){
   const badge = S.freed && matches().length ? `<span class="badge">${matches().length}</span>` : '';
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : renderSoon()}</main>
+    <main id="main">${S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${S.tab===t?'on':''}" data-a="tab" data-v="${t}">${t==='appts'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
@@ -955,13 +1003,13 @@ function renderScheduleDay(){
   let hours = '', lines = '';
   for (let m = Math.ceil(hrs[0] / 60) * 60; m <= hrs[1]; m += 60){ hours += `<span class="num" style="position:absolute;top:${(m-hrs[0])*PX-6}px">${hm(m)}</span>`; lines += `<span class="hl" style="top:${(m-hrs[0])*PX}px"></span>`; }
   h += `<div style="display:flex;padding-left:42px">${rows.map(x => { const m = mem(x.member_id), t = m.role === 'user' ? tech(m.id) : null;
-    return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;${offOn(m.id)?'opacity:.55':''}">${av(m.name, 30, t ? t.color[0] : 'var(--ink)', t ? t.color[1] : 'var(--surface)')}<span style="font-size:12px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${m.id===me?'color:var(--teal)':''}">${esc(m.name)}</span><span style="font-size:10px;color:var(--muted)">${m.role === 'store' ? 'Γραμματεία' : 'Τεχνίτρια'}</span></div>`; }).join('')}</div>`;
+    return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;${offOn(m.id)?'opacity:.55':''}">${av(m.name, 30, t ? t.color[0] : 'var(--staff)', t ? t.color[1] : 'var(--staffink)')}<span style="font-size:12px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${m.id===me?'color:var(--teal)':''}">${esc(m.name)}</span><span style="font-size:10px;color:var(--muted)">${m.role === 'store' ? 'Γραμματεία' : 'Τεχνίτρια'}</span></div>`; }).join('')}</div>`;
   h += `<div class="tl" style="height:${H+8}px"><div class="hours">${hours}</div>`;
   rows.forEach(x => {
     const m = mem(x.member_id), o = offOn(m.id);
     if (o){ h += `<div class="col offcol"><span class="tag t-gray" style="background:var(--surface)">${o.kind === 'leave' ? 'Άδεια' : 'Ρεπό'}</span></div>`; return; }
     const sh = shiftOf(sid, d, m.id) || hrs, t = m.role === 'user' ? tech(m.id) : null;
-    const bg = t ? t.color[0] : 'var(--lilac)', fg = t ? t.color[1] : 'var(--ink)';
+    const bg = t ? t.color[0] : 'var(--staff)', fg = t ? t.color[1] : 'var(--staffink)';
     h += `<div class="col">${lines}<div class="blk" style="top:${(sh[0]-hrs[0])*PX+1}px;height:${(sh[1]-sh[0])*PX-2}px;background:${bg};color:${fg};${m.id===me?'box-shadow:inset 0 0 0 2px var(--teal),0 0 0 1.5px var(--bg)':''}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(m.name)}</span></b><span class="num">${hm(sh[0])}–${hm(sh[1])}</span><br><span class="num" style="opacity:.75">${Math.round((sh[1]-sh[0])/6)/10} ώρ.</span></div></div>`;
   });
   h += `</div>`;
@@ -970,41 +1018,104 @@ function renderScheduleDay(){
   return h;
 }
 function renderScheduleWeek(){
+  if (!S.week){ const t = today(); S.week = addDays(t, -wdOf(t)); }
   const w0 = S.week, w6 = addDays(w0, 6), me = S.ctx.member.id, t0 = today();
+  const sid = S.schedStore && S.ctx.stores.some(x => x.id === S.schedStore) ? S.schedStore : (S.ctx.stores[0] || {}).id;
   const mem = id => (S.ctx.members || []).find(m => m.id === id);
   const offOn = (id, ds) => S.ctx.timeOff.find(o => o.member_id === id && ds >= o.date_from && ds <= o.date_to);
-  const myStores = S.ctx.stores.map(x => x.id);
-  const people = [...new Set(S.ctx.schedule.filter(x => myStores.includes(x.store_id) && mem(x.member_id)).map(x => x.member_id))];
   const thisWeek = sameDay(w0, addDays(t0, -wdOf(t0)));
-  let h = `<div style="display:flex;align-items:center;gap:6px">
+  let h = S.ctx.stores.length > 1 ? `<div class="seg">${S.ctx.stores.map(x => `<button class="${sid===x.id?'on':''}" data-a="schedStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '';
+  h += `<div style="display:flex;align-items:center;gap:6px">
       <button class="x" data-a="weekStep" data-v="-1" aria-label="Προηγούμενη εβδομάδα" style="background:transparent">${I.back}</button>
       <div style="flex:1;text-align:center"><div style="font-family:var(--font-display);font-size:18px;font-weight:600">${w0.getDate()} ${MSHORT[w0.getMonth()]} – ${w6.getDate()} ${MSHORT[w6.getMonth()]}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">${thisWeek ? 'Αυτή η εβδομάδα' : `<button class="pill" style="min-height:26px;padding:0 10px;font-size:12px" data-a="weekStep" data-v="0">Σήμερα</button>`}</div></div>
       <button class="x" data-a="weekStep" data-v="1" aria-label="Επόμενη εβδομάδα" style="background:transparent">${I.fwd}</button></div>`;
-  if (!people.length) h += `<div class="card" style="font-size:14px;color:var(--muted)">Δεν έχει οριστεί πρόγραμμα ακόμα.${role() === 'admin' ? ' Όρισέ το από Ρυθμίσεις → Ομάδα.' : ''}</div>`;
+  const people = [...new Set(S.ctx.schedule.filter(x => x.store_id === sid && mem(x.member_id)).map(x => x.member_id))]
+    .sort((a, b) => (mem(a).role === 'store' ? 0 : 1) - (mem(b).role === 'store' ? 0 : 1) || mem(a).name.localeCompare(mem(b).name));
+  if (!people.length) return h + `<div class="card" style="font-size:14px;color:var(--muted)">Δεν έχει οριστεί πρόγραμμα για ${esc(storeName(sid))}.${role() === 'admin' ? ' Όρισέ το από Ρυθμίσεις → Ομάδα.' : ''}</div>`;
+  let H0 = 24*60, H1 = 0;
+  for (let i = 0; i < 7; i++){ const x = storeHours(sid, addDays(w0, i)); if (x){ H0 = Math.min(H0, x[0]); H1 = Math.max(H1, x[1]); } }
+  if (H1 <= H0){ H0 = 10*60; H1 = 20*60; }
+  H0 = Math.floor(H0 / 60) * 60; H1 = Math.ceil(H1 / 60) * 60;
+  const pct = m => ((m - H0) / (H1 - H0) * 100), step = (H1 - H0) > 600 ? 180 : 120, ticks = [];
+  for (let m = H0; m <= H1; m += step) ticks.push(m);
+  const pcol = id => { const m = mem(id); if (m.role === 'user') return tech(id).color; return ['var(--staff)','var(--staffink)']; };
+  h += `<div class="card ga"><div class="axis"><div></div><div>${ticks.map(m => `<span class="num" style="left:${pct(m)}%">${m/60}</span>`).join('')}</div></div>`;
   for (let i = 0; i < 7; i++){
-    const d = addDays(w0, i), ds = ymd(d), wd = wdOf(d), isNow = sameDay(d, t0);
-    let body = '';
-    S.ctx.stores.forEach(st => {
-      const hrs = storeHours(st.id, d);
-      const rows = S.ctx.schedule.filter(x => x.store_id === st.id && x.weekday === wd && mem(x.member_id) && !offOn(x.member_id, ds));
-      if (!hrs && !rows.length) return;
-      rows.sort((a, b) => (mem(a.member_id).role === 'store' ? 0 : 1) - (mem(b.member_id).role === 'store' ? 0 : 1) || mem(a.member_id).name.localeCompare(mem(b.member_id).name));
-      body += `<div class="sst"><div class="hd">${esc(st.name)} <span>${hrs ? hm(hrs[0]) + '–' + hm(hrs[1]) : 'Κλειστό'}</span></div>
-        <div class="chips" style="gap:6px">${rows.length ? rows.map(x => { const m = mem(x.member_id), sh = shiftOf(st.id, d, m.id) || hrs;
-          const t = m.role === 'user' ? tech(m.id) : null;
-          return `<span class="pp${m.id === me ? ' me' : ''}">${av(m.name, 24, t ? t.color[0] : 'var(--ink)', t ? t.color[1] : 'var(--surface)')}${esc(m.name)}${m.role === 'store' ? ' <small>γραμματεία</small>' : ''}${sh && x.starts ? ` <small class="num">${hm(sh[0])}–${hm(sh[1])}</small>` : ''}</span>`; }).join('') : '<span class="soff">Κανείς σε βάρδια</span>'}</div></div>`;
+    const d = addDays(w0, i), ds = ymd(d), wd = wdOf(d), hr = storeHours(sid, d);
+    const on = S.ctx.schedule.filter(x => x.store_id === sid && x.weekday === wd && mem(x.member_id) && !offOn(x.member_id, ds))
+      .sort((a, b) => (mem(a.member_id).role === 'store' ? 0 : 1) - (mem(b.member_id).role === 'store' ? 0 : 1) || (shiftOf(sid, d, a.member_id) || [0])[0] - (shiftOf(sid, d, b.member_id) || [0])[0]);
+    const off = people.filter(id => !on.some(x => x.member_id === id));
+    h += `<div class="gday${sameDay(d, t0) ? ' today' : ''}"><button class="dn" data-a="schedOpenDay" data-v="${ds}" aria-label="Όψη ημέρας ${WDF[wd]}">${WD[wd]}<small>${d.getDate()} ${MSHORT[d.getMonth()]}</small></button><div class="lanes">`;
+    if (!hr){ h += `<div class="offrow" style="height:28px">Κλειστό</div></div></div>`; continue; }
+    h += `<div class="grid">${ticks.slice(1, -1).map(m => `<i style="left:${pct(m)}%"></i>`).join('')}</div>`;
+    on.forEach(x => {
+      const m = mem(x.member_id), sh = shiftOf(sid, d, m.id) || hr, c = pcol(m.id);
+      h += `<div class="bar${m.id === me ? ' me' : ''}" style="margin-left:${pct(sh[0])}%;width:${pct(sh[1]) - pct(sh[0])}%;background:${c[0]};color:${c[1]}">${av(m.name, 24, c[0], c[1])}<span>${esc(m.name)}</span><small class="num">${hm(sh[0]).replace(':00','')}–${hm(sh[1]).replace(':00','')}</small></div>`;
     });
-    const offs = people.filter(id => !S.ctx.schedule.some(x => x.member_id === id && x.weekday === wd));
-    const ex = people.filter(id => S.ctx.schedule.some(x => x.member_id === id && x.weekday === wd) && offOn(id, ds));
-    if (offs.length) body += `<div class="soff">Ρεπό: ${offs.map(id => `<b style="${id === me ? 'color:var(--teal)' : ''}">${esc(mem(id).name)}</b>`).join(', ')}</div>`;
-    if (ex.length) body += `<div class="soff" style="color:var(--gold)">Έκτακτο ρεπό / άδεια: ${ex.map(id => `<b>${esc(mem(id).name)}</b> (${offOn(id, ds).kind === 'leave' ? 'άδεια' : 'ρεπό'})`).join(', ')}</div>`;
-    const myShift = S.ctx.schedule.find(x => x.member_id === me && x.weekday === wd && myStores.includes(x.store_id));
-    const meTag = people.includes(me) ? (myShift && !offOn(me, ds) ? `<span class="tag t-teal">Δουλεύεις · ${esc(storeName(myShift.store_id))}</span>` : '<span class="tag t-gray">Ρεπό σου</span>') : '';
-    h += `<div class="sday${isNow ? ' now' : ''}"><h3><button style="border:none;background:none;padding:0;font:inherit;color:inherit;display:flex;align-items:center;gap:6px" data-a="schedOpenDay" data-v="${ds}">${WDF[wd]} ${d.getDate()} ${MSHORT[d.getMonth()]} ${I.chev}</button>${isNow ? ' <span class="tag t-teal">Σήμερα</span>' : ''}<span style="flex:1"></span>${meTag}</h3>${body || '<div class="soff">Όλα τα καταστήματα κλειστά</div>'}</div>`;
+    if (!on.length) h += `<div class="offrow" style="height:28px">Κανείς σε βάρδια</div>`;
+    if (off.length) h += `<div class="offrow">${off.map(id => { const o = offOn(id, ds), other = !o && S.ctx.schedule.find(x => x.member_id === id && x.weekday === wd && x.store_id !== sid);
+      const why = o ? (o.kind === 'leave' ? 'άδεια' : 'έκτακτο ρεπό') : other ? (storeName(other.store_id) || 'άλλο κατάστημα') : 'ρεπό';
+      return `<span style="display:inline-flex;align-items:center;gap:5px;${id === me ? 'color:var(--teal);font-weight:700' : ''}">${av(mem(id).name, 20)}${esc(mem(id).name)} · ${esc(why)}</span>`; }).join('')}</div>`;
+    h += `</div></div>`;
   }
+  h += `</div><div class="legend" style="justify-content:flex-start">${people.map(id => { const c = pcol(id); return `<span><i style="background:${c[0]}"></i>${esc(mem(id).name)}${mem(id).role === 'store' ? ' · γραμματεία' : ''}</span>`; }).join('')}<span><i style="box-shadow:inset 0 0 0 2px var(--teal)"></i>εσύ</span></div>`;
   if (role() === 'admin') h += `<button class="btn ghost" data-a="settings" data-v="team">Αλλαγή προγράμματος</button>`;
   return h;
+}
+
+function renderExpenses(){
+  if (!S.ctx.stores.length) return `<div class="center">Δεν σου έχει ανατεθεί κατάστημα.</div>`;
+  const X = S.ex;
+  if (!X.loaded) return storeSeg() + (S.busy ? `<div class="center"><div class="spin"></div></div>` : `<div class="center">Δεν φόρτωσαν τα έξοδα.<button class="pill" data-a="refresh">Δοκίμασε ξανά</button></div>`);
+  const cat = id => X.cats.find(c => c.id === id) || { name:'—', is_fixed:false };
+  const sup = id => (X.sup.find(x => x.id === id) || {}).name;
+  const mo = X.month, wr = can('expenses','write');
+  const real = X.list.filter(e => !e.expected), est = X.list.filter(e => e.expected);
+  const sum = (arr, f) => arr.reduce((a, e) => a + f(e), 0);
+  const tot = sum(real, e => Number(e.gross)), estTot = sum(est, e => Number(e.gross));
+  const fixed = sum(X.list.filter(e => cat(e.category_id).is_fixed), e => Number(e.gross)), varb = sum(X.list.filter(e => !cat(e.category_id).is_fixed), e => Number(e.gross));
+  const vatIn = sum(real, e => Number(e.gross) - netOf(e)), net = sum(real, netOf);
+  let h = storeSeg();
+  h += `<div style="display:flex;align-items:center;gap:6px">
+      <button class="x" data-a="exMonth" data-v="-1" aria-label="Προηγούμενος μήνας" style="background:transparent">${I.back}</button>
+      <div style="flex:1;text-align:center;font-family:var(--font-display);font-size:20px;font-weight:600">${MONTHS[mo.getMonth()]} ${mo.getFullYear()}</div>
+      <button class="x" data-a="exMonth" data-v="1" aria-label="Επόμενος μήνας" style="background:transparent">${I.fwd}</button></div>`;
+  h += `<div class="kpi"><div class="lbl">Έξοδα μήνα · ${esc(storeName(S.store))}</div><div class="big num">${eur(tot)}</div>
+    ${estTot ? `<div style="font-size:13px;color:var(--headmuted)" class="num">+ ${eur(estTot)} εκτίμηση σταθερών που δεν έχουν μπει</div>` : ''}
+    <div class="split3"><div>Σταθερά<b class="num">${eur(fixed)}</b></div><div>Μεταβλητά<b class="num">${eur(varb)}</b></div></div>
+    <div style="font-size:12px;color:var(--headmuted)" class="num">Καθαρά ${eur(net)} · ΦΠΑ εισροών ${eur(vatIn)}</div></div>`;
+  h += `<div class="seg"><button class="${X.view!=='fixed'?'on':''}" data-a="exView" data-v="list">Κινήσεις</button><button class="${X.view==='fixed'?'on':''}" data-a="exView" data-v="fixed">Σταθερά${est.length ? ' (' + est.length + ')' : ''}</button></div>`;
+  if (X.view === 'fixed'){
+    const m0 = ymd(mo), m1 = ymd(new Date(mo.getFullYear(), mo.getMonth() + 1, 1));
+    if (!X.rec.length) h += `<div class="card" style="font-size:14px;color:var(--muted)">Δεν υπάρχουν σταθερά έξοδα για ${esc(storeName(S.store))}.${role() === 'admin' ? ' Πρόσθεσε ενοίκιο, ΔΕΗ, λογιστή κ.λπ. για να μπαίνει κάθε μήνα εκτίμηση μέχρι να έρθει το πραγματικό ποσό.' : ''}</div>`;
+    else h += `<div class="card flush">${X.rec.map(r => {
+      const e = X.list.find(x => x.recurring_id === r.id && x.day >= m0 && x.day < m1);
+      const st = !r.active ? '<span class="tag t-gray">Ανενεργό</span>'
+        : !e ? '<span class="tag t-gray">Όχι αυτόν τον μήνα</span>'
+        : e.expected ? `<span class="tag t-gold num">Εκτίμηση ${eur0(e.gross)}</span>` : `<span class="tag t-teal num">Πληρώθηκε ${eur0(e.gross)}</span>`;
+      const sub = `${cat(r.category_id).name}${r.supplier_id ? ' · ' + esc(sup(r.supplier_id) || '') : ''} · ${r.every_months === 2 ? 'κάθε 2 μήνες' : 'κάθε μήνα'}, στις ${r.day_of_month}`;
+      return `<div class="row" style="flex-wrap:wrap;${r.active ? '' : 'opacity:.55'}"><button style="flex:1;min-width:0;border:none;background:none;text-align:left;padding:0" ${role() === 'admin' ? `data-a="recEdit" data-v="${r.id}"` : 'disabled'}><span class="t1" style="display:block">${esc(r.label || cat(r.category_id).name)}</span><span class="t2" style="display:block">${sub} · εκτίμηση ${eur0(r.estimate)}</span></button>${st}
+        ${e && e.expected && wr ? `<button class="btn primary" style="min-height:40px;font-size:13px;width:100%;margin-top:4px" data-a="exEdit" data-v="${e.id}">Καταχώριση πραγματικού ποσού</button>` : ''}</div>`; }).join('')}</div>`;
+    if (role() === 'admin') h += `<button class="btn navy" data-a="recEdit" data-v="">+ Σταθερό έξοδο</button>`;
+    h += `<div class="t2" style="margin:0 2px">Κάθε μήνα μπαίνει αυτόματα η εκτίμηση. Όταν έρθει ο λογαριασμός, καταχωρείς το πραγματικό ποσό και αντικαθιστά την εκτίμηση στο P&L.</div>`;
+    return h;
+  }
+  // ανά κατηγορία
+  const by = {};
+  real.forEach(e => { by[e.category_id] = (by[e.category_id] || 0) + Number(e.gross); });
+  const rows = Object.entries(by).sort((a, b) => b[1] - a[1]), mx = rows.length ? rows[0][1] : 1;
+  if (rows.length) h += `<div class="card"><div class="lbl" style="margin-bottom:10px">Ανά κατηγορία</div><div class="catbar">${rows.map(([c, v]) => `<span>${esc(cat(c).name)}</span><b class="num">${eur(v)}</b><span class="tr"><i style="width:${Math.max(3, v / mx * 100)}%"></i></span>`).join('')}</div></div>`;
+  if (wr) h += `<button class="btn navy" data-a="exEdit" data-v="">+ Νέο έξοδο</button>`;
+  if (!X.list.length) return h + `<div class="card" style="text-align:center;color:var(--muted);font-size:14px">Κανένα έξοδο αυτόν τον μήνα.</div>`;
+  let cur = '';
+  h += `<div class="card flush">`;
+  X.list.forEach(e => {
+    if (e.day !== cur){ cur = e.day; const d = parseYmd(e.day); h += `<div style="padding:10px 16px 4px;font-size:12px;font-weight:700;color:var(--muted);background:var(--chip)">${WDF[wdOf(d)]} ${d.getDate()} ${MSHORT[d.getMonth()]}</div>`; }
+    const c = cat(e.category_id), tags = (e.from_cash ? '<span class="tag t-lilac">Συρτάρι</span> ' : '') + (e.expected ? '<span class="tag t-gold">Εκτίμηση</span> ' : '');
+    h += `<button class="row" data-a="exEdit" data-v="${e.id}" style="${e.expected ? 'opacity:.7' : ''}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(c.name)}</span><span class="t2" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${tags}${esc([sup(e.supplier_id), e.note].filter(Boolean).join(' · ') || (c.is_fixed ? 'Σταθερό' : ''))}</span></span><span style="text-align:right"><b class="num" style="display:block">${eur(Number(e.gross))}</b><span class="t2 num">ΦΠΑ ${Number(e.vat_rate)}%</span></span></button>`;
+  });
+  return h + `</div>`;
 }
 
 // ===== Sheets =====
@@ -1127,6 +1238,43 @@ function renderSheet(){
     const w = S.wait.find(x => x.id === sh.id), c = (w && w.clients) || {};
     return sheet('Κάλεσε', `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 48)}<div><div class="t1">${esc(c.name)}</div><div class="num" style="font-size:22px;font-weight:800;margin-top:4px;user-select:all">${esc(c.phone || 'Χωρίς τηλέφωνο')}</div></div></div>
       ${c.phone ? `<a class="btn ghost" href="tel:${esc(c.phone)}" style="text-decoration:none">${I.phone} Κλήση από αυτή τη συσκευή</a>` : ''}<div class="t2">Κάλεσε από το τηλέφωνο του καταστήματος και κλείσε από τη λίστα αν συμφωνήσει.</div>`, `<button class="btn ghost" data-a="closeSheet">Κλείσιμο</button>`);
+  }
+  if (sh.type === 'exEdit'){
+    const X = S.ex, a = num(sh.amt), vat = +sh.vat, nt = isNaN(a) ? 0 : a / (1 + vat / 100);
+    const cats = X.cats, grp = f => cats.filter(c => !!c.is_fixed === f);
+    const lock = sh.from_cash;
+    const q = norm((sh.sup || '').trim()), sugg = q ? X.sup.filter(x => norm(x.name).includes(q) && norm(x.name) !== q).slice(0, 5) : [];
+    let b = '';
+    if (sh.expected) b += `<div class="banner" style="padding:10px 12px;font-size:13px">Εκτίμηση ${eur(Number(sh.estimate || 0))}. Γράψε το πραγματικό ποσό του λογαριασμού.</div>`;
+    b += `<div class="field${sh.miss && sh.miss.amt ? ' bad' : ''}"><label for="exAmt">Ποσό με ΦΠΑ</label><input id="exAmt" class="inp amt num" inputmode="decimal" placeholder="0,00 €" value="${esc(sh.amt||'')}" ${lock ? 'disabled' : ''} autocomplete="off">
+      ${lock ? '<div class="t2">Πληρώθηκε από το συρτάρι. Το ποσό αλλάζει από το Ταμείο.</div>' : `<div class="t2 num">Καθαρό ${eur(nt)} · ΦΠΑ ${eur(isNaN(a) ? 0 : a - nt)}</div>`}</div>`;
+    b += `<div class="field${sh.miss && sh.miss.cat ? ' bad' : ''}"><label>Κατηγορία</label>
+      <div class="lbl" style="margin:2px 0 -2px">Μεταβλητά</div><div class="chips">${grp(false).map(c => `<button class="pill ${sh.cat===c.id?'on':''}" data-a="exCat" data-v="${c.id}">${esc(c.name)}</button>`).join('')}</div>
+      <div class="lbl" style="margin:6px 0 -2px">Σταθερά</div><div class="chips">${grp(true).map(c => `<button class="pill ${sh.cat===c.id?'on':''}" data-a="exCat" data-v="${c.id}">${esc(c.name)}</button>`).join('')}</div></div>`;
+    b += `<div class="field"><label>ΦΠΑ</label><div class="seg">${VATS.map(v => `<button class="${vat===v?'on':''}" data-a="exVat" data-v="${v}">${v}%</button>`).join('')}</div></div>`;
+    b += `<div class="field"><label for="exSup">Προμηθευτής <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><input id="exSup" class="inp" value="${esc(sh.sup||'')}" placeholder="π.χ. OPI Hellas" autocomplete="off">
+      ${sugg.length ? `<div class="chips">${sugg.map(x => `<button class="pill" style="min-height:32px" data-a="exSupPick" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : ''}</div>`;
+    b += `<div class="pair"><div class="field"><label for="exDay">Ημερομηνία</label><input id="exDay" class="inp" type="date" value="${esc(sh.day)}"></div><div class="field"><label for="exNote">Σημείωση</label><input id="exNote" class="inp" value="${esc(sh.note||'')}" placeholder="π.χ. τιμ. 1234"></div></div>`;
+    if (sh.id && !lock && can('expenses','write')){
+      b += sh.del
+        ? `<div class="card" style="background:var(--negbg);color:var(--neg);display:flex;flex-direction:column;gap:10px"><div style="font-size:13px">${sh.recurring_id ? 'Η καταχώριση σβήνεται. Το σταθερό έξοδο θα ξαναβάλει εκτίμηση για αυτόν τον μήνα.' : 'Το έξοδο σβήνεται οριστικά.'}</div><div style="display:flex;gap:8px"><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="exDelNo">Άκυρο</button><button class="btn danger" style="min-height:44px;font-size:14px;border:1.5px solid var(--neg)" data-a="exDelYes">Διαγραφή</button></div></div>`
+        : `<button class="btn danger" style="min-height:44px;font-size:14px" data-a="exDel">Διαγραφή εξόδου</button>`;
+    }
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    const title = sh.expected ? 'Πραγματικό ποσό' : sh.id ? 'Επεξεργασία εξόδου' : 'Νέο έξοδο';
+    return sheet(title, b, can('expenses','write') ? `<button class="btn primary split" data-a="exSave" ${S.busy?'disabled':''}><span>Αποθήκευση</span><span class="num">${isNaN(a) ? '' : eur(a)}</span></button>` : '', esc(storeName(S.store)) + (sh.label ? ' · ' + esc(sh.label) : ''));
+  }
+  if (sh.type === 'recEdit'){
+    const X = S.ex;
+    let b = `<div class="field"><label for="reLabel">Όνομα</label><input id="reLabel" class="inp" value="${esc(sh.label||'')}" placeholder="π.χ. Ενοίκιο ${esc(storeName(S.store))}"></div>
+      <div class="field${sh.miss && sh.miss.cat ? ' bad' : ''}"><label>Κατηγορία</label><div class="chips">${X.cats.filter(c => c.is_fixed).concat(X.cats.filter(c => !c.is_fixed)).map(c => `<button class="pill ${sh.cat===c.id?'on':''}" data-a="reCat" data-v="${c.id}">${esc(c.name)}</button>`).join('')}</div></div>
+      <div class="pair"><div class="field${sh.miss && sh.miss.amt ? ' bad' : ''}"><label for="reAmt">Εκτίμηση (€ με ΦΠΑ)</label><input id="reAmt" class="inp num" inputmode="decimal" value="${esc(sh.amt||'')}"></div>
+        <div class="field"><label for="reDay">Ημέρα μήνα</label><select id="reDay" class="inp num">${Array.from({ length: 28 }, (_, i) => `<option value="${i+1}" ${+sh.dom===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div></div>
+      <div class="field"><label>Συχνότητα</label><div class="seg"><button class="${+sh.every!==2?'on':''}" data-a="reEvery" data-v="1">Κάθε μήνα</button><button class="${+sh.every===2?'on':''}" data-a="reEvery" data-v="2">Κάθε 2 μήνες</button></div></div>
+      <div class="field"><label for="reSup">Προμηθευτής <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><input id="reSup" class="inp" value="${esc(sh.sup||'')}" autocomplete="off"></div>`;
+    if (sh.id) b += `<div class="prm"><span class="tx"><b>Ενεργό</b><span class="t2" style="display:block">Αν το κλείσεις, σταματούν οι εκτιμήσεις από αυτόν τον μήνα</span></span>${tgl(sh.active, 'reActive')}</div>`;
+    if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+    return sheet(sh.id ? 'Σταθερό έξοδο' : 'Νέο σταθερό έξοδο', b, `<button class="btn primary" data-a="reSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, esc(storeName(S.store)));
   }
   if (sh.type === 'member'){
     const X = S.set, m = X.members.find(x => x.id === sh.id); if (!m) return '';
@@ -1361,9 +1509,9 @@ document.addEventListener('click', async ev => {
     case 'logout': S.sheet = null; await sb.auth.signOut(); return;
     case 'me': S.sheet = { type:'me' }; break;
     case 'closeSheet': S.sheet = null; break;
-    case 'tab': S.tab = v; S.sheet = null; if ((v === 'clients' && !S.cl.loaded) || v === 'cash' || v === 'sched') return refresh(); render(); return;
+    case 'tab': S.tab = v; S.sheet = null; if ((v === 'clients' && !S.cl.loaded) || v === 'cash' || v === 'sched' || v === 'expenses') return refresh(); render(); return;
     case 'refresh': return refresh();
-    case 'store': S.store = v; S.freed = null; S.cash.day = null; S.cash.loaded = false; return refresh();
+    case 'store': S.store = v; S.freed = null; S.cash.day = null; S.cash.loaded = false; S.ex.loaded = false; return refresh();
     case 'view': S.view = v; S.day = null; return refresh();
     case 'freeOnly': S.freeOnly = !S.freeOnly; break;
     case 'monthStep': S.month = new Date(S.month.getFullYear(), S.month.getMonth() + (+v), 1); return refresh();
@@ -1769,6 +1917,74 @@ document.addEventListener('click', async ev => {
       if (r.error) throw r.error;
       S.ctx.settings = r.data; toast(nv ? 'Η διόρθωση παλιών ημερών άνοιξε' : 'Η διόρθωση παλιών ημερών έκλεισε'); break;
     }
+    case 'exMonth': S.ex.month = new Date(S.ex.month.getFullYear(), S.ex.month.getMonth() + (+v), 1); S.ex.loaded = false; return refresh();
+    case 'exView': S.ex.view = v; break;
+    case 'exEdit': {
+      const X = S.ex, e = v ? X.list.find(x => x.id === v) : null;
+      if (e) S.sheet = { type:'exEdit', id:e.id, amt: e.expected ? '' : String(e.gross).replace('.', ','), cat:e.category_id, vat:Number(e.vat_rate), vatTouched:true, sup:(X.sup.find(x => x.id === e.supplier_id) || {}).name || '', day:e.day, note:e.note || '', from_cash:e.from_cash, expected:e.expected, estimate:e.estimate, recurring_id:e.recurring_id, label: e.expected ? e.note : '' };
+      else { const d0 = sameDay(X.month, new Date(today().getFullYear(), today().getMonth(), 1)) ? today() : X.month;
+        S.sheet = { type:'exEdit', id:null, amt:'', cat:null, vat:24, sup:'', day: ymd(d0), note:'' }; }
+      if (S.sheet.expected) S.sheet.amt = String(e.estimate || e.gross).replace('.', ',');
+      break;
+    }
+    case 'exCat': { sh.cat = v; const c = S.ex.cats.find(x => x.id === v); if (c && !sh.vatTouched && !sh.from_cash) sh.vat = VATS.includes(Number(c.default_vat)) ? Number(c.default_vat) : 24; if (sh.miss) sh.miss.cat = false; sh.err = null; break; }
+    case 'exVat': sh.vat = +v; sh.vatTouched = true; break;
+    case 'exSupPick': sh.sup = (S.ex.sup.find(x => x.id === v) || {}).name || ''; break;
+    case 'exDel': sh.del = true; break;
+    case 'exDelNo': sh.del = false; break;
+    case 'exDelYes': {
+      const r = await sb.from('expenses').delete().eq('id', sh.id).select('id');
+      if (r.error) throw r.error;
+      if (!r.data || !r.data.length) throw new Error('permission denied');
+      S.sheet = null; toast('Το έξοδο διαγράφηκε'); return refresh();
+    }
+    case 'exSave': {
+      const a = num(sh.amt);
+      sh.miss = { amt: !sh.from_cash && !(a >= 0 && sh.amt !== ''), cat: !sh.cat };
+      if (sh.miss.amt || sh.miss.cat){ sh.err = sh.miss.amt && sh.miss.cat ? 'Συμπλήρωσε τα πεδία με κόκκινο.' : sh.miss.amt ? 'Γράψε το ποσό.' : 'Διάλεξε κατηγορία.'; break; }
+      if (!sh.day){ sh.err = 'Διάλεξε ημερομηνία.'; break; }
+      S.busy = true; paint();
+      try {
+        const supId = await ensureSupplier(sh.sup);
+        const row = { category_id: sh.cat, vat_rate: sh.vat, supplier_id: supId, day: sh.day, note: (sh.note||'').trim() || null };
+        if (!sh.from_cash){ row.gross = a; row.expected = false; }
+        const r = sh.id ? await sb.from('expenses').update(row).eq('id', sh.id)
+                        : await sb.from('expenses').insert({ ...row, org_id: S.ctx.org.id, store_id: S.store });
+        if (r.error) throw r.error;
+        S.busy = false; S.sheet = null; toast(sh.expected ? 'Καταχωρίστηκε το πραγματικό ποσό' : 'Αποθηκεύτηκε'); return refresh();
+      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      break;
+    }
+    case 'recEdit': {
+      const X = S.ex, r = v ? X.rec.find(x => x.id === v) : null;
+      S.sheet = r ? { type:'recEdit', id:r.id, label:r.label || '', cat:r.category_id, amt:String(r.estimate).replace('.', ','), dom:r.day_of_month, every:r.every_months, sup:(X.sup.find(x => x.id === r.supplier_id) || {}).name || '', active:r.active }
+                  : { type:'recEdit', id:null, label:'', cat:null, amt:'', dom:1, every:1, sup:'', active:true };
+      break;
+    }
+    case 'reCat': sh.cat = v; if (sh.miss) sh.miss.cat = false; break;
+    case 'reEvery': sh.every = +v; break;
+    case 'reActive': sh.active = !sh.active; break;
+    case 'reSave': {
+      const a = num(sh.amt);
+      sh.miss = { amt: !(a > 0), cat: !sh.cat };
+      if (sh.miss.amt || sh.miss.cat){ sh.err = 'Συμπλήρωσε τα πεδία με κόκκινο.'; break; }
+      S.busy = true; paint();
+      try {
+        const supId = await ensureSupplier(sh.sup), org = S.ctx.org.id;
+        const row = { label: (sh.label||'').trim() || null, category_id: sh.cat, estimate: a, day_of_month: +sh.dom, every_months: +sh.every, supplier_id: supId, active: sh.active };
+        const r = sh.id ? await sb.from('recurring_expenses').update(row).eq('id', sh.id)
+                        : await sb.from('recurring_expenses').insert({ ...row, org_id: org, store_id: S.store, start_month: ymd(new Date(today().getFullYear(), today().getMonth(), 1)) });
+        if (r.error) throw r.error;
+        if (sh.id){
+          // οι εκτιμήσεις που δεν έχουν γίνει πραγματικές ξαναφτιάχνονται με τα νέα στοιχεία
+          const from = ymd(new Date(today().getFullYear(), today().getMonth(), 1));
+          const d = await sb.from('expenses').delete().eq('recurring_id', sh.id).eq('expected', true).gte('day', from);
+          if (d.error) throw d.error;
+        }
+        S.busy = false; S.sheet = null; toast('Αποθηκεύτηκε'); return refresh();
+      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      break;
+    }
     case 'call': S.sheet = { type:'call', id: v }; break;
     case 'fillFromWait': {
       const w = S.wait.find(x => x.id === v), f = S.freed;
@@ -1800,6 +2016,8 @@ document.addEventListener('input', ev => {
   const id = ev.target.id, val = ev.target.value, sh = S.sheet;
   if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
   if (!sh) return;
+  if (sh.type === 'exEdit'){ if (id === 'exAmt'){ sh.amt = val; if (sh.miss) sh.miss.amt = false; sh.err = null; paint(); return; } if (id === 'exSup'){ sh.sup = val; paint(); return; } if (id === 'exNote'){ sh.note = val; return; } }
+  if (sh.type === 'recEdit'){ const k = { reLabel:'label', reAmt:'amt', reSup:'sup' }[id]; if (k){ sh[k] = val; return; } }
   const mp = { mName:'name', mPw:'pw', nmName:'name', nmEmail:'email', nmPw:'pw', svName:'name', svDur:'dur', svPrice:'price', ctName:'name', offFrom:'offFrom', offTo:'offTo' };
   if (mp[id]){ sh[mp[id]] = val; return; }
   if (id === 'caAmt' || id === 'coAmt' || id === 'ccAmt'){ sh.amt = val; if (id === 'ccAmt') paint(); return; }
@@ -1826,6 +2044,8 @@ document.addEventListener('change', async ev => {
   if (ds.shs != null || ds.she != null){ const w = +(ds.shs ?? ds.she); sh.hrs[w] = sh.hrs[w] || {}; sh.hrs[w][ds.shs != null ? 's' : 'e'] = ev.target.value || null; return; }
   if (ds.mperm){ sh.perms[ds.mperm] = ev.target.value || null; return; }
   if (id === 'svCat'){ sh.cat = ev.target.value; return; }
+  if (id === 'exDay'){ sh.day = ev.target.value; return; }
+  if (id === 'reDay'){ sh.dom = +ev.target.value; return; }
   if (id === 'offFrom' || id === 'offTo'){ sh[id] = ev.target.value; return; }
   if (id === 'ncGdpr') sh.ncGdpr = ev.target.checked;
   if (id === 'ceGdpr') sh.gdpr = ev.target.checked;
@@ -1837,7 +2057,7 @@ document.addEventListener('change', async ev => {
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false };
+  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false };
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
   try {
