@@ -1034,7 +1034,8 @@ function renderClients(){
   const tagOk = g => C.tags.every(t => g[t]);
   const stOk = (g, st) => st === 'all' || g.stage === st;
   const qOk = c => !q || norm(c.name).includes(q) || (qd.length >= 3 && String(c.phone||'').includes(qd));
-  let h = `<label class="srch">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="Όνομα ή τηλέφωνο" value="${esc(C.q)}" autocomplete="off"></label>`;
+  const srch = `<label class="srch" style="flex:1;min-width:0">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="Όνομα ή τηλέφωνο" value="${esc(C.q)}" autocomplete="off"></label>`;
+  let h = can('clients','write') ? `<div style="display:flex;gap:8px;align-items:stretch">${srch}<button class="btn navy" data-a="newClientCard" style="width:auto;flex:none;padding:0 16px;white-space:nowrap" aria-label="Νέα πελάτισσα">+ Νέα</button></div>` : srch;
   h += `<div><div class="lbl" style="margin:0 2px 6px">Σκαλί</div><div class="hs">${STAGES.map(([k, n]) => {
       const ct = all.filter(x => stOk(x.g, k) && tagOk(x.g)).length;
       return (k === 'none' && !ct) ? '' : `<button class="pill ${C.stage===k?'on':''}" data-a="clStage" data-v="${k}" aria-pressed="${C.stage===k}">${n}<span class="ct num">${ct}</span></button>`; }).join('')}</div></div>`;
@@ -1052,7 +1053,6 @@ function renderClients(){
   });
   h += `</div>`;
   if (list.length > C.show) h += `<button class="btn ghost" data-a="clMore">Δείξε περισσότερες (${list.length - C.show})</button>`;
-  if (can('clients','write')) h += `<button class="btn navy" data-a="newClientCard">+ Νέα πελάτισσα</button>`;
   return h;
 }
 function clientWhy(c, g){
@@ -1520,7 +1520,7 @@ function renderSheet(){
   if (sh.type === 'me'){
     const m = S.ctx.member;
     return sheet('Ο λογαριασμός μου', `<div style="display:flex;align-items:center;gap:12px">${av(m.name, 52, 'var(--teal)', '#fff')}<div><div class="t1" style="font-size:17px">${esc(m.name)}</div><div class="t2">${ROLE_NAME[m.role]} · ${esc(S.ctx.org.name)}</div><div class="t2">${esc(S.session.user.email)}</div></div></div>
-      <div class="t2">Καταστήματα: ${S.ctx.stores.map(s => esc(s.name)).join(', ') || '—'}</div>${role() === 'admin' ? `<button class="btn ghost" data-a="settings">${I.gear} Ρυθμίσεις</button>` : ''}`, `<button class="btn ghost" data-a="logout">Αποσύνδεση</button>`);
+      <div class="t2">Καταστήματα: ${S.ctx.stores.map(s => esc(s.name)).join(', ') || '—'}</div>`, `<button class="btn ghost" data-a="logout">Αποσύνδεση</button>`);
   }
   if (sh.type === 'appt'){
     const a = sh.a, c = a.client || {}, pool = sh.pool || S.dayAppts;
