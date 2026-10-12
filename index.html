@@ -69,6 +69,10 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .lbl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600}
 .big{font-size:38px;font-weight:800;letter-spacing:-1px;line-height:1.1}
 .stat{background:var(--chip);border-radius:12px;padding:6px 12px;font-size:13px;color:var(--ink2)}.stat b{color:var(--ink)}
+.svcrow{display:flex;align-items:center;border-top:1px solid var(--line)}
+.card.flush .svcrow:first-child{border-top:none}
+.svcrow .row{border-top:none;flex:1;min-width:0;padding-right:8px}
+.svcrow .web{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 14px 0 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .row{display:flex;align-items:center;gap:12px;padding:12px 16px;border:none;border-top:1px solid var(--line);width:100%;background:none;text-align:left;min-height:56px}
 .row:first-child{border-top:none}
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;background:var(--lilac);color:var(--ink)}
@@ -1435,9 +1439,10 @@ function renderSettings(){
     S.ctx.cats.forEach(c => {
       const list = S.ctx.services.filter(x => x.category_id === c.id);
       h += `<div style="display:flex;align-items:center;margin:4px 2px -4px"><div class="lbl" style="flex:1">${esc(c.name)}</div><button class="pill" style="min-height:32px" data-a="editCat" data-v="${c.id}">Μετονομασία</button></div>
-        <div class="card flush">${list.length ? list.map(x => `<button class="row" data-a="editSvc" data-v="${x.id}" style="${x.active ? '' : 'opacity:.55'}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(x.name)}${x.active ? '' : ' <span class="tag t-gray">Ανενεργή</span>'}</span><span class="t2 num" style="display:block">${x.duration_min}΄</span></span><b class="num">${eur0(x.price)}</b>${I.chev}</button>`).join('') : '<div style="padding:16px;color:var(--muted);font-size:13px">Καμία υπηρεσία.</div>'}</div>`;
+        <div class="card flush">${list.length ? list.map(x => `<div class="svcrow" style="${x.active ? '' : 'opacity:.55'}"><button class="row" data-a="editSvc" data-v="${x.id}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(x.name)}${x.active ? '' : ' <span class="tag t-gray">Ανενεργή</span>'}</span><span class="t2 num" style="display:block">${x.duration_min}΄</span></span><b class="num">${eur0(x.price)}</b>${I.chev}</button>${x.active ? `<span class="web">${tgl(x.online !== false, 'svcWeb', x.id, 'Εμφάνιση στις online κρατήσεις: ' + x.name)}Web</span>` : ''}</div>`).join('') : '<div style="padding:16px;color:var(--muted);font-size:13px">Καμία υπηρεσία.</div>'}</div>`;
     });
     return h + `<div class="grid2"><button class="btn ghost" style="font-size:14px" data-a="editCat" data-v="">+ Κατηγορία</button><button class="btn navy" style="font-size:14px" data-a="editSvc" data-v="">+ Υπηρεσία</button></div>
+      <div class="t2" style="margin:0 2px">Ο διακόπτης «Web» ορίζει αν η υπηρεσία φαίνεται στη σελίδα online κρατήσεων${st.online_enabled ? '' : ' (οι online κρατήσεις είναι ανενεργές)'}.</div>
       <div class="t2" style="margin:0 2px">Οι τιμές είναι ίδιες σε όλα τα καταστήματα. Αλλαγή τιμής δεν επηρεάζει ραντεβού που έχουν ήδη κλειστεί. Μια υπηρεσία που δεν προσφέρεται πια γίνεται ανενεργή.</div>`;
   }
   if (X.page === 'seg'){
@@ -1488,7 +1493,7 @@ function renderSettings(){
   }
   if (X.page === 'online'){
     if (!X.oDraft){ X.oDraft = { online_enabled: !!st.online_enabled, online_lead_min: st.online_lead_min ?? 120, online_horizon_days: st.online_horizon_days ?? 30, online_cancel_hours: st.online_cancel_hours ?? 24, online_note: st.online_note || '' };
-      X.oSvc = {}; S.ctx.services.forEach(v => X.oSvc[v.id] = v.online !== false); }
+ }
     const D = X.oDraft, seg = (k, opts) => `<div class="seg" style="width:100%">${opts.map(([v, n]) => `<button class="${D[k] === v ? 'on' : ''}" data-a="oSet" data-v="${k}:${v}">${n}</button>`).join('')}</div>`;
     let h = `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx"><b>Online κρατήσεις</b><span class="t2" style="display:block">Οι πελάτισσες κλείνουν μόνες τους από σύνδεσμο. Το ραντεβού μπαίνει αμέσως στο ημερολόγιο.</span></span>${tgl(D.online_enabled, 'oTog', 'online_enabled')}</div></div>`;
     if (D.online_enabled){
@@ -1500,8 +1505,7 @@ function renderSettings(){
         <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πόσο νωρίτερα</b><span class="t2" style="display:block">Το λιγότερο πριν την ώρα του ραντεβού</span></span>${seg('online_lead_min', [[0,'Όποτε'],[60,'1 ώρα'],[120,'2 ώρες'],[240,'4 ώρες'],[1440,'1 μέρα']])}</div>
         <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πόσο μπροστά</b><span class="t2" style="display:block">Μέχρι πόσες μέρες από σήμερα</span></span>${seg('online_horizon_days', [[7,'7'],[14,'14'],[30,'30'],[60,'60'],[90,'90']])}</div>
         <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Ακύρωση από την πελάτισσα</b><span class="t2" style="display:block">Από τον σύνδεσμό της, έως τόσες ώρες πριν. Η θέση εμφανίζεται ως ελεύθερη για τη λίστα αναμονής.</span></span>${seg('online_cancel_hours', [[6,'6 ώρες'],[12,'12 ώρες'],[24,'24 ώρες'],[48,'48 ώρες']])}</div></div>
-      <div class="card" style="display:flex;flex-direction:column;gap:4px"><div class="lbl" style="margin-bottom:4px">Υπηρεσίες που κλείνονται online</div>
-        ${S.ctx.services.filter(v => v.active).map(v => `<div class="prm"><span class="tx">${esc(v.name)}<span class="t2" style="display:block">${v.duration_min}΄ · ${eur0(v.price)}</span></span>${tgl(X.oSvc[v.id], 'oSvc', v.id)}</div>`).join('')}</div>
+      <button class="row card" data-a="setPage" data-v="services" style="border-radius:22px;border:none"><span style="flex:1;min-width:0"><span class="t1" style="display:block">Υπηρεσίες που κλείνονται online</span><span class="t2" style="display:block">${S.ctx.services.filter(v => v.active && v.online !== false).length} από ${S.ctx.services.filter(v => v.active).length} · αλλάζει με τον διακόπτη «Web» στις Υπηρεσίες</span></span>${I.chev}</button>
       <div class="card" style="display:flex;flex-direction:column;gap:8px"><label class="lbl" for="oNote">Μήνυμα στη σελίδα κρατήσεων · προαιρετικό</label>
         <textarea id="oNote" class="inp" maxlength="400" placeholder="π.χ. Για τεχνητά νύχια ή αφαίρεση ακρυλικού πάρτε τηλέφωνο.">${esc(D.online_note)}</textarea></div>
       <div class="card" style="padding:8px 16px;opacity:.6"><div class="prm"><span class="tx"><b>Επιβεβαίωση κινητού με SMS</b><span class="t2" style="display:block">Κωδικός μίας χρήσης πριν κλείσει το ραντεβού. Θα ενεργοποιηθεί αργότερα.</span></span><span class="tag t-gray">Σύντομα</span></div></div>`;
@@ -2758,14 +2762,19 @@ document.addEventListener('click', async ev => {
     case 'cReset': S.set.cDraft.confirm_template = 'Καλησπέρα {όνομα}! Σας θυμίζουμε το ραντεβού σας {ημέρα} στις {ώρα} στο {επιχείρηση} {κατάστημα}. Πατήστε εδώ για επιβεβαίωση ή αλλαγή: {σύνδεσμος}'; break;
     case 'oTog': S.set.oDraft[v] = !S.set.oDraft[v]; break;
     case 'oSet': { const [k, n] = v.split(':'); S.set.oDraft[k] = +n; break; }
-    case 'oSvc': S.set.oSvc[v] = !S.set.oSvc[v]; break;
+    case 'svcWeb': {
+      const sv = S.ctx.services.find(x => x.id === v); if (!sv) break;
+      const nv = sv.online === false; sv.online = nv; paint();
+      const r = await sb.from('services').update({ online: nv }).eq('id', v);
+      if (r.error){ sv.online = !nv; throw r.error; }
+      toast(nv ? 'Φαίνεται στις online κρατήσεις' : 'Κρύφτηκε από τις online κρατήσεις'); break;
+    }
     case 'oCopy': try { await navigator.clipboard.writeText(v); toast('Ο σύνδεσμος αντιγράφηκε'); } catch(e){ toast('Δεν έγινε αντιγραφή · κράτα πατημένο τον σύνδεσμο'); } break;
     case 'oSave': {
       const D = S.set.oDraft; S.busy = true; paint();
       try {
         const r = await sb.from('org_settings').update({ online_enabled: D.online_enabled, online_lead_min: D.online_lead_min, online_horizon_days: D.online_horizon_days, online_cancel_hours: D.online_cancel_hours, online_note: (D.online_note || '').trim() || null }).eq('org_id', S.ctx.org.id).select('*').single();
         if (r.error) throw r.error;
-        for (const v of S.ctx.services){ const want = !!S.set.oSvc[v.id]; if (want !== (v.online !== false)){ const u = await sb.from('services').update({ online: want }).eq('id', v.id); if (u.error) throw u.error; v.online = want; } }
         S.ctx.settings = r.data; S.set.err = null; S.busy = false; toast('Αποθηκεύτηκε');
       } catch(e){ S.busy = false; S.set.err = friendlyError(e); }
       break;
