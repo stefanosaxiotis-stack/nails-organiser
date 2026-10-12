@@ -1269,8 +1269,9 @@ function renderClients(){
   const tagOk = g => C.tags.every(t => g[t]);
   const stOk = (g, st) => st === 'all' || g.stage === st;
   const qOk = c => !q || norm(c.name).includes(q) || (qd.length >= 3 && String(c.phone||'').includes(qd));
-  const srch = `<label class="srch" style="flex:1;min-width:0">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="Όνομα ή τηλέφωνο" value="${esc(C.q)}" autocomplete="off"></label>`;
-  let h = can('clients','write') ? `<div style="display:flex;gap:8px;align-items:stretch">${srch}<button class="btn navy" data-a="newClientCard" style="width:auto;flex:none;padding:0 16px;white-space:nowrap" aria-label="Νέα πελάτισσα">+ Νέα</button></div>` : srch;
+  const tel = C.kb === 'tel';
+  const srch = `<label class="srch" style="flex:1;min-width:0">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="${tel ? 'Τηλέφωνο' : 'Όνομα'}" inputmode="${tel ? 'tel' : 'text'}" value="${esc(C.q)}" autocomplete="off"></label><button class="btn ghost" data-a="clKb" aria-label="${tel ? 'Αναζήτηση με όνομα' : 'Αναζήτηση με τηλέφωνο'}" style="width:auto;flex:none;padding:0 12px;min-width:56px;font-size:15px">${tel ? 'Αβγ' : '123'}</button>`;
+  let h = can('clients','write') ? `<div style="display:flex;gap:8px;align-items:stretch">${srch}<button class="btn navy" data-a="newClientCard" style="width:auto;flex:none;padding:0 16px;white-space:nowrap" aria-label="Νέα πελάτισσα">+ Νέα</button></div>` : `<div style="display:flex;gap:8px;align-items:stretch">${srch}</div>`;
   h += `<div><div class="lbl" style="margin:0 2px 6px">Σκαλί</div><div class="hs">${STAGES.map(([k, n]) => {
       const ct = all.filter(x => stOk(x.g, k) && tagOk(x.g)).length;
       return (k === 'none' && !ct) ? '' : `<button class="pill ${C.stage===k?'on':''}" data-a="clStage" data-v="${k}" aria-pressed="${C.stage===k}">${n}<span class="ct num">${ct}</span></button>`; }).join('')}</div></div>`;
@@ -2423,6 +2424,11 @@ document.addEventListener('click', async ev => {
       S.sheet = null;
       toast({ lost:'Σημειώθηκε: δεν εξυπηρετήθηκε', booked:'Σημειώθηκε: εξυπηρετήθηκε', removed:'Αφαιρέθηκε' }[v], async () => { await sb.from('waitlist').update({ status:'active', closed_at: null, closed_reason: null }).eq('id', id); });
       return refresh();
+    }
+    case 'clKb': {
+      S.cl.kb = S.cl.kb === 'tel' ? 'text' : 'tel'; paint();
+      const el = document.getElementById('clQ'); if (el){ el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch(_){} }
+      return;
     }
     case 'clStage': S.cl.stage = v; S.cl.show = 60; break;
     case 'clTag': S.cl.tags = S.cl.tags.includes(v) ? S.cl.tags.filter(x => x !== v) : S.cl.tags.concat(v); S.cl.show = 60; break;
