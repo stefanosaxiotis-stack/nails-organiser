@@ -95,6 +95,7 @@ const P = new URLSearchParams(location.search), STORE = P.get('s') || '', TOKEN 
 const TZ = 'Europe/Athens', WD = ['Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ','Κυρ'], WDF = ['Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο','Κυριακή'];
 const MON = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'], MONG = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const art = n => /^([αεηιουωάέήίόύώκπτξψ]|μπ|ντ|γκ|τσ|τζ)/i.test(String(n || '')) ? 'την' : 'τη';
+const isDemo = () => P.get('demo') === '1' || /demo/i.test((I && I.org) || '');
 const isUuid = s => /^[0-9a-f-]{36}$/i.test(s);
 const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -179,6 +180,8 @@ function render(){
       <div class="card"><div style="font-weight:700">Κράτησε αυτόν τον σύνδεσμο</div><div class="t2">Από εδώ βλέπεις το ραντεβού σου${I.cancel_hours != null ? ' και μπορείς να το ακυρώσεις έως ' + I.cancel_hours + ' ώρες πριν' : ''}.</div>
         <a class="btn ghost" href="${esc(link)}">Το ραντεβού μου</a>
         <button class="btn ghost" data-a="copy" data-v="${esc(link)}">Αντιγραφή συνδέσμου</button></div>`;
+    if (isDemo()) h += `<div class="card" style="border:1.5px dashed var(--line)"><div class="t2"><b>Λειτουργία demo.</b> Το ραντεβού μένει κανονικά στο πρόγραμμα του μαγαζιού. Το κουμπί καθαρίζει μόνο αυτή τη σελίδα για νέα δοκιμή.</div>
+        <button class="btn pri" data-a="demoReset" style="flex:none">↺ Νέα δοκιμαστική κράτηση</button></div>`;
   }
   m.innerHTML = h;
   if (S.step === 2 && S.day){ const el = document.querySelector('.day.on'); if (el && !S._scrolled){ el.scrollIntoView({ inline:'center', block:'nearest' }); S._scrolled = true; } }
@@ -254,6 +257,7 @@ document.addEventListener('click', async e => {
   else if (a === 'day'){ S.day = pd(v); S.time = ''; loadSlots(); }
   else if (a === 'time'){ S.time = v; S.err = ''; render(); }
   else if (a === 'book') book();
+  else if (a === 'demoReset'){ Object.assign(S, { step: 1, sel: [], tech: '', day: null, slots: null, slotsErr: '', time: '', name: '', phone: '', note: '', ok: false, err: '', bad: {}, busy: false, done: null, _scrolled: false }); window.scrollTo(0, 0); render(); }
   else if (a === 'copy'){ try { await navigator.clipboard.writeText(v); b.textContent = 'Αντιγράφηκε ✓'; } catch(_){ prompt('Αντέγραψε τον σύνδεσμο:', v); } }
   else if (a === 'cancelAsk'){ S.confirmCancel = true; render(); }
   else if (a === 'cancelNo'){ S.confirmCancel = false; render(); }
