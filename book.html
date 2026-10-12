@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1E1F4B">
+<title>Κλείσε ραντεβού</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#F4F3F8; --surface:#FFFFFF; --chip:#F1F0F6; --line:#E4E3EC; --ink:#1E1F4B; --muted:#66678A; --head:#1E1F4B; --headmuted:#B8B8D6;
+  --teal:#0B7F74; --tealbg:#D6EFEB; --tealink:#0B5E55; --neg:#B3344F; --negbg:#FBE7EB; --gold:#7A4E14; --goldbg:#FBF3E6;
+  --font-display:Comfortaa,"Varela Round",system-ui,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121329; --surface:#1C1D3A; --chip:#26274A; --line:#33345A; --ink:#EDEDF7; --muted:#A3A3C6; --head:#0C0D22; --headmuted:#A3A3C6;
+  --teal:#13998B; --tealbg:#123F3B; --tealink:#8FE0D4; --neg:#F08AA0; --negbg:#3D1F2A; --gold:#E6C48A; --goldbg:#3A2E1A; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+header{background:var(--head);color:#fff;padding:calc(20px + env(safe-area-inset-top,0px)) 20px 30px;text-align:center}
+header .org{font-family:var(--font-display);font-size:24px;font-weight:700}
+header .st{font-size:14px;color:var(--headmuted);margin-top:4px}
+main{max-width:520px;margin:-16px auto 0;padding:0 16px calc(120px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.steps{display:flex;gap:6px}
+.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.steps i.on{background:var(--teal)}
+h2{font-family:var(--font-display);font-size:20px;margin:0}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.t2{font-size:13px;color:var(--muted);line-height:1.45}
+.svc{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;background:var(--surface);text-align:left;width:100%;min-height:58px}
+.svc.on{border-color:var(--teal);background:var(--tealbg)}
+.svc .ck{width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
+.svc.on .ck{background:var(--teal);border-color:var(--teal)}
+.svc .nm{flex:1;min-width:0;font-weight:700}
+.svc .nm span{display:block;font-weight:500;font-size:13px;color:var(--muted)}
+.svc .pr{font-weight:800;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.pill{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:0 16px;min-height:42px;font-weight:700;font-size:14px}
+.pill.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.day{flex:none;width:60px;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;scroll-snap-align:start}
+.day b{font-size:20px;font-variant-numeric:tabular-nums}
+.day span{font-size:12px;color:var(--muted);font-weight:600}
+.day.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.day.on span{color:#E6F5F2}
+.day:disabled{opacity:.35;cursor:default}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.slot{border:1.5px solid var(--line);border-radius:14px;min-height:46px;background:var(--surface);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.slot.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:700;font-size:14px}
+.inp{width:100%;min-height:52px;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--surface);font-size:16px}
+.inp.bad{border-color:var(--neg)}
+textarea.inp{min-height:80px;resize:vertical}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
+.chk input{width:22px;height:22px;margin:0;flex:none;accent-color:var(--teal)}
+.sum{background:var(--chip);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.sum .d{font-weight:800;font-size:17px}
+.sum .t{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar .in{max-width:520px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.btn{border:none;border-radius:18px;min-height:54px;font-size:17px;font-weight:700;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn.pri{background:var(--teal);color:#fff;flex:1}
+.btn.pri:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.neg{background:var(--negbg);color:var(--neg);width:100%}
+.back{background:none;border:none;color:var(--teal);font-weight:700;font-size:15px;padding:6px 0;align-self:flex-start}
+.err{color:var(--neg);font-size:14px;font-weight:600}
+.warn{background:var(--goldbg);color:var(--gold);border-radius:14px;padding:10px 14px;font-size:14px}
+.res{text-align:center;align-items:center}
+.res .ic{width:64px;height:64px;border-radius:50%;background:var(--tealbg);color:var(--tealink);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800}
+.res .ic.bad{background:var(--negbg);color:var(--neg)}
+.info{font-size:14px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.info b{color:var(--ink)}
+.spin{width:30px;height:30px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--teal);animation:sp 1s linear infinite;margin:24px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--muted);padding:14px 4px;font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="org" id="org">Κλείσε ραντεβού</div><div class="st" id="st"></div></header>
+<main id="main"><div class="spin" aria-label="Φόρτωση"></div></main>
+<div class="bar" id="bar" hidden><div class="in" id="barIn"></div></div>
+<script>
+const sb = supabase.createClient('https://koliyglqlgpwsrkjahrn.supabase.co', 'sb_publishable_0JPsGiN40GN8y4ZFRnYp2A_47M-yXM_');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P = new URLSearchParams(location.search), STORE = P.get('s') || '', TOKEN = P.get('m') || '';
+const TZ = 'Europe/Athens', WD = ['Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ','Κυρ'], WDF = ['Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο','Κυριακή'];
+const MON = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'], MONG = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
+const art = n => /^([αεηιουωάέήίόύώκπτξψ]|μπ|ντ|γκ|τσ|τζ)/i.test(String(n || '')) ? 'την' : 'τη';
+const isUuid = s => /^[0-9a-f-]{36}$/i.test(s);
+const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const wdOf = d => (d.getDay() + 6) % 7;
+const eur = v => Number(v).toLocaleString('el-GR', { maximumFractionDigits: 2 }) + ' €';
+const longDay = d => `${WDF[wdOf(d)]} ${d.getDate()} ${MONG[d.getMonth()]}`;
+const fmtTime = iso => new Date(iso).toLocaleTimeString('el-GR', { timeZone: TZ, hour:'2-digit', minute:'2-digit', hour12:false });
+const fmtDay = iso => new Date(iso).toLocaleDateString('el-GR', { timeZone: TZ, weekday:'long', day:'numeric', month:'long' });
+
+let I = null;                       // πληροφορίες καταστήματος
+const S = { step: 1, sel: [], tech: '', day: null, slots: null, slotsErr: '', time: '', name: '', phone: '', note: '', ok: false, err: '', bad: {}, busy: false, done: null, M: null };
+
+function infoBlock(x){
+  const r = [];
+  if (x.address) r.push(`<span>📍 <b>${esc(x.address)}</b></span>`);
+  if (x.phone) r.push(`<span>☎ <a href="tel:${esc(String(x.phone).replace(/\s/g, ''))}" style="color:var(--teal);font-weight:700">${esc(x.phone)}</a></span>`);
+  return r.length ? `<div class="info">${r.join('')}</div>` : '';
+}
+const selSvcs = () => S.sel.map(id => I.services.find(s => s.id === id)).filter(Boolean);
+const totDur = () => selSvcs().reduce((a, s) => a + s.dur, 0);
+const totPrice = () => selSvcs().reduce((a, s) => a + Number(s.price), 0);
+const techName = id => (I.techs.find(t => t.id === id) || {}).name || '';
+const steps = n => `<div class="steps" aria-label="Βήμα ${n} από 3">${[1,2,3].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>`;
+
+function render(){
+  const m = document.getElementById('main'), bar = document.getElementById('bar'), bi = document.getElementById('barIn');
+  bar.hidden = true;
+  if (S.M) return renderManage(m);
+  if (!I || !I.ok){ m.innerHTML = `<div class="card res"><div class="ic bad">!</div><h2>Οι online κρατήσεις δεν είναι διαθέσιμες</h2><p class="t2">Επικοινωνήστε με το κατάστημα.</p></div>`; return; }
+  document.getElementById('org').textContent = I.org;
+  document.getElementById('st').textContent = I.store;
+  document.title = 'Κλείσε ραντεβού · ' + I.org;
+  let h = '';
+  if (S.step === 1){
+    h += `<div class="card">${steps(1)}<h2>Τι θα κάνεις;</h2><div class="t2">Διάλεξε μία ή περισσότερες υπηρεσίες.</div>`;
+    const cats = I.cats.filter(c => I.services.some(s => s.cat === c.id)), other = I.services.filter(s => !I.cats.some(c => c.id === s.cat));
+    const block = (name, list) => `<div class="lbl" style="margin-top:4px">${esc(name)}</div>` + list.map(s => `<button class="svc ${S.sel.includes(s.id) ? 'on' : ''}" data-a="svc" data-v="${s.id}" aria-pressed="${S.sel.includes(s.id)}"><span class="ck">${S.sel.includes(s.id) ? '✓' : ''}</span><span class="nm">${esc(s.name)}<span>${s.dur}΄</span></span><span class="pr">${eur(s.price)}</span></button>`).join('');
+    cats.forEach(c => { h += block(c.name, I.services.filter(s => s.cat === c.id)); });
+    if (other.length) h += block('Άλλες', other);
+    if (!I.services.length) h += `<div class="empty">Δεν υπάρχουν υπηρεσίες για online κράτηση. Πάρτε τηλέφωνο.</div>`;
+    h += `</div>`;
+    if (I.note) h += `<div class="card"><div class="t2" style="white-space:pre-line">${esc(I.note)}</div></div>`;
+    h += `<div class="card">${infoBlock(I)}</div>`;
+    bar.hidden = false;
+    bi.innerHTML = `<div style="flex:none;font-size:14px"><b>${S.sel.length ? eur(totPrice()) : '—'}</b><div class="t2">${S.sel.length ? totDur() + '΄' : 'καμία υπηρεσία'}</div></div><button class="btn pri" data-a="to2" ${S.sel.length ? '' : 'disabled'}>Συνέχεια</button>`;
+  } else if (S.step === 2){
+    h += `<div class="card">${steps(2)}<button class="back" data-a="to1">‹ Υπηρεσίες</button><h2>Πότε σε βολεύει;</h2>`;
+    if (I.techs.length > 1) h += `<div class="lbl">Τεχνίτρια</div><div class="chips"><button class="pill ${!S.tech ? 'on' : ''}" data-a="tech" data-v="">Όποια είναι διαθέσιμη</button>${I.techs.map(t => `<button class="pill ${S.tech === t.id ? 'on' : ''}" data-a="tech" data-v="${t.id}">${esc(t.name)}</button>`).join('')}</div>`;
+    const t0 = pd(I.today), days = [];
+    for (let i = 0; i <= I.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); days.push(d); }
+    h += `<div class="lbl">Ημέρα · ${MON[(S.day || t0).getMonth()]} ${(S.day || t0).getFullYear()}</div><div class="days" id="days">${days.map(d => { const open = I.open_days.includes(wdOf(d)), on = S.day && ymd(d) === ymd(S.day);
+      return `<button class="day ${on ? 'on' : ''}" data-a="day" data-v="${ymd(d)}" ${open ? '' : 'disabled'} aria-label="${longDay(d)}${open ? '' : ' (κλειστά)'}"><span>${WD[wdOf(d)]}</span><b>${d.getDate()}</b><span>${MON[d.getMonth()]}</span></button>`; }).join('')}</div>`;
+    if (!S.day) h += `<div class="empty">Διάλεξε ημέρα για να δεις τις ελεύθερες ώρες.</div>`;
+    else if (S.slots === null) h += `<div class="spin"></div>`;
+    else if (S.slotsErr) h += `<div class="err">${esc(S.slotsErr)}</div>`;
+    else if (!S.slots.length) h += `<div class="empty">Δεν υπάρχει ελεύθερη ώρα ${longDay(S.day)}${S.tech ? ' με ' + art(techName(S.tech)) + ' ' + esc(techName(S.tech)) : ''}. Δοκίμασε άλλη μέρα${S.tech ? ' ή «Όποια είναι διαθέσιμη»' : ''}.</div>`;
+    else {
+      const mor = S.slots.filter(x => x.t < '13:00'), aft = S.slots.filter(x => x.t >= '13:00');
+      const grid = l => `<div class="slots">${l.map(x => `<button class="slot ${S.time === x.t ? 'on' : ''}" data-a="time" data-v="${x.t}">${x.t}</button>`).join('')}</div>`;
+      if (mor.length) h += `<div class="lbl">Πρωί</div>` + grid(mor);
+      if (aft.length) h += `<div class="lbl">Απόγευμα</div>` + grid(aft);
+    }
+    if (S.err) h += `<div class="err">${esc(S.err)}</div>`;
+    h += `</div>`;
+    bar.hidden = false;
+    bi.innerHTML = `<div style="flex:none;font-size:14px"><b>${S.time ? S.time : '—'}</b><div class="t2">${S.day ? WD[wdOf(S.day)] + ' ' + S.day.getDate() + ' ' + MON[S.day.getMonth()] : 'διάλεξε ώρα'}</div></div><button class="btn pri" data-a="to3" ${S.time ? '' : 'disabled'}>Συνέχεια</button>`;
+  } else if (S.step === 3){
+    h += `<div class="card">${steps(3)}<button class="back" data-a="to2">‹ Ημέρα και ώρα</button><h2>Τα στοιχεία σου</h2>
+      <div class="sum"><div class="d">${longDay(S.day)}</div><div class="t">${S.time}</div><div class="t2">${esc(selSvcs().map(s => s.name).join(', '))} · ${totDur()}΄ · ${eur(totPrice())}${S.tech ? ' · με ' + art(techName(S.tech)) + ' ' + esc(techName(S.tech)) : ''}</div></div>
+      <div class="field"><label for="fName">Ονοματεπώνυμο</label><input id="fName" class="inp ${S.bad.name ? 'bad' : ''}" autocomplete="name" value="${esc(S.name)}" maxlength="80"></div>
+      <div class="field"><label for="fPhone">Κινητό τηλέφωνο</label><input id="fPhone" class="inp ${S.bad.phone ? 'bad' : ''}" type="tel" inputmode="tel" autocomplete="tel" placeholder="69xxxxxxxx" value="${esc(S.phone)}"></div>
+      <div class="field"><label for="fNote">Σημείωση <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><textarea id="fNote" class="inp" maxlength="300" placeholder="π.χ. θέλω σχέδιο στα 2 νύχια">${esc(S.note)}</textarea></div>
+      <label class="chk ${S.bad.ok ? 'err' : ''}"><input type="checkbox" id="fOk" ${S.ok ? 'checked' : ''}><span>Συμφωνώ να κρατήσει το κατάστημα το όνομα και το τηλέφωνό μου για τα ραντεβού μου.</span></label>
+      ${I.cancel_hours ? `<div class="t2">Μπορείς να ακυρώσεις μόνη σου έως ${I.cancel_hours} ώρες πριν, από τον σύνδεσμο που θα πάρεις.</div>` : ''}
+      ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
+    bar.hidden = false;
+    bi.innerHTML = `<button class="btn pri" data-a="book" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Κλείνει…' : 'Κλείσε το ραντεβού'}</button>`;
+  } else if (S.step === 4){
+    const d = S.done, link = location.origin + location.pathname + '?m=' + d.token;
+    h += `<div class="card res"><div class="ic">✓</div><h2>Το ραντεβού σου κλείστηκε!</h2><p class="t2" style="margin:0">Σε περιμένουμε.</p></div>
+      <div class="card"><div class="sum"><div class="d">${esc(fmtDay(d.starts_at))}</div><div class="t">${esc(fmtTime(d.starts_at))}</div><div class="t2">${esc(selSvcs().map(s => s.name).join(', '))}${d.tech ? ' · με ' + art(d.tech) + ' ' + esc(d.tech) : ''}</div></div>${infoBlock(I)}</div>
+      <div class="card"><div style="font-weight:700">Κράτησε αυτόν τον σύνδεσμο</div><div class="t2">Από εδώ βλέπεις το ραντεβού σου${I.cancel_hours != null ? ' και μπορείς να το ακυρώσεις έως ' + I.cancel_hours + ' ώρες πριν' : ''}.</div>
+        <a class="btn ghost" href="${esc(link)}">Το ραντεβού μου</a>
+        <button class="btn ghost" data-a="copy" data-v="${esc(link)}">Αντιγραφή συνδέσμου</button></div>`;
+  }
+  m.innerHTML = h;
+  if (S.step === 2 && S.day){ const el = document.querySelector('.day.on'); if (el && !S._scrolled){ el.scrollIntoView({ inline:'center', block:'nearest' }); S._scrolled = true; } }
+}
+function renderManage(m){
+  const x = S.M;
+  if (!x.found){ m.innerHTML = `<div class="card res"><div class="ic bad">!</div><h2>Το ραντεβού δεν βρέθηκε</h2><p class="t2">Ο σύνδεσμος μπορεί να έχει αντιγραφεί λάθος.</p></div>`; return; }
+  document.getElementById('org').textContent = x.org; document.getElementById('st').textContent = x.store;
+  const st = { booked:'', arrived:'', done:'Ολοκληρώθηκε', cancelled:'Ακυρώθηκε', no_show:'Δεν πραγματοποιήθηκε' }[x.status] || '';
+  let h = `<div class="card"><h2>Το ραντεβού σου${x.name ? ', ' + esc(x.name) : ''}</h2>
+    <div class="sum" style="${x.status === 'cancelled' ? 'opacity:.6' : ''}"><div class="d">${esc(fmtDay(x.starts_at))}</div><div class="t">${esc(fmtTime(x.starts_at))}</div><div class="t2">${esc(x.services || '')}${x.tech ? ' · με ' + art(x.tech) + ' ' + esc(x.tech) : ''}</div></div>
+    ${st ? `<div class="warn">${st}</div>` : ''}${infoBlock(x)}</div>`;
+  if (x.status === 'booked'){
+    if (x.can_cancel) h += `<div class="card"><div class="t2">Δεν μπορείς να έρθεις; Ακύρωσέ το για να το πάρει κάποια άλλη.</div>${S.confirmCancel ? `<button class="btn neg" data-a="cancelDo" ${S.busy ? 'disabled' : ''}>Ναι, ακύρωση του ραντεβού</button><button class="btn ghost" data-a="cancelNo">Όχι, θα έρθω</button>` : `<button class="btn neg" data-a="cancelAsk">Ακύρωση ραντεβού</button>`}${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
+    else h += `<div class="card"><div class="t2">Η online ακύρωση γίνεται έως ${x.cancel_hours} ώρες πριν. Για αλλαγή πάρε τηλέφωνο στο κατάστημα.</div></div>`;
+  }
+  if (x.status === 'cancelled' && x.store_id) h += `<a class="btn pri" href="${location.pathname}?s=${esc(x.store_id)}" style="flex:none">Κλείσε νέο ραντεβού</a>`;
+  m.innerHTML = h;
+}
+async function loadSlots(){
+  S.slots = null; S.slotsErr = ''; render();
+  const day = S.day, tech = S.tech;
+  try {
+    const { data, error } = await sb.rpc('book_slots', { p_store: STORE, p_date: ymd(day), p_services: S.sel, p_tech: tech || null });
+    if (error) throw error;
+    if (day !== S.day || tech !== S.tech) return;
+    if (!data.ok){ S.slots = []; S.slotsErr = 'Δεν ήταν δυνατή η φόρτωση των ωρών.'; }
+    else S.slots = data.slots;
+    if (S.time && !S.slots.some(x => x.t === S.time)) S.time = '';
+  } catch(e){ S.slots = []; S.slotsErr = 'Δεν υπάρχει σύνδεση. Δοκίμασε ξανά.'; }
+  render();
+}
+function firstOpenDay(){
+  const t0 = pd(I.today);
+  for (let i = 0; i <= I.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); if (I.open_days.includes(wdOf(d))) return d; }
+  return null;
+}
+const REASONS = { taken:'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.', phone:'Γράψε ένα σωστό ελληνικό τηλέφωνο (10 ψηφία).', name:'Γράψε το ονοματεπώνυμό σου.', limit:'Έχεις ήδη 3 online ραντεβού. Για περισσότερα πάρε τηλέφωνο.', date:'Η ημερομηνία δεν είναι διαθέσιμη.', services:'Κάποια υπηρεσία δεν είναι πια διαθέσιμη. Ξεκίνα από την αρχή.', disabled:'Οι online κρατήσεις δεν είναι διαθέσιμες αυτή τη στιγμή.' };
+async function book(){
+  S.name = (document.getElementById('fName') || {}).value || S.name; S.phone = (document.getElementById('fPhone') || {}).value || S.phone;
+  S.note = (document.getElementById('fNote') || {}).value || ''; S.ok = !!(document.getElementById('fOk') || {}).checked;
+  const digits = S.phone.replace(/\D/g, '').replace(/^(0030|30)(?=\d{10}$)/, '');
+  S.bad = { name: S.name.trim().length < 2, phone: !/^(69|2)\d{8}$/.test(digits), ok: !S.ok };
+  if (S.bad.name || S.bad.phone || S.bad.ok){ S.err = S.bad.phone && !S.bad.name ? REASONS.phone : S.bad.ok && !S.bad.name && !S.bad.phone ? 'Χρειάζεται η συγκατάθεσή σου για να κλείσει το ραντεβού.' : 'Συμπλήρωσε τα πεδία με κόκκινο.'; render(); return; }
+  S.busy = true; S.err = ''; render();
+  try {
+    const { data, error } = await sb.rpc('book_create', { p_store: STORE, p_date: ymd(S.day), p_time: S.time, p_services: S.sel, p_tech: S.tech || null, p_name: S.name.trim(), p_phone: digits, p_note: S.note.trim() || null });
+    if (error) throw error;
+    S.busy = false;
+    if (!data.ok){
+      S.err = REASONS[data.reason] || 'Κάτι πήγε στραβά. Δοκίμασε ξανά.';
+      if (data.reason === 'taken'){ S.step = 2; S.time = ''; loadSlots(); return; }
+      if (data.reason === 'services'){ S.step = 1; S.sel = []; }
+      render(); return;
+    }
+    S.done = data; S.step = 4; window.scrollTo(0, 0); render();
+  } catch(e){ S.busy = false; S.err = 'Δεν ήταν δυνατή η αποστολή. Έλεγξε τη σύνδεση και δοκίμασε ξανά.'; render(); }
+}
+document.addEventListener('input', e => {
+  if (e.target.id === 'fName'){ S.name = e.target.value; if (S.bad.name){ S.bad.name = false; e.target.classList.remove('bad'); } }
+  if (e.target.id === 'fPhone'){ S.phone = e.target.value; if (S.bad.phone){ S.bad.phone = false; e.target.classList.remove('bad'); } }
+  if (e.target.id === 'fNote') S.note = e.target.value;
+  if (e.target.id === 'fOk') S.ok = e.target.checked;
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+  const a = b.dataset.a, v = b.dataset.v;
+  if (a === 'svc'){ S.sel = S.sel.includes(v) ? S.sel.filter(x => x !== v) : S.sel.concat(v); S.time = ''; render(); }
+  else if (a === 'to1'){ S.step = 1; S.err = ''; render(); window.scrollTo(0, 0); }
+  else if (a === 'to2'){ S.step = 2; S.err = ''; if (!S.day) S.day = firstOpenDay(); S._scrolled = false; window.scrollTo(0, 0); if (S.day) loadSlots(); else render(); }
+  else if (a === 'to3'){ S.step = 3; S.err = ''; render(); window.scrollTo(0, 0); }
+  else if (a === 'tech'){ S.tech = v; S.time = ''; if (S.day) loadSlots(); else render(); }
+  else if (a === 'day'){ S.day = pd(v); S.time = ''; loadSlots(); }
+  else if (a === 'time'){ S.time = v; S.err = ''; render(); }
+  else if (a === 'book') book();
+  else if (a === 'copy'){ try { await navigator.clipboard.writeText(v); b.textContent = 'Αντιγράφηκε ✓'; } catch(_){ prompt('Αντέγραψε τον σύνδεσμο:', v); } }
+  else if (a === 'cancelAsk'){ S.confirmCancel = true; render(); }
+  else if (a === 'cancelNo'){ S.confirmCancel = false; render(); }
+  else if (a === 'cancelDo'){
+    S.busy = true; S.err = ''; render();
+    try {
+      const { data, error } = await sb.rpc('book_cancel', { p_token: TOKEN }); if (error) throw error;
+      if (!data.ok) S.err = data.reason === 'late' ? 'Πέρασε το όριο για online ακύρωση. Πάρε τηλέφωνο στο κατάστημα.' : 'Δεν ήταν δυνατή η ακύρωση.';
+      const r = await sb.rpc('book_manage', { p_token: TOKEN }); if (!r.error) S.M = r.data;
+    } catch(_){ S.err = 'Δεν υπάρχει σύνδεση. Δοκίμασε ξανά.'; }
+    S.busy = false; S.confirmCancel = false; render();
+  }
+});
+(async () => {
+  try {
+    if (isUuid(TOKEN)){ const { data, error } = await sb.rpc('book_manage', { p_token: TOKEN }); if (error) throw error; S.M = data; render(); return; }
+    if (!isUuid(STORE)){ I = null; render(); return; }
+    const { data, error } = await sb.rpc('book_info', { p_store: STORE });
+    if (error) throw error;
+    I = data; render();
+  } catch(e){
+    document.getElementById('main').innerHTML = `<div class="card res"><div class="ic bad">!</div><h2>Δεν υπάρχει σύνδεση</h2><p class="t2">Έλεγξε το internet και ξαναφόρτωσε τη σελίδα.</p></div>`;
+  }
+})();
+</script>
+</body>
+</html>

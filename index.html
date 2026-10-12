@@ -489,7 +489,7 @@ async function loadDay(){
     S.dayAppts = data.filter(a => a.store_id === S.store).map(a => ({...a, tech_id: S.ctx.member.id, client: { name: a.client_first_name }, svcText: a.services }));
   } else {
     const { data, error } = await sb.from('appointments')
-      .select('id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,walk_in,created_at,squeezed,confirm_state,confirm_attempts,confirm_note,confirm_token,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)')
+      .select('id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,walk_in,created_at,squeezed,source,confirm_state,confirm_attempts,confirm_note,confirm_token,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)')
       .eq('store_id', S.store).gte('starts_at', d0.toISOString()).lt('starts_at', d1.toISOString())
       .in('status', ['booked','arrived','done']).order('starts_at');
     if (error) throw error;
@@ -714,6 +714,7 @@ function dayWord(d){
   return diff === 0 ? 'σήμερα ' + lbl : diff === 1 ? 'αύριο ' + lbl : lbl;
 }
 const confirmUrl = token => new URL('confirm.html?t=' + token, location.href).href;
+const bookUrl = storeId => new URL('book.html?s=' + storeId, location.href).href;
 function fillTemplate(tpl, a){
   const c = a.client || a.clients || {}, d = new Date(a.starts_at);
   const map = { 'όνομα': (c.name || '').split(' ')[0], 'επιχείρηση': S.ctx.org.name, 'κατάστημα': storeName(a.store_id) || '', 'ημέρα': dayWord(d),
@@ -783,7 +784,7 @@ async function loadToday(){
     S.td = { ...S.td, appts: data.filter(a => sameDay(new Date(a.starts_at), t0)).map(a => ({ ...a, tech_id: S.ctx.member.id, client: { name: a.client_first_name }, svcText: a.services })), loaded: true };
     return;
   }
-  const sel = 'id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,walk_in,created_at,squeezed,confirm_state,confirm_attempts,confirm_note,confirm_token,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)';
+  const sel = 'id,org_id,store_id,starts_at,ends_at,tech_id,status,client_id,walk_in,created_at,squeezed,source,confirm_state,confirm_attempts,confirm_note,confirm_token,clients(id,name,phone,note),appointment_services(id,name,price,duration_min,service_id)';
   const map = a => ({ ...a, client: a.clients, svcText: (a.appointment_services || []).map(x => x.name).join(', ') });
   const jobs = [
     sb.from('appointments').select(sel).eq('store_id', S.store).gte('starts_at', t0.toISOString()).lt('starts_at', t1.toISOString()).in('status', ['booked','arrived','done']).order('starts_at'),
@@ -793,7 +794,8 @@ async function loadToday(){
   const nd = workDay();
   jobs.push(sameDay(nd, t0) ? Promise.resolve({ data: [] }) : sb.from('appointments').select(sel).eq('store_id', S.store).gte('starts_at', nd.toISOString()).lt('starts_at', addDays(nd, 1).toISOString()).eq('status', 'booked').order('starts_at').limit(8));
   jobs.push(sb.from('appointments').select(sel).eq('store_id', S.store).eq('status', 'booked').gte('starts_at', now.toISOString()).lt('starts_at', addDays(t0, 90).toISOString()).order('starts_at').limit(2000));
-  const [ap, un, cd, nx, fu] = await Promise.all(jobs);
+  jobs.push(sb.from('appointments').select(sel).eq('store_id', S.store).eq('source', 'online').gte('created_at', new Date(Date.now() - 48 * 3600e3).toISOString()).order('created_at', { ascending:false }).limit(20));
+  const [ap, un, cd, nx, fu, onl] = await Promise.all(jobs);
   if (ap.error) throw ap.error;
   await Promise.all([loadFreed(), loadConfirm().catch(() => {}), loadWait().catch(() => {})]);
   let rev = null, estN = 0;
@@ -806,7 +808,7 @@ async function loadToday(){
     const r = await sb.from('expenses').select('id').eq('org_id', S.ctx.org.id).eq('expected', true).gte('day', ymd(m0)).lt('day', ymd(m1));
     if (!r.error) estN = r.data.length;
   }
-  S.td = { appts: ap.data.map(map), stray: (fu.data || []).map(map).filter(a => offSched(a, S.store)), next: (nx.data || []).map(map), nextDay: nd, unpaid: (un.data || []).map(map), cashClosed: cd.data ? !!cd.data.closed_at : false, rev, estN, loaded: true };
+  S.td = { appts: ap.data.map(map), online: (onl.data || []).map(map), stray: (fu.data || []).map(map).filter(a => offSched(a, S.store)), next: (nx.data || []).map(map), nextDay: nd, unpaid: (un.data || []).map(map), cashClosed: cd.data ? !!cd.data.closed_at : false, rev, estN, loaded: true };
 }
 function todoList(){
   const L = [];
@@ -836,6 +838,8 @@ function todoList(){
 const todoCount = () => todoList().filter(x => x.urgent).length;
 function apState(a){
   if (a.status === 'done') return ['Πληρώθηκε','ps-paid'];
+  if (a.status === 'cancelled') return ['Ακυρώθηκε','ps-chg'];
+  if (a.status === 'no_show') return ['Δεν ήρθε','ps-chg'];
   if (a.status === 'arrived') return ['Ήρθε','ps-here'];
   const ci = confInfo({ ...a, store_id: a.store_id || S.store });
   if (ci && ci.k === 'ok') return ['Επιβεβαιωμένο ✓','ps-conf'];
@@ -848,7 +852,7 @@ function apRow(a){
   return `<button class="aprow" data-a="openApptObj" data-v="${a.id}"><span class="tm num">${hm(d.getHours()*60 + d.getMinutes())}</span><span style="flex:1;min-width:0"><span class="t1" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((a.client || {}).name || '—')}</span><span class="t2" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.svcText || '')} · ${esc(tech(a.tech_id).name)}</span></span><span class="pillst ${st[1]}">${st[0]}</span></button>`;
 }
 function findAppt(id){
-  const pools = [S.td.appts, S.td.unpaid, S.td.next, S.td.stray, S.dayAppts, S.conf.list.map(x => x.a), (S.cash.unpaid || [])];
+  const pools = [S.td.appts, S.td.unpaid, S.td.next, S.td.stray, S.td.online, S.dayAppts, S.conf.list.map(x => x.a), (S.cash.unpaid || [])];
   for (const p of pools){ const a = (p || []).find(x => x.id === id); if (a) return { ...a, store_id: a.store_id || S.store, client: a.client || a.clients }; }
   return null;
 }
@@ -919,7 +923,7 @@ function render(){
     const tt = { conf:'Επιβεβαιώσεις', unpaid:'Απλήρωτα ραντεβού', stray:'Εκτός προγράμματος', wait:'Λίστα αναμονής', more:'Περισσότερα' }[S.tab];
     head = `${S.tab !== 'more' ? `<button class="rbtn sq" data-a="tab" data-v="${S.tab === 'wait' ? (S.waitBack || 'more') : 'today'}" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${tt}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else if (S.tab === 'settings'){
-    const pt = { confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
+    const pt = { online:'Online κρατήσεις', confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
     const titles = { appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
@@ -1193,7 +1197,7 @@ function renderDay(){
       const pos = ovs.length ? (lane ? 'left:50%;right:3px;' : 'left:3px;right:50%;') : '';
       const ovTag = ovs.length ? `<span class="ov" title="Υπερκάλυψη">⚠ ${Math.max(...ovs.map(o => o.min))}΄</span>` : '';
       const nm = a.client ? (isTech() ? a.client.name : a.client.name.split(' ')[0] + (a.client.name.split(' ')[1] ? ' ' + a.client.name.split(' ')[1][0] + '.' : '')) : '—';
-      const w = (!isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '') + cfTag(confInfo({ ...a, store_id: a.store_id || S.store }));
+      const w = (a.source === 'online' && !isTech() ? '<span class="mk" title="Online κράτηση" style="background:var(--tealbg);color:var(--tealink)">web</span>' : '') + (!isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '') + cfTag(confInfo({ ...a, store_id: a.store_id || S.store }));
       const hpx = (e-s)*PX-2, short = hpx < 46, os = offSched(a, S.store), osc = os ? ' oss' : '';
       const osTag = os ? '<span class="osb" title="Εκτός προγράμματος">⚡</span>' : '';
       c += short
@@ -1372,12 +1376,13 @@ function renderSettings(){
       ['team','Ομάδα', `${act} ενεργά άτομα · βάρδιες, ρεπό, κωδικοί`],
       ['perm','Δικαιώματα','Τι βλέπει η γραμματεία και οι τεχνίτριες'],
       ['services','Υπηρεσίες', `${S.ctx.services.filter(x => x.active).length} ενεργές · χρόνος και τιμή`],
+      ['online','Online κρατήσεις', st.online_enabled ? `Ενεργές · έως ${st.online_horizon_days} μέρες μπροστά` : 'Ανενεργές'],
       ['confirm','Επιβεβαίωση ραντεβού', st.confirm_enabled ? `${st.confirm_hours} ώρες πριν · ${({ whatsapp:'WhatsApp', viber:'Viber', sms:'SMS' })[st.confirm_channel]}` : 'Ανενεργή'],
       ['seg','Πελάτες & segment','Όρια σκαλιών, VIP, Χ/Κ, ποιος βλέπει τα σήματα'],
       ['cash','Ταμείο', 'Διόρθωση παλιών ημερών: ' + (st.allow_past_cash_edit ? 'επιτρέπεται' : 'κλειστή')]
     ];
     const rowF = ([k, t, d]) => `<button class="row" data-a="setPage" data-v="${k}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${t}</span><span class="t2" style="display:block">${esc(d)}</span></span>${I.chev}</button>`;
-    const basic = ['hours','team','services','confirm'], adv = ['perm','seg','cash'];
+    const basic = ['hours','team','services','online','confirm'], adv = ['perm','seg','cash'];
     return `<div class="card flush">${items.filter(x => basic.includes(x[0])).map(rowF).join('')}</div>
       <div class="lbl" style="margin:6px 2px -4px">Για προχωρημένους</div><div class="card flush">${items.filter(x => adv.includes(x[0])).map(rowF).join('')}</div>`;
   }
@@ -1480,6 +1485,29 @@ function renderSettings(){
     }
     if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
     return h + `<button class="btn primary" data-a="cSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`;
+  }
+  if (X.page === 'online'){
+    if (!X.oDraft){ X.oDraft = { online_enabled: !!st.online_enabled, online_lead_min: st.online_lead_min ?? 120, online_horizon_days: st.online_horizon_days ?? 30, online_cancel_hours: st.online_cancel_hours ?? 24, online_note: st.online_note || '' };
+      X.oSvc = {}; S.ctx.services.forEach(v => X.oSvc[v.id] = v.online !== false); }
+    const D = X.oDraft, seg = (k, opts) => `<div class="seg" style="width:100%">${opts.map(([v, n]) => `<button class="${D[k] === v ? 'on' : ''}" data-a="oSet" data-v="${k}:${v}">${n}</button>`).join('')}</div>`;
+    let h = `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx"><b>Online κρατήσεις</b><span class="t2" style="display:block">Οι πελάτισσες κλείνουν μόνες τους από σύνδεσμο. Το ραντεβού μπαίνει αμέσως στο ημερολόγιο.</span></span>${tgl(D.online_enabled, 'oTog', 'online_enabled')}</div></div>`;
+    if (D.online_enabled){
+      h += `<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="lbl">Σύνδεσμος για τις πελάτισσες</div>
+        ${S.ctx.stores.map(x => { const u = bookUrl(x.id); return `<div style="display:flex;flex-direction:column;gap:6px">${S.ctx.stores.length > 1 ? `<b>${esc(x.name)}</b>` : ''}<div class="t2" style="word-break:break-all;margin:0">${esc(u)}</div>
+          <div style="display:flex;gap:8px"><button class="pill" data-a="oCopy" data-v="${esc(u)}">Αντιγραφή</button><a class="pill" href="${esc(u)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Άνοιγμα</a></div></div>`; }).join('')}
+        <div class="t2" style="margin:0">Βάλ' τον στο Instagram, στο Google και στο WhatsApp του καταστήματος.</div></div>
+      <div class="card" style="padding:8px 16px">
+        <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πόσο νωρίτερα</b><span class="t2" style="display:block">Το λιγότερο πριν την ώρα του ραντεβού</span></span>${seg('online_lead_min', [[0,'Όποτε'],[60,'1 ώρα'],[120,'2 ώρες'],[240,'4 ώρες'],[1440,'1 μέρα']])}</div>
+        <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πόσο μπροστά</b><span class="t2" style="display:block">Μέχρι πόσες μέρες από σήμερα</span></span>${seg('online_horizon_days', [[7,'7'],[14,'14'],[30,'30'],[60,'60'],[90,'90']])}</div>
+        <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Ακύρωση από την πελάτισσα</b><span class="t2" style="display:block">Από τον σύνδεσμό της, έως τόσες ώρες πριν. Η θέση εμφανίζεται ως ελεύθερη για τη λίστα αναμονής.</span></span>${seg('online_cancel_hours', [[6,'6 ώρες'],[12,'12 ώρες'],[24,'24 ώρες'],[48,'48 ώρες']])}</div></div>
+      <div class="card" style="display:flex;flex-direction:column;gap:4px"><div class="lbl" style="margin-bottom:4px">Υπηρεσίες που κλείνονται online</div>
+        ${S.ctx.services.filter(v => v.active).map(v => `<div class="prm"><span class="tx">${esc(v.name)}<span class="t2" style="display:block">${v.duration_min}΄ · ${eur0(v.price)}</span></span>${tgl(X.oSvc[v.id], 'oSvc', v.id)}</div>`).join('')}</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:8px"><label class="lbl" for="oNote">Μήνυμα στη σελίδα κρατήσεων · προαιρετικό</label>
+        <textarea id="oNote" class="inp" maxlength="400" placeholder="π.χ. Για τεχνητά νύχια ή αφαίρεση ακρυλικού πάρτε τηλέφωνο.">${esc(D.online_note)}</textarea></div>
+      <div class="card" style="padding:8px 16px;opacity:.6"><div class="prm"><span class="tx"><b>Επιβεβαίωση κινητού με SMS</b><span class="t2" style="display:block">Κωδικός μίας χρήσης πριν κλείσει το ραντεβού. Θα ενεργοποιηθεί αργότερα.</span></span><span class="tag t-gray">Σύντομα</span></div></div>`;
+    }
+    if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
+    return h + `<button class="btn primary" data-a="oSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`;
   }
   if (X.page === 'cash'){
     return `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx">Διόρθωση παλιών ημερών<span class="t2" style="display:block">Όταν είναι ανοιχτό, η γραμματεία μπορεί να αλλάζει κινήσεις και ταμεία προηγούμενων ημερών. Ο admin μπορεί πάντα.</span></span>${tgl(st.allow_past_cash_edit, 'cashPastTog')}</div></div>
@@ -1671,6 +1699,11 @@ function renderToday(){
     if (T.rev) h += `<div class="todo teal" style="cursor:default"><span class="ic">€</span><span class="tx"><span class="t1 num" style="display:block">Τζίρος σήμερα: ${eur(T.rev.total)}</span><span class="t2 num" style="display:block">${S.ctx.stores.map(x => esc(x.name) + ' ' + eur0(T.rev.by[x.id] || 0)).join(' · ')}</span></span></div>`;
     if (T.estN) h += `<button class="todo gold" data-a="exGoFixed"><span class="ic">▤</span><span class="tx"><span class="t1" style="display:block">${T.estN} ${T.estN === 1 ? 'σταθερό έξοδο περιμένει' : 'σταθερά έξοδα περιμένουν'} το πραγματικό ποσό</span><span class="t2" style="display:block">Έξοδα · Σταθερά</span></span><span class="go">Βάλε</span></button>`;
   }
+  const onl = T.online || [];
+  if (onl.length){
+    h += `<div class="lbl" style="margin:6px 2px -4px">Νέες online κρατήσεις · 48 ώρες</div>`;
+    h += onl.map(a => { const d = new Date(a.starts_at), c = new Date(a.created_at); return `<div class="t2" style="margin:4px 2px -4px">${a.status === 'cancelled' ? '<span style="color:var(--neg);font-weight:700">Ακυρώθηκε από την πελάτισσα</span> · ' : ''}Για ${dayWord(d)} · κλείστηκε ${hm(c.getHours()*60 + c.getMinutes())}</div>` + apRow(a); }).join('');
+  }
   const next = act.filter(a => new Date(a.ends_at) > now || a.status === 'arrived').slice(0, 6);
   const tmr = !next.length && T.nextDay && !sameDay(T.nextDay, today());
   if (tmr){
@@ -1770,6 +1803,7 @@ function renderSheet(){
     const canEdit = wr && a.status === 'booked' && new Date(a.ends_at) > new Date();
     const tot = (a.appointment_services||[]).reduce((x, q) => x + Number(q.price), 0);
     let b = `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 50)}<div style="flex:1;min-width:0"><div class="t1" style="font-size:17px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>${esc(c.name)}</span>${S.winter.has(a.client_id)?'<span class="mk">Χ</span>':''}${canEdit ? `<button class="pen" data-a="cfMove" data-v="${a.id}" aria-label="Αλλαγή μέρας ή ώρας">${I.pen}</button>` : ''}</div>${!isTech() && c.phone ? `<div class="t2 num" style="user-select:all">${esc(c.phone)}</div>` : ''}</div><span class="pillst ${st[1]}">${st[0]}</span></div>`;
+    if (a.source === 'online' && !isTech()) b += `<div style="background:var(--tealbg);color:var(--tealink);border-radius:12px;padding:9px 12px;font-size:13px"><b>Κλείστηκε online από την πελάτισσα</b>${a.confirm_note && !(ci && ci.k === 'chg') ? `<br>Σημείωση: «${esc(a.confirm_note)}»` : ''}</div>`;
     if (ci && ci.k === 'chg') b += `<div class="warn"><span style="font-size:18px">!</span><span><b>Πάτησε «Δεν μπορώ» στο μήνυμα</b>${a.confirm_note ? `<br>Έγραψε: «${esc(a.confirm_note)}»` : ''}<br>Πάρε τηλέφωνο και κανονίστε νέα ώρα.</span></div>`;
     const osw = !isTech() ? offSched(a, S.store) : null;
     if (osw) b += `<div class="warn"><span style="font-size:18px">⚡</span><span><b>Εκτός προγράμματος</b><br>${osw}<br>${canEdit ? 'Άλλαξε ώρα ή τεχνίτρια από «⋯ Περισσότερα → Αλλαγή μέρας ή ώρας».' : ''}</span></div>`;
@@ -2516,9 +2550,9 @@ document.addEventListener('click', async ev => {
     case 'weekStep': { if (+v === 0){ const t = today(); S.week = addDays(t, -wdOf(t)); } else S.week = addDays(S.week, 7 * (+v)); break; }
     case 'settings': S.tab = 'settings'; S.set.page = v || null; S.set.err = null; S.sheet = null; return refresh();
     case 'setBack':
-      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; break; }
+      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; break; }
       S.tab = 'more'; render(); return;
-    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; document.getElementById('main').scrollTop = 0; break;
+    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; document.getElementById('main').scrollTop = 0; break;
     case 'hStore': S.set.hStore = v; S.set.hDraft = null; S.set.err = null; break;
     case 'hOpen': { const d = S.set.hDraft[+v]; d.closed = !d.closed; break; }
     case 'hCopy': { const m = S.set.hDraft[0]; for (let w = 1; w <= 4; w++) S.set.hDraft[w] = { ...m }; toast('Αντιγράφηκε · πάτα Αποθήκευση'); break; }
@@ -2722,6 +2756,20 @@ document.addEventListener('click', async ev => {
       break;
     }
     case 'cReset': S.set.cDraft.confirm_template = 'Καλησπέρα {όνομα}! Σας θυμίζουμε το ραντεβού σας {ημέρα} στις {ώρα} στο {επιχείρηση} {κατάστημα}. Πατήστε εδώ για επιβεβαίωση ή αλλαγή: {σύνδεσμος}'; break;
+    case 'oTog': S.set.oDraft[v] = !S.set.oDraft[v]; break;
+    case 'oSet': { const [k, n] = v.split(':'); S.set.oDraft[k] = +n; break; }
+    case 'oSvc': S.set.oSvc[v] = !S.set.oSvc[v]; break;
+    case 'oCopy': try { await navigator.clipboard.writeText(v); toast('Ο σύνδεσμος αντιγράφηκε'); } catch(e){ toast('Δεν έγινε αντιγραφή · κράτα πατημένο τον σύνδεσμο'); } break;
+    case 'oSave': {
+      const D = S.set.oDraft; S.busy = true; paint();
+      try {
+        const r = await sb.from('org_settings').update({ online_enabled: D.online_enabled, online_lead_min: D.online_lead_min, online_horizon_days: D.online_horizon_days, online_cancel_hours: D.online_cancel_hours, online_note: (D.online_note || '').trim() || null }).eq('org_id', S.ctx.org.id).select('*').single();
+        if (r.error) throw r.error;
+        for (const v of S.ctx.services){ const want = !!S.set.oSvc[v.id]; if (want !== (v.online !== false)){ const u = await sb.from('services').update({ online: want }).eq('id', v.id); if (u.error) throw u.error; v.online = want; } }
+        S.ctx.settings = r.data; S.set.err = null; S.busy = false; toast('Αποθηκεύτηκε');
+      } catch(e){ S.busy = false; S.set.err = friendlyError(e); }
+      break;
+    }
     case 'cSave': {
       const D = S.set.cDraft;
       if (!(D.confirm_template || '').trim()){ S.set.err = 'Το κείμενο του μηνύματος δεν μπορεί να είναι κενό.'; break; }
@@ -2881,6 +2929,7 @@ document.addEventListener('click', async ev => {
 document.addEventListener('input', ev => {
   const id = ev.target.id, val = ev.target.value, sh = S.sheet;
   if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
+  if (id === 'oNote' && S.set.oDraft){ S.set.oDraft.online_note = val; return; }
   if (id === 'cTpl' && S.set.cDraft){ S.set.cDraft.confirm_template = val; clearTimeout(window.__tplT); window.__tplT = setTimeout(paint, 350); return; }
   if (id === 'sPhone'){ S.set.sPhone = val; return; }
   if (id === 'sAddr'){ S.set.sAddr = val; return; }
