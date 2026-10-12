@@ -120,6 +120,10 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .warn{background:var(--negbg);color:var(--neg);border:1.5px solid var(--neg);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.4}
 .warn b{font-size:14px}
 .blk.ovl{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg)}
+.plt{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr) 20px;gap:6px;align-items:center;padding:9px 8px;font-size:13.5px;font-variant-numeric:tabular-nums;border:none;border-top:1px solid var(--line);background:none;color:var(--ink);text-align:left;width:100%;border-radius:10px;font-family:inherit}
+.plt span:nth-child(2),.plt span:nth-child(3),.plt span:nth-child(4){text-align:right}
+.plt.th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:none}
+.plt .pc{display:block;font-size:11px;font-weight:600;color:var(--muted);font-style:normal}
 .blk.oss{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg);background:var(--negbg)!important;color:var(--ink)}
 .blk .osb{color:var(--neg);font-size:13px;line-height:1;flex-shrink:0}
 .col.offcol .blk{opacity:1}
@@ -598,7 +602,9 @@ function openMemberSheet(v){
   const hrs = {};
   X.sched.filter(x => x.member_id === v).forEach(x => { sched[x.weekday] = x.store_id; if (x.starts) hrs[x.weekday] = { s: hhmm(x.starts), e: hhmm(x.ends) }; });
   X.mperms.filter(x => x.member_id === v).forEach(x => perms[x.tab] = x.level);
-  S.sheet = { type:'member', id: v, name: m.name, role: m.role, active: m.active, stores: X.mstores.filter(x => x.member_id === v).map(x => x.store_id), sched, hrs, perms, offKind:'day_off' };
+  const cp = (X.comp || []).find(x => x.member_id === v), nf = x => String(x).replace('.', ',');
+  S.sheet = { type:'member', id: v, name: m.name, role: m.role, active: m.active, stores: X.mstores.filter(x => x.member_id === v).map(x => x.store_id), sched, hrs, perms, offKind:'day_off',
+    compOn: !!(cp && Number(cp.pct) > 0), compPct: cp && Number(cp.pct) > 0 ? nf(Number(cp.pct)) : '', compThrOn: !!(cp && cp.threshold != null), compThr: cp && cp.threshold != null ? nf(Number(cp.threshold)) : '' };
 }
 async function ensureSupplier(name){
   const n = (name || '').trim(); if (!n) return null;
@@ -646,6 +652,8 @@ async function loadSettings(){
   ]);
   for (const r of [mem, ms, rp, mp, sc, off, hrs, set, svc, cats]) if (r.error) throw r.error;
   Object.assign(S.set, { members: mem.data, mstores: ms.data, rperms: rp.data, mperms: mp.data, sched: sc.data, off: off.data, loaded: true });
+  S.set.comp = [];
+  if (seesMoney()){ const c = await sb.from('tech_comp').select('*').eq('org_id', org); if (!c.error) S.set.comp = c.data; }
   S.ctx.hours = hrs.data; S.ctx.settings = set.data; S.ctx.services = svc.data; S.ctx.cats = cats.data;
   if (!S.set.emails){ S.set.emails = {}; fnCall({ action:'emails' }).then(d => { S.set.emails = (d && d.emails) || {}; paint(); }).catch(() => {}); }
 }
@@ -875,6 +883,7 @@ async function refresh(){
   try {
     S.busy = true; render();
     if (S.tab === 'settings') await loadSettings();
+    else if (S.tab === 'pl') await loadPL();
     else if (S.tab === 'sched') await loadSchedule();
     else if (S.tab === 'expenses') await loadExpenses();
     else if (S.tab === 'clients') await loadClients();
@@ -924,7 +933,7 @@ function render(){
   const onKey = ['conf','unpaid','stray'].includes(S.tab) ? 'today' : moreKeys.includes(S.tab) && more.length ? 'more' : S.tab;
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'stray' ? renderStray() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : renderSoon()}</main>
+    <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'stray' ? renderStray() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : S.tab === 'pl' ? renderPL() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${onKey===t?'on':''}" data-a="tab" data-v="${t}">${t==='today'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span>${S.toast.undo ? '<button data-a="undo">Αναίρεση</button>' : ''}</div>` : ''}`;
@@ -940,6 +949,157 @@ function renderLogin(){
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">Ξέχασες τον κωδικό; Ζήτα από τον υπεύθυνο του καταστήματος να σου ορίσει νέο.</div>
   </form>`;
+}
+// ===== P&L =====
+const sgn0 = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)).toLocaleString('el-GR') + ' €';
+const pct1 = v => v == null ? '—' : Number(v).toLocaleString('el-GR', { maximumFractionDigits: 1 }) + '%';
+const MGEN = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
+const plCur = () => new Date(today().getFullYear(), today().getMonth(), 1);
+async function loadPL(){
+  const P = S.pl, org = S.ctx.org.id;
+  if (!P.month) P.month = plCur();
+  if (!P.year) P.year = today().getFullYear();
+  if (P.view === 'year'){
+    const r = await sb.rpc('pnl_year', { p_org: org, p_year: P.year, p_store: P.store || null });
+    if (r.error) throw r.error; P.y = r.data;
+  } else {
+    const r = await sb.rpc('pnl_month2', { p_org: org, p_month: ymd(P.month), p_store: P.store || null });
+    if (r.error) throw r.error; P.m = r.data;
+  }
+  P.loaded = true;
+}
+function plHead(){
+  const P = S.pl, isY = P.view === 'year';
+  if (!P.month) P.month = plCur();
+  if (!P.year) P.year = today().getFullYear();
+  const nextOk = isY ? P.year < today().getFullYear() : P.month < plCur();
+  let h = `<div class="seg"><button class="${!isY?'on':''}" data-a="plView" data-v="month">Μήνας</button><button class="${isY?'on':''}" data-a="plView" data-v="year">Έτος</button></div>`;
+  if (S.ctx.stores.length > 1) h += `<div class="seg"><button class="${!P.store?'on':''}" data-a="plStore" data-v="">Όλα</button>${S.ctx.stores.map(s => `<button class="${P.store===s.id?'on':''}" data-a="plStore" data-v="${s.id}">${esc(s.name)}</button>`).join('')}</div>`;
+  h += `<div style="display:flex;align-items:center;gap:6px"><button class="x" data-a="plStep" data-v="-1" aria-label="Προηγούμενο" style="background:transparent">${I.back}</button>
+    <div style="flex:1;text-align:center;font-family:var(--font-display);font-weight:700;font-size:18px">${isY ? P.year : MONTHS[P.month.getMonth()] + ' ' + P.month.getFullYear()}</div>
+    <button class="x" data-a="plStep" data-v="1" aria-label="Επόμενο" style="background:transparent;${nextOk ? '' : 'opacity:.3'}" ${nextOk ? '' : 'disabled'}>${I.fwd}</button></div>`;
+  return h;
+}
+const plRow = (l, v, o = {}) => `<div style="display:flex;align-items:center;gap:8px;font-size:${o.big ? 16 : o.small ? 13 : 14}px;${o.tot ? 'border-top:1.5px solid var(--line);padding-top:9px;font-weight:800;' : ''}${o.indent ? 'padding-left:12px;' : ''}color:${o.c || (o.small ? 'var(--muted)' : 'var(--ink)')}"><span style="flex:1;min-width:0">${l}</span>${o.tag || ''}<b class="num" style="font-weight:${o.small ? 600 : 700}">${v}</b></div>`;
+const plKp = (l, v) => `<div style="background:var(--chip);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--muted)">${l}</span><b class="num" style="font-size:18px">${v}</b></div>`;
+function renderPL(){
+  const P = S.pl;
+  let h = plHead();
+  if (!P.loaded) return h + (S.busy ? `<div class="center"><div class="spin"></div></div>` : `<div class="center">Δεν φόρτωσε.<button class="pill" data-a="refresh">Δοκίμασε ξανά</button></div>`);
+  return h + (P.view === 'year' ? renderPLYear() : renderPLMonth());
+}
+function renderPLMonth(){
+  const d = S.pl.m; if (!d) return '';
+  if (d.future) return `<div class="center">Ο μήνας δεν έχει αρχίσει ακόμα.</div>`;
+  if (!d.has_data) return `<div class="center"><div class="t1" style="color:var(--ink)">Δεν υπάρχουν στοιχεία</div><div>Δεν έχουν περαστεί πληρωμές ή έξοδα αυτόν τον μήνα.</div></div>`;
+  const N = x => Number(x || 0), p = N(d.operating_profit), net = N(d.net_revenue), pos = p >= 0;
+  let h = '';
+  // 1. Αποτέλεσμα (στον μήνα που τρέχει: η πρόβλεψη, γιατί τα σταθερά μετράνε ήδη ολόκληρα)
+  const fc = d.current && d.forecast ? d.forecast : null, hp = fc ? N(fc.operating_profit) : p, hpos = hp >= 0;
+  const cmp = (lbl, o) => { if (!o) return ''; const df = hp - N(o.operating_profit); return `<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1;min-width:0;color:var(--muted)">${lbl}</span><b class="num">${sgn0(N(o.operating_profit))}</b><span class="num" style="min-width:70px;text-align:right;font-weight:700;color:${df >= 0 ? 'var(--tealink)' : 'var(--neg)'}">${df >= 0 ? '▲' : '▼'} ${eur0(Math.abs(df))}</span></div>`; };
+  const pm = d.prev ? new Date(d.prev.month) : null, lm = d.last_year ? new Date(d.last_year.month) : null;
+  h += `<div class="card" style="display:flex;flex-direction:column;gap:6px;padding:18px">
+    <div style="display:flex;align-items:center;gap:8px"><div class="lbl" style="flex:1">${fc ? 'Πρόβλεψη τέλους μήνα' : 'Αποτέλεσμα μήνα'}</div>${d.closed ? `<span class="tag t-gray">${I.lock} Κλεισμένος</span>` : d.current ? '<span class="tag t-lilac">Σε εξέλιξη</span>' : ''}</div>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="num" style="font-size:36px;font-weight:800;letter-spacing:-.5px;color:${hpos ? 'var(--tealink)' : 'var(--neg)'}">${fc ? '≈ ' : ''}${sgn0(hp)}</div><span class="tag ${hpos ? 't-teal' : 't-red'}">${hpos ? 'κέρδος' : 'ζημιά'}${fc ? '' : ' · ' + pct1(d.margin_pct)}</span></div>
+    <div class="t2">${fc ? `Με βάση τον ρυθμό ${eur0(N(fc.pace_per_day))}/μέρα για τις ${fc.open_days_left} ανοιχτές μέρες που απομένουν (ήδη κλεισμένα: ${fc.booked_n} ραντεβού · ${eur0(N(fc.booked_value))}).` : 'Πριν από τον φόρο εισοδήματος · ποσά χωρίς ΦΠΑ'}</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px">${fc ? plKp('Τζίρος μέχρι σήμερα', eur0(net)) + plKp('Τζίρος (πρόβλεψη)', '≈ ' + eur0(N(fc.net_revenue))) : plKp('Καθαρός τζίρος', eur0(net)) + plKp('Σύνολο εξόδων', eur0(N(d.expenses_total)))}</div>`;
+  if (pm || lm) h += `<div style="display:flex;flex-direction:column;gap:5px;border-top:1.5px solid var(--line);padding-top:10px;margin-top:4px">${cmp((pm ? MSHORT[pm.getMonth()] + ' ' + pm.getFullYear() : '') + ' · προηγούμενος', d.prev)}${cmp((lm ? MSHORT[lm.getMonth()] + ' ' + lm.getFullYear() : '') + ' · πέρσι', d.last_year)}</div>`;
+  h += `</div>`;
+  // 2. Νεκρό σημείο
+  if (d.break_even != null){
+    const be = N(d.break_even), w = Math.min(100, net / (Math.max(be, net) || 1) * 100), mk = Math.min(100, be / (Math.max(be, net) || 1) * 100);
+    let msg;
+    if (d.break_even_day){ const bd = new Date(d.break_even_day); msg = `<div style="font-size:13px;color:var(--tealink);background:var(--tealbg);border-radius:12px;padding:8px 12px">Πιάστηκε στις <b>${bd.getDate()} ${MSHORT[bd.getMonth()]}</b>. Από εκεί και πέρα, κάθε ραντεβού είναι κέρδος.</div>`; }
+    else if (d.current){ const miss = be - net, avg = N(d.avg_ticket) || 1; msg = `<div style="font-size:13px;color:var(--gold);background:var(--goldbg);border-radius:12px;padding:8px 12px">Λείπουν <b class="num">${eur0(miss)}</b> ≈ ${Math.ceil(miss / avg)} ραντεβού ακόμα.</div>`; }
+    else msg = `<div style="font-size:13px;color:var(--neg);background:var(--negbg);border-radius:12px;padding:8px 12px">Δεν πιάστηκε. Έλειψαν <b class="num">${eur0(be - net)}</b>.</div>`;
+    h += `<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="lbl">Νεκρό σημείο</div>
+      <div style="font-size:15px;line-height:1.4">Για να μη χάνεις χρειάζεσαι <b class="num">${eur0(be)}</b> καθαρό τζίρο τον μήνα${d.break_even_appts ? `, περίπου <b class="num">${d.break_even_appts} ραντεβού</b>` : ''}.</div>
+      <div style="position:relative;height:14px;border-radius:7px;background:var(--chip)"><div style="position:absolute;left:0;top:0;bottom:0;width:${w}%;border-radius:7px;background:${net >= be ? 'var(--teal)' : 'var(--amber)'}"></div><div style="position:absolute;left:${mk}%;top:-5px;bottom:-5px;width:3px;margin-left:-1px;border-radius:2px;background:var(--ink)"></div></div>
+      <div class="t2" style="display:flex;justify-content:space-between"><span>Τώρα ${eur0(net)}</span><span>Νεκρό σημείο ${eur0(be)}</span></div>${msg}</div>`;
+  }
+  // 3. Σκάλα
+  const mat = N(d.materials), vr = N(d.variable), fx = N(d.fixed);
+  const seg = (v, c) => net > 0 && v > 0 ? `<div style="width:${Math.min(100, v / net * 100)}%;background:${c}"></div>` : '';
+  h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">Από τον τζίρο στο κέρδος</div>
+    ${plRow('Εισπράξεις (με ΦΠΑ)', eur0(N(d.receipts_gross)))}${plRow('− ΦΠΑ 24%', eur0(N(d.vat_out)), { c:'var(--muted)' })}
+    ${plRow('Καθαρός τζίρος', eur0(net), { tot:true })}${plRow('Υπηρεσίες', eur0(N(d.services_net)), { small:true, indent:true })}${N(d.products_net) ? plRow('Προϊόντα', eur0(N(d.products_net)), { small:true, indent:true }) : ''}
+    ${plRow('− Υλικά', eur0(mat), { c:'var(--neg)' })}
+    ${plRow('Μικτό κέρδος', eur0(N(d.gross_profit)), { tot:true, tag: d.gross_margin_pct != null ? `<span class="tag t-teal">${pct1(d.gross_margin_pct)}</span>` : '' })}
+    ${plRow('− Μεταβλητά (ποσοστά, POS, marketing)', eur0(vr), { c:'var(--neg)' })}${plRow(d.current ? '− Σταθερά (όλος ο μήνας)' : '− Σταθερά έξοδα', eur0(fx), { c:'var(--neg)' })}
+    ${plRow(d.current ? 'Αποτέλεσμα μέχρι σήμερα' : 'Λειτουργικό κέρδος', sgn0(p), { tot:true, big:true, c: pos ? 'var(--tealink)' : 'var(--neg)' })}
+    ${net > 0 ? `<div style="display:flex;height:16px;border-radius:6px;overflow:hidden;background:var(--chip);margin-top:4px">${seg(mat, '#E8A9B6')}${seg(vr, '#F1C9D1')}${seg(fx, '#C9C9E3')}${seg(Math.max(0, p), 'var(--teal)')}</div>
+    <div class="t2" style="display:flex;flex-wrap:wrap;gap:4px 12px"><span>Υλικά ${Math.round(mat / net * 100)}%</span><span>Μεταβλητά ${Math.round(vr / net * 100)}%</span><span>Σταθερά ${Math.round(fx / net * 100)}%</span><span style="font-weight:700;color:${pos ? 'var(--tealink)' : 'var(--neg)'}">${pos ? 'Κέρδος' : 'Ζημιά'} ${Math.round(Math.abs(p) / net * 100)}%</span></div>` : ''}</div>`;
+  // 4. Σταθερά
+  const fi = d.fixed_items || [], maxF = Math.max(1, ...fi.map(x => N(x.amount)));
+  if (fi.length) h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">Σταθερά έξοδα · ${eur0(fx)}</div>
+    ${fi.map(x => plRow(esc(x.name), eur0(N(x.amount)), { tag: x.estimated ? '<span class="tag t-gold">εκτίμηση</span>' : '' }) + `<div style="height:6px;border-radius:3px;background:var(--chip);overflow:hidden"><i style="display:block;height:100%;width:${N(x.amount) / maxF * 100}%;background:#8A8BC0"></i></div>`).join('')}
+    ${d.fixed_estimated_n ? `<div style="font-size:13px;color:var(--gold);background:var(--goldbg);border-radius:12px;padding:8px 12px">${d.fixed_estimated_n === 1 ? '1 σταθερό έξοδο είναι' : d.fixed_estimated_n + ' σταθερά έξοδα είναι'} ακόμα εκτίμηση. Βάλε το πραγματικό ποσό όταν έρθει ο λογαριασμός.</div>` : ''}</div>`;
+  // 5. Μεταβλητά
+  const vi = (d.variable_items || []).slice();
+  if (N(d.commissions) > 0) vi.unshift({ name:'Ποσοστά τεχνιτριών', amount: d.commissions, auto:true });
+  if (vi.length) h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">Μεταβλητά έξοδα · ${eur0(vr)}</div>
+    ${vi.map(x => plRow(esc(x.name), eur0(N(x.amount)), { tag: x.auto ? '<span class="tag t-lilac">αυτόματο</span>' : '' })).join('')}</div>`;
+  // 6. Δείκτες
+  h += `<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="lbl">Δείκτες</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+    ${plKp('Πληρωμένα ραντεβού', d.appointments_paid || 0)}${plKp('Μέση απόδειξη', d.avg_ticket != null ? eur(N(d.avg_ticket)) : '—')}
+    ${plKp('Πληρότητα ωρών', d.occupancy_pct != null ? d.occupancy_pct + '%' : '—')}${plKp('Εκπτώσεις', eur0(N(d.discounts)))}
+    ${plKp('Δεν ήρθαν', d.no_shows || 0)}${plKp('Χαμένα (αναμονή)', (d.lost_n || 0) + (d.lost_n ? ' · ' + eur0(N(d.lost_value)) : ''))}</div></div>`;
+  // 7. Ανά τεχνίτρια
+  const T = (d.techs || []).filter(t => N(t.net) > 0 || t.occupancy != null), maxT = Math.max(1, ...T.map(t => N(t.net)));
+  if (T.length) h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">Ανά τεχνίτρια · καθαρός τζίρος</div>
+    ${T.map(t => plRow(esc(t.name) + ` <span class="t2">${t.appts} ραντ.${t.occupancy != null ? ' · ' + t.occupancy + '%' : ''}${N(t.commission) ? ' · ποσοστό ' + eur0(N(t.commission)) : ''}</span>`, eur0(N(t.net))) + `<div style="height:6px;border-radius:3px;background:var(--chip);overflow:hidden"><i style="display:block;height:100%;width:${N(t.net) / maxT * 100}%;background:var(--teal)"></i></div>`).join('')}
+    <div class="t2">Το % είναι η πληρότητα των ωρών βάρδιας της.</div></div>`;
+  // 8. ΦΠΑ
+  h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">ΦΠΑ μήνα · εκτίμηση</div>
+    ${plRow('ΦΠΑ που εισέπραξες', eur0(N(d.vat_out)))}${plRow('− ΦΠΑ που πλήρωσες σε έξοδα', eur0(N(d.vat_in)), { c:'var(--muted)' })}${plRow('Περίπου πληρωτέος', eur0(N(d.vat_payable)), { tot:true })}
+    <div class="t2">Ενδεικτικό. Τον τελικό τον βγάζει ο λογιστής.</div></div>`;
+  // 9. Κλείσιμο μήνα
+  if (!d.current && role() === 'admin'){
+    const mn = MONTHS[S.pl.month.getMonth()];
+    if (d.closed){ const cd = new Date(d.closed_at); h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">Κλεισμένος μήνας</div><div style="font-size:14px">${I.lock} Κλείστηκε στις ${cd.getDate()} ${MSHORT[cd.getMonth()]} ${cd.getFullYear()}. Τα νούμερα δεν αλλάζουν.</div>
+      <button class="btn ghost" data-a="plReopen">${S.pl.confirm === 'reopen' ? 'Σίγουρα; Πάτα ξανά για ξανάνοιγμα' : 'Ξανάνοιγμα ' + MGEN[S.pl.month.getMonth()]}</button></div>`; }
+    else h += `<div class="card" style="display:flex;flex-direction:column;gap:8px;border:1.5px dashed var(--line)"><div class="lbl">Κλείσιμο μήνα</div>
+      <div style="font-size:14px;line-height:1.45">Ο μήνας είναι <b>ανοιχτός</b>. Όταν περαστούν όλα τα έξοδα, κλείσ' τον για να παγώσουν τα νούμερα.</div>
+      ${d.fixed_estimated_n ? `<div style="font-size:13px;color:var(--gold);background:var(--goldbg);border-radius:12px;padding:8px 12px">Πριν κλείσει: ${d.fixed_estimated_n === 1 ? '1 σταθερό έξοδο είναι' : d.fixed_estimated_n + ' σταθερά έξοδα είναι'} ακόμα εκτίμηση.</div>` : ''}
+      <button class="btn navy" data-a="plClose">${I.lock} ${S.pl.confirm === 'close' ? 'Σίγουρα; Πάτα ξανά για κλείσιμο' : 'Κλείσιμο ' + MGEN[S.pl.month.getMonth()]}</button></div>`;
+  }
+  return h;
+}
+function renderPLYear(){
+  const y = S.pl.y; if (!y) return '';
+  const N = x => Number(x || 0), M = y.months || [], T = y.total || {};
+  if (!M.some(m => m.has_data)) return `<div class="center"><div class="t1" style="color:var(--ink)">Δεν υπάρχουν στοιχεία για το ${y.year}</div></div>`;
+  const done = M.filter(m => !m.current && m.has_data), tp = N(T.operating_profit);
+  const best = done.length ? done.reduce((a, b) => N(b.operating_profit) > N(a.operating_profit) ? b : a) : null;
+  const worst = done.length > 1 ? done.reduce((a, b) => N(b.operating_profit) < N(a.operating_profit) ? b : a) : null;
+  const lastM = y.last_done ? new Date(y.last_done) : null;
+  let h = `<div class="card" style="display:flex;flex-direction:column;gap:6px;padding:18px"><div class="lbl">Από την αρχή του έτους${lastM ? ' · Ιαν–' + MSHORT[lastM.getMonth()] : ''}</div>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="num" style="font-size:34px;font-weight:800;letter-spacing:-.5px;color:${tp >= 0 ? 'var(--tealink)' : 'var(--neg)'}">${sgn0(tp)}</div><span class="tag ${tp >= 0 ? 't-teal' : 't-red'}">${pct1(T.margin_pct)}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px">${plKp('Καθαρός τζίρος', eur0(N(T.net_revenue)))}${plKp('Έξοδα', eur0(N(T.expenses_total)))}</div>
+    ${y.last_year_profit != null ? (() => { const df = tp - N(y.last_year_profit); return `<div style="display:flex;align-items:center;gap:8px;border-top:1.5px solid var(--line);padding-top:10px;margin-top:4px;font-size:13px"><span style="flex:1;color:var(--muted)">Ίδιο διάστημα ${y.year - 1}</span><b class="num">${sgn0(N(y.last_year_profit))}</b><span class="num" style="font-weight:700;color:${df >= 0 ? 'var(--tealink)' : 'var(--neg)'}">${df >= 0 ? '▲' : '▼'} ${eur0(Math.abs(df))}</span></div>`; })() : ''}
+    ${T.avg_revenue != null ? `<div class="t2">Μέσος μήνας: ${eur0(N(T.avg_revenue))} τζίρος · ${sgn0(N(T.avg_profit))} κέρδος</div>` : ''}</div>`;
+  // Γράφημα
+  const mx = Math.max(1, ...M.filter(m => !m.current).map(m => Math.abs(N(m.operating_profit)))), up = 80, dn = 34;
+  h += `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="lbl">Κέρδος ανά μήνα</div>
+    <div style="display:grid;grid-template-columns:repeat(${M.length},minmax(0,1fr));gap:5px;padding-top:6px">${M.map(m => { const v = N(m.operating_profit), hh = Math.min(v >= 0 ? up : dn, Math.round(Math.abs(v) / mx * (v >= 0 ? up : dn)));
+      const bar = m.current ? `background:transparent;border:1.5px dashed ${v >= 0 ? '#5FB5AA' : '#D9879A'};box-sizing:border-box` : `background:${v >= 0 ? (best && m.month === best.month ? 'var(--teal)' : '#9FD3CC') : '#E8A9B6'}`;
+      return `<button data-a="plOpenMonth" data-v="${m.month}" aria-label="${MONTHS[new Date(m.month).getMonth()]} ${sgn0(v)}" style="border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center">
+        <div style="height:${up}px;width:100%;display:flex;align-items:flex-end">${v >= 0 && m.has_data ? `<div style="width:100%;height:${Math.max(2, hh)}px;border-radius:5px 5px 0 0;${bar}"></div>` : ''}</div>
+        <div style="height:${dn}px;width:100%;display:flex;align-items:flex-start;border-top:1.5px solid var(--line)">${v < 0 ? `<div style="width:100%;height:${Math.max(2, hh)}px;border-radius:0 0 5px 5px;${bar}"></div>` : ''}</div>
+        <span style="font-size:11px;color:var(--muted)">${MSHORT[new Date(m.month).getMonth()][0]}</span></button>`; }).join('')}</div>
+    ${M.some(m => m.current) ? '<div class="t2">Η διακεκομμένη μπάρα είναι ο μήνας που τρέχει, μέχρι σήμερα.</div>' : ''}</div>`;
+  // Πίνακας
+  const lockI = `<span style="display:inline-flex;color:var(--muted)" aria-label="Κλεισμένος">${I.lock}</span>`;
+  h += `<div class="card flush" style="padding:6px 8px 4px"><div class="plt th"><span>Μήνας</span><span>Τζίρος</span><span>Έξοδα</span><span>Κέρδος</span><span></span></div>
+    ${M.map(m => { const v = N(m.operating_profit), isB = best && m.month === best.month && done.length > 1, isW = worst && m.month === worst.month && v < N(best.operating_profit);
+      return `<button class="plt" data-a="plOpenMonth" data-v="${m.month}" style="${isB ? 'background:var(--tealbg);' : isW ? 'background:var(--negbg);' : ''}${m.current ? 'color:var(--muted);' : ''}"><span>${MSHORT[new Date(m.month).getMonth()]}</span><span>${m.has_data ? eur0(N(m.net_revenue)).replace(' €', '') : '—'}</span><span>${m.has_data ? eur0(N(m.expenses_total)).replace(' €', '') : '—'}</span>
+        <span style="font-weight:700;color:${!m.has_data ? 'var(--muted)' : m.current ? 'var(--muted)' : v >= 0 ? 'var(--tealink)' : 'var(--neg)'}">${m.has_data ? sgn0(v).replace(' €', '') : '—'}<i class="pc">${m.current ? 'σε εξέλιξη' : isB ? 'καλύτερος' : isW ? 'χειρότερος' : m.margin_pct != null ? pct1(m.margin_pct) : ''}</i></span>
+        <span>${m.closed ? lockI : (!m.current && m.has_data ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--amber);display:block" title="Ανοιχτός"></span>' : '')}</span></button>`; }).join('')}
+    <div class="plt" style="font-weight:800;border-top:1.5px solid var(--line)"><span>Σύνολο</span><span>${eur0(N(T.net_revenue)).replace(' €', '')}</span><span>${eur0(N(T.expenses_total)).replace(' €', '')}</span><span style="color:${tp >= 0 ? 'var(--tealink)' : 'var(--neg)'}">${sgn0(tp).replace(' €', '')}<i class="pc">${pct1(T.margin_pct)}</i></span><span></span></div>
+    <div class="t2" style="padding:6px 8px 10px">Ποσά σε € χωρίς ΦΠΑ. Το σύνολο δεν περιλαμβάνει τον μήνα που τρέχει. Πάτα έναν μήνα για να ανοίξει αναλυτικά.</div></div>`;
+  const openM = done.filter(m => !m.closed);
+  if (role() === 'admin' && openM.length) h += `<div class="card" style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:50%;background:var(--amber);flex:none"></span><span style="flex:1;font-size:14px">${openM.length === 1 ? 'Ένας μήνας είναι ανοιχτός' : openM.length + ' μήνες είναι ανοιχτοί'}: ${openM.map(m => MSHORT[new Date(m.month).getMonth()]).join(', ')}. ${openM.length === 1 ? 'Άνοιξέ τον' : 'Άνοιξέ τους'} για κλείσιμο.</span></div>`;
+  return h;
 }
 function renderSoon(){
   return `<div class="center">${I.lock}<div class="t1" style="color:var(--ink)">Σε κατασκευή</div><div>Αυτή η καρτέλα έρχεται στο επόμενο βήμα.</div></div>`;
@@ -1718,6 +1878,12 @@ function renderSheet(){
         ? `<div class="card" style="background:var(--negbg);color:var(--neg);display:flex;flex-direction:column;gap:10px"><div style="font-size:13px">${sh.recurring_id ? 'Η καταχώριση σβήνεται. Το σταθερό έξοδο θα ξαναβάλει εκτίμηση για αυτόν τον μήνα.' : 'Το έξοδο σβήνεται οριστικά.'}</div><div style="display:flex;gap:8px"><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="exDelNo">Άκυρο</button><button class="btn danger" style="min-height:44px;font-size:14px;border:1.5px solid var(--neg)" data-a="exDelYes">Διαγραφή</button></div></div>`
         : `<button class="btn danger" style="min-height:44px;font-size:14px" data-a="exDel">Διαγραφή εξόδου</button>`;
     }
+    if (sh.locked && sh.day){
+      const [ly, lm] = sh.day.split('-').map(Number), mn = MONTHS[lm - 1];
+      b += `<div class="warn" style="flex-direction:column;gap:8px;background:var(--goldbg);color:var(--gold);border-color:var(--amber)"><span><b>${I.lock} Ο ${mn} ${ly} είναι κλεισμένος</b><br>Τα νούμερά του έχουν παγώσει στο P&L. Διάλεξε τι θα κάνεις:</span>
+        ${role() === 'admin' ? `<button class="btn navy" style="min-height:46px;font-size:15px" data-a="exReopen">Ξανάνοιξε τον μήνα</button>` : '<span>Μόνο ο admin ξανανοίγει μήνα.</span>'}
+        <button class="btn ghost" style="min-height:46px;font-size:15px" data-a="exToday">Πέρασέ το με σημερινή ημερομηνία</button></div>`;
+    }
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
     const title = sh.expected ? 'Πραγματικό ποσό' : sh.id ? 'Επεξεργασία εξόδου' : 'Νέο έξοδο';
     return sheet(title, b, can('expenses','write') ? `<button class="btn primary split" data-a="exSave" ${S.busy?'disabled':''}><span>Αποθήκευση</span><span class="num">${isNaN(a) ? '' : eur(a)}</span></button>` : '', esc(storeName(S.store)) + (sh.label ? ' · ' + esc(sh.label) : ''));
@@ -1759,6 +1925,16 @@ function renderSheet(){
       b += `<div class="field"><label>Έκτακτο ρεπό / άδεια <span style="font-weight:400;color:var(--muted)">· μία φορά</span></label>${offs.map(o => `<div class="svc" style="cursor:default"><span style="flex:1;font-size:14px"><b>${o.kind === 'leave' ? 'Άδεια' : 'Ρεπό'}</b> · ${dlabel(parseYmd(o.date_from))}${o.date_to !== o.date_from ? ' – ' + dlabel(parseYmd(o.date_to)) : ''}</span><button class="x" data-a="offDel" data-v="${o.id}" aria-label="Αφαίρεση" style="width:34px;height:34px">✕</button></div>`).join('') || '<div class="t2">Κανένα προγραμματισμένο.</div>'}
         <div class="pair"><div class="field"><label for="offFrom" style="font-weight:400">Από</label><input id="offFrom" class="inp" type="date" value="${esc(sh.offFrom||'')}"></div><div class="field"><label for="offTo" style="font-weight:400">Έως</label><input id="offTo" class="inp" type="date" value="${esc(sh.offTo||'')}"></div></div>
         <div style="display:flex;gap:8px"><div class="seg" style="flex:1"><button class="${sh.offKind!=='leave'?'on':''}" data-a="offKind" data-v="day_off">Ρεπό</button><button class="${sh.offKind==='leave'?'on':''}" data-a="offKind" data-v="leave">Άδεια</button></div><button class="pill" data-a="offAdd">Προσθήκη</button></div></div>`;
+    }
+    if (!isAdm && sh.role === 'user' && seesMoney()){
+      const pc = num(sh.compPct), th = num(sh.compThr);
+      const ex = sh.compOn && pc > 0 ? (th > 0 ? `π.χ. τζίρος 2.500 € → ${eur0(Math.max(0, 2500 - th) * pc / 100)} ποσοστό` : `π.χ. τζίρος 2.500 € → ${eur0(2500 * pc / 100)} ποσοστό`) : '';
+      b += `<div class="field"><label>Αμοιβή · εκτός από τον μισθό</label><div class="t2" style="margin:-2px 2px 2px">Ο μισθός μπαίνει στα σταθερά έξοδα. Εδώ ορίζεις αν παίρνει και ποσοστό. Το βλέπει μόνο όποιος βλέπει το P&L.</div>
+        <div class="seg"><button class="${!sh.compOn?'on':''}" data-a="mComp" data-v="0">Μόνο μισθός</button><button class="${sh.compOn?'on':''}" data-a="mComp" data-v="1">+ Ποσοστό επί του τζίρου της</button></div>
+        ${sh.compOn ? `<div class="pair"><div class="field${sh.miss && sh.miss.pct ? ' bad' : ''}"><label for="mCompPct" style="font-weight:400">Ποσοστό %</label><input id="mCompPct" class="inp num" inputmode="decimal" placeholder="π.χ. 10" value="${esc(sh.compPct||'')}"></div>
+          <div class="field"><label for="mCompThr" style="font-weight:400">Μόνο πάνω από (€/μήνα)</label><input id="mCompThr" class="inp num" inputmode="decimal" placeholder="κενό = σε όλο τον τζίρο" value="${esc(sh.compThr||'')}"></div></div>
+          <div class="t2">Υπολογίζεται στον καθαρό τζίρο της (χωρίς ΦΠΑ) κάθε μήνα${num(sh.compThr) > 0 ? ', μόνο στο κομμάτι πάνω από ' + eur0(num(sh.compThr)) : ''}. ${ex}</div>` : ''}
+        <div class="t2">Σταθερό μπόνους; Πέρασέ το στα Έξοδα, κατηγορία «Μπόνους».</div></div>`;
     }
     if (!isAdm){
       const rl = t => (X.rperms.find(x => x.role === sh.role && x.tab === t) || {}).level || 'none';
@@ -1995,7 +2171,7 @@ document.addEventListener('click', async ev => {
       if (v === 'wait' && S.tab !== 'wait') S.waitBack = S.tab === 'more' ? 'more' : S.tab;
       S.tab = v; S.sheet = null; if (v === 'wait') S.freed = null; if (v === 'appts' && !S.month) S.month = new Date(today().getFullYear(), today().getMonth(), 1);
       document.getElementById('main') && (document.getElementById('main').scrollTop = 0);
-      if (['today','wait','cash','sched','expenses','appts'].includes(v) || (v === 'clients' && !S.cl.loaded)) return refresh(); render(); return;
+      if (['today','wait','cash','sched','expenses','appts','pl'].includes(v) || (v === 'clients' && !S.cl.loaded)) return refresh(); render(); return;
     }
     case 'goDay': S.tab = 'appts'; S.day = workDay(); S.dayAppts = []; return refresh();
     case 'exGoFixed': S.tab = 'expenses'; S.ex.view = 'fixed'; return refresh();
@@ -2045,6 +2221,24 @@ document.addEventListener('click', async ev => {
       break;
     }
     case 'tabUnpaid': S.tab = 'unpaid'; break;
+    case 'plView': S.pl.view = v; S.pl.confirm = null; S.pl.loaded = false; return refresh();
+    case 'plStore': S.pl.store = v || null; S.pl.confirm = null; S.pl.loaded = false; return refresh();
+    case 'plStep': {
+      const P = S.pl; P.confirm = null;
+      if (P.view === 'year'){ const ny = P.year + (+v); if (ny > today().getFullYear()) break; P.year = ny; }
+      else { const nm = new Date(P.month.getFullYear(), P.month.getMonth() + (+v), 1); if (nm > plCur()) break; P.month = nm; }
+      P.loaded = false; return refresh();
+    }
+    case 'plOpenMonth': { const [y, mo] = v.split('-').map(Number); S.pl.view = 'month'; S.pl.month = new Date(y, mo - 1, 1); S.pl.confirm = null; S.pl.loaded = false; return refresh(); }
+    case 'plClose': case 'plReopen': {
+      const k = a === 'plClose' ? 'close' : 'reopen';
+      if (S.pl.confirm !== k){ S.pl.confirm = k; break; }
+      S.pl.confirm = null;
+      const r = await sb.rpc(a === 'plClose' ? 'pnl_close' : 'pnl_reopen', { p_org: S.ctx.org.id, p_month: ymd(S.pl.month) });
+      if (r.error) throw r.error;
+      toast(a === 'plClose' ? 'Ο μήνας κλείστηκε · τα νούμερα πάγωσαν' : 'Ο μήνας άνοιξε ξανά');
+      return refresh();
+    }
     case 'refresh': return refresh();
     case 'store': S.store = v; S.freed = null; S.cash.day = null; S.cash.loaded = false; S.ex.loaded = false; S.td.loaded = false; return refresh();
     case 'view': S.view = v; S.day = null; return refresh();
@@ -2347,6 +2541,7 @@ document.addEventListener('click', async ev => {
     }
     case 'openMember': openMemberSheet(v); break;
     case 'mRole': sh.role = v; break;
+    case 'mComp': sh.compOn = v === '1'; if (sh.miss) sh.miss.pct = false; break;
     case 'mStore': sh.stores = sh.stores.includes(v) ? sh.stores.filter(x => x !== v) : sh.stores.concat(v); break;
     case 'mActive': {
       if (sh.active && sh.role === 'user'){
@@ -2418,6 +2613,7 @@ document.addEventListener('click', async ev => {
         schedRows.push({ member_id: sh.id, org_id: S.ctx.org.id, weekday: +w, store_id: sid, starts: a, ends: z });
       }
       if (sh.err) break;
+      if (sh.role === 'user' && sh.compOn && !(num(sh.compPct) > 0 && num(sh.compPct) <= 100)){ sh.miss = { ...(sh.miss || {}), pct: true }; sh.err = 'Γράψε ποσοστό από 0,1 έως 100.'; break; }
       if (!sh.active && m.active && m.role === 'user'){
         const fut = await loadFutureOf(sh.id); if (fut === null) break;
         if (fut.length){ sh.active = true; sh.block = { list: fut, to: null, left: null }; sh.err = 'Έχει μελλοντικά ραντεβού. Μετάφερέ τα πρώτα.'; break; }
@@ -2435,6 +2631,10 @@ document.addEventListener('click', async ev => {
           chk(await sb.from('member_permissions').delete().eq('member_id', sh.id));
           const pr = Object.entries(sh.perms).filter(([, l]) => l).map(([t, l]) => ({ member_id: sh.id, org_id: org, tab: t, level: l }));
           if (pr.length) chk(await sb.from('member_permissions').insert(pr));
+        }
+        if (m.role === 'user' && seesMoney()){
+          const pc = sh.compOn ? num(sh.compPct) : 0, th = sh.compOn && num(sh.compThr) > 0 ? num(sh.compThr) : null;
+          chk(await sb.from('tech_comp').upsert({ member_id: sh.id, org_id: org, pct: pc, threshold: th, updated_at: new Date().toISOString() }, { onConflict: 'member_id' }));
         }
         await reloadCtx(); await loadSettings();
         S.busy = false; S.sheet = null; toast('Αποθηκεύτηκε');
@@ -2576,9 +2776,19 @@ document.addEventListener('click', async ev => {
                         : await sb.from('expenses').insert({ ...row, org_id: S.ctx.org.id, store_id: S.store });
         if (r.error) throw r.error;
         S.busy = false; S.sheet = null; toast(sh.expected ? 'Καταχωρίστηκε το πραγματικό ποσό' : 'Αποθηκεύτηκε'); return refresh();
-      } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
+      } catch(e){
+        S.busy = false;
+        if (e.hint === 'month_closed' || /κλεισμένος/.test(e.message || '')){ sh.locked = true; sh.err = null; break; }
+        sh.err = e.message && !e.code ? e.message : friendlyError(e);
+      }
       break;
     }
+    case 'exReopen': {
+      const r = await sb.rpc('pnl_reopen', { p_org: S.ctx.org.id, p_month: sh.day.slice(0, 7) + '-01' });
+      if (r.error) throw r.error;
+      sh.locked = false; toast('Ο μήνας άνοιξε ξανά · πάτα «Αποθήκευση»'); break;
+    }
+    case 'exToday': sh.day = ymd(today()); sh.locked = false; toast('Η ημερομηνία άλλαξε σε σήμερα · πάτα «Αποθήκευση»'); break;
     case 'recEdit': {
       const X = S.ex, r = v ? X.rec.find(x => x.id === v) : null;
       S.sheet = r ? { type:'recEdit', id:r.id, label:r.label || '', cat:r.category_id, amt:String(r.estimate).replace('.', ','), dom:r.day_of_month, every:r.every_months, sup:(X.sup.find(x => x.id === r.supplier_id) || {}).name || '', active:r.active }
@@ -2677,7 +2887,7 @@ document.addEventListener('input', ev => {
   if (!sh) return;
   if (sh.type === 'exEdit'){ if (id === 'exAmt'){ sh.amt = val; if (sh.miss) sh.miss.amt = false; sh.err = null; paint(); return; } if (id === 'exSup'){ sh.sup = val; paint(); return; } if (id === 'exNote'){ sh.note = val; return; } }
   if (sh.type === 'recEdit'){ const k = { reLabel:'label', reAmt:'amt', reSup:'sup' }[id]; if (k){ sh[k] = val; return; } }
-  const mp = { mName:'name', mPw:'pw', nmName:'name', nmEmail:'email', nmPw:'pw', svName:'name', svDur:'dur', svPrice:'price', ctName:'name', offFrom:'offFrom', offTo:'offTo' };
+  const mp = { mName:'name', mPw:'pw', mCompPct:'compPct', mCompThr:'compThr', nmName:'name', nmEmail:'email', nmPw:'pw', svName:'name', svDur:'dur', svPrice:'price', ctName:'name', offFrom:'offFrom', offTo:'offTo' };
   if (mp[id]){ sh[mp[id]] = val; return; }
   if (id === 'caAmt' || id === 'coAmt' || id === 'ccAmt'){ sh.amt = val; if (id === 'ccAmt') paint(); return; }
   if (id === 'caNote'){ sh.note = val; return; }
@@ -2703,7 +2913,7 @@ document.addEventListener('change', async ev => {
   if (ds.shs != null || ds.she != null){ const w = +(ds.shs ?? ds.she); sh.hrs[w] = sh.hrs[w] || {}; sh.hrs[w][ds.shs != null ? 's' : 'e'] = ev.target.value || null; return; }
   if (ds.mperm){ sh.perms[ds.mperm] = ev.target.value || null; return; }
   if (id === 'svCat'){ sh.cat = ev.target.value; return; }
-  if (id === 'exDay'){ sh.day = ev.target.value; return; }
+  if (id === 'exDay'){ sh.day = ev.target.value; if (sh.locked){ sh.locked = false; paint(); } return; }
   if (id === 'reDay'){ sh.dom = +ev.target.value; return; }
   if (id === 'offFrom' || id === 'offTo'){ sh[id] = ev.target.value; return; }
   if (id === 'ncGdpr') sh.ncGdpr = ev.target.checked;
@@ -2716,7 +2926,7 @@ document.addEventListener('change', async ev => {
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }; S.conf = { list:[], loaded:false }; S.td = { appts:[], unpaid:[], freed:[], cashClosed:null, rev:null, estN:0, loaded:false }; S.freedList = []; S.cf = null;
+  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }; S.pl = { view:'month', month:null, year:null, store:null, m:null, y:null, loaded:false, confirm:null }; S.conf = { list:[], loaded:false }; S.td = { appts:[], unpaid:[], freed:[], cashClosed:null, rev:null, estN:0, loaded:false }; S.freedList = []; S.cf = null;
   try { sb.removeAllChannels(); } catch(e) {}
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
