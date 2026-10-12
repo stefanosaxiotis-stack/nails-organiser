@@ -120,6 +120,9 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .warn{background:var(--negbg);color:var(--neg);border:1.5px solid var(--neg);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;gap:10px;align-items:flex-start;line-height:1.4}
 .warn b{font-size:14px}
 .blk.ovl{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg)}
+.blk.oss{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg);background:var(--negbg)!important;color:var(--ink)}
+.blk .osb{color:var(--neg);font-size:13px;line-height:1;flex-shrink:0}
+.col.offcol .blk{opacity:1}
 .blk .ov{display:inline-flex;align-items:center;gap:2px;background:var(--neg);color:#fff;border-radius:6px;padding:0 5px;font-size:10px;font-weight:800;flex-shrink:0;line-height:16px}
 .sday{background:var(--surface);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .sday.now{outline:2.5px solid var(--teal)}
@@ -392,6 +395,13 @@ function storeHours(storeId, d){
   if (!h || h.closed) return null;
   return [toTime(h.opens), toTime(h.closes)];
 }
+// Η «μέρα εργασίας»: σήμερα, εκτός αν το κατάστημα έκλεισε (ή είναι κλειστό σήμερα) → η επόμενη ανοιχτή μέρα
+function workDay(storeId){
+  const t = today(), hrs = storeHours(storeId || S.store, t), n = new Date(), nowM = n.getHours() * 60 + n.getMinutes();
+  if (hrs && nowM < hrs[1]) return t;
+  let d = t; for (let i = 0; i < 14; i++){ d = addDays(d, 1); if (storeHours(storeId || S.store, d)) return d; }
+  return t;
+}
 function techsFor(storeId, d){
   const w = wdOf(d), ds = ymd(d);
   const sched = S.ctx.schedule.filter(s => s.store_id === storeId && s.weekday === w && S.ctx.techs.some(t => t.id === s.member_id)).map(s => s.member_id);
@@ -402,6 +412,22 @@ function techsFor(storeId, d){
   });
   const order = id => S.ctx.techs.findIndex(t => t.id === id);
   return { on: on.sort((a,b) => order(a)-order(b)), off };
+}
+// Ραντεβού που πέφτει εκτός προγράμματος (κλειστό κατάστημα, ρεπό, εκτός βάρδιας) → κείμενο προειδοποίησης ή null
+function offSched(a, storeId){
+  if (!a || a.status !== 'booked' || !a.tech_id) return null;
+  const sid = a.store_id || storeId || S.store, d = new Date(a.starts_at), ds = ymd(d), w = wdOf(d);
+  const s = minsOf(a.starts_at), e = minsOf(a.ends_at), t = S.ctx.techs.find(x => x.id === a.tech_id);
+  const hrs = storeHours(sid, d);
+  if (!hrs) return 'Το κατάστημα είναι κλειστό αυτή τη μέρα.';
+  if (!t) return 'Η τεχνίτρια δεν είναι πια ενεργή.';
+  const off = S.ctx.timeOff.find(o => o.member_id === t.id && ds >= o.date_from && ds <= o.date_to);
+  if (off) return `Η ${esc(t.name)} έχει ${off.kind === 'leave' ? 'άδεια' : 'ρεπό'} αυτή τη μέρα.`;
+  if (!S.ctx.schedule.some(x => x.member_id === t.id && x.weekday === w && x.store_id === sid)) return `Η ${esc(t.name)} δεν δουλεύει ${WDF[w]} σε αυτό το κατάστημα.`;
+  const sh = shiftOf(sid, d, t.id);
+  if (!sh) return `Η ${esc(t.name)} δεν έχει βάρδια αυτή τη μέρα.`;
+  if (s < sh[0] || e > sh[1]) return `Εκτός βάρδιας: η ${esc(t.name)} δουλεύει ${hm(sh[0])}–${hm(sh[1])}.`;
+  return null;
 }
 // Υπερκαλύψεις ραντεβού της ίδιας τεχνίτριας (στριμωγμένα)
 function overlapMap(list){
@@ -467,9 +493,17 @@ async function loadDay(){
   }
 }
 async function loadWait(){
+  // Όσες πέρασε το διάστημα που ζήτησαν → «Δεν εξυπηρετήθηκε» (δεν σβήνονται, πάνε στο ιστορικό)
+  if (can('appts','write')){
+    try { await sb.from('waitlist').update({ status:'expired', closed_at: new Date().toISOString(), closed_reason:'auto' }).eq('store_id', S.store).eq('status', 'active').lt('date_to', ymd(today())); } catch(e){}
+  }
   const { data, error } = await sb.from('waitlist').select('*, clients(id,name,phone)').eq('store_id', S.store).eq('status', 'active').order('created_at');
   if (error) throw error;
   S.wait = data;
+  try {
+    const h = await sb.from('waitlist').select('id,status,closed_at,closed_reason,service_ids,duration_min,date_from,date_to,clients(name)').eq('store_id', S.store).in('status', ['booked','expired']).gte('closed_at', addDays(today(), -30).toISOString()).order('closed_at', { ascending:false }).limit(300);
+    S.waitHist = h.error ? [] : (h.data || []);
+  } catch(e){ S.waitHist = []; }
   if (!S.winterLoaded){
     S.winterLoaded = true;
     const r = await sb.rpc('client_segments', { p_org: S.ctx.org.id });
@@ -661,7 +695,8 @@ function confInfo(a){
   const ws = confWindowStart(a);
   if (now < ws && !a.confirm_state) return null;
   if (st.confirm_auto_inside !== false && !a.confirm_state && a.created_at && new Date(a.created_at) >= ws) return { k:'ok', label:'Κλείστηκε μέσα στο 24ωρο', sym:'✓', auto:true };
-  const sent = a.confirm_state === 'sent' || a.confirm_state === 'no_answer';
+  if (a.confirm_state === 'no_answer') return { k:'wait', label:'Δεν απάντησε' + (a.confirm_attempts > 1 ? ' (' + a.confirm_attempts + ')' : ''), sym:'?', sent:true, na:true };
+  const sent = a.confirm_state === 'sent';
   return { k:'wait', label: sent ? 'Στάλθηκε · χωρίς απάντηση' : 'Να σταλεί μήνυμα', sym:'?', sent };
 }
 const cfTag = ci => ci ? `<span class="cf ${ci.k}" title="${esc(ci.label)}">${ci.sym}</span>` : '';
@@ -708,6 +743,13 @@ async function confAction(a, kind, extra){
   if (Object.keys(upd).length){ const r = await sb.from('appointments').update(upd).eq('id', a.id); if (r.error) throw r.error; Object.assign(a, upd); }
   await sb.from('appointment_confirm_log').insert({ org_id: org, appointment_id: a.id, action: kind, channel: (extra && extra.channel) || null, member_id: S.ctx.member.id, note: (extra && extra.note) || null });
 }
+// Μελλοντικά κλεισμένα ραντεβού μιας τεχνίτριας (σε όλα τα καταστήματα) — για το μπλοκάρισμα απενεργοποίησης
+async function loadFutureOf(memberId){
+  const r = await sb.from('appointments').select('id,store_id,starts_at,ends_at,tech_id,status,client_id,clients(name),appointment_services(name)')
+    .eq('org_id', S.ctx.org.id).eq('tech_id', memberId).eq('status', 'booked').gte('starts_at', new Date().toISOString()).order('starts_at').limit(500);
+  if (r.error){ toast(friendlyError(r.error)); return null; }
+  return r.data.map(a => ({ ...a, client: a.clients, svcText: (a.appointment_services || []).map(x => x.name).join(', ') }));
+}
 // ----- Ελεύθερες θέσεις (κοινές για όλες τις συσκευές) -----
 function shortDay(d){ const t0 = today(), dd = new Date(d); dd.setHours(0,0,0,0); const diff = Math.round((dd - t0) / 864e5); return diff === 0 ? 'σήμερα' : diff === 1 ? 'αύριο' : dlabel(dd); }
 const slotObj = f => ({ id: f.id, store: f.store_id, day: new Date(f.starts_at), tech: f.tech_id, start: minsOf(f.starts_at), dur: Math.round((new Date(f.ends_at) - new Date(f.starts_at)) / 60000) });
@@ -740,7 +782,10 @@ async function loadToday(){
     sb.from('appointments').select(sel).eq('store_id', S.store).in('status', ['booked','arrived']).lt('ends_at', now.toISOString()).gte('starts_at', addDays(t0, -7).toISOString()).order('starts_at'),
     can('cash','view') ? sb.from('cash_days').select('id,closed_at').eq('store_id', S.store).eq('day', ymd(t0)).maybeSingle() : Promise.resolve({ data:null })
   ];
-  const [ap, un, cd] = await Promise.all(jobs);
+  const nd = workDay();
+  jobs.push(sameDay(nd, t0) ? Promise.resolve({ data: [] }) : sb.from('appointments').select(sel).eq('store_id', S.store).gte('starts_at', nd.toISOString()).lt('starts_at', addDays(nd, 1).toISOString()).eq('status', 'booked').order('starts_at').limit(8));
+  jobs.push(sb.from('appointments').select(sel).eq('store_id', S.store).eq('status', 'booked').gte('starts_at', now.toISOString()).lt('starts_at', addDays(t0, 90).toISOString()).order('starts_at').limit(2000));
+  const [ap, un, cd, nx, fu] = await Promise.all(jobs);
   if (ap.error) throw ap.error;
   await Promise.all([loadFreed(), loadConfirm().catch(() => {}), loadWait().catch(() => {})]);
   let rev = null, estN = 0;
@@ -753,7 +798,7 @@ async function loadToday(){
     const r = await sb.from('expenses').select('id').eq('org_id', S.ctx.org.id).eq('expected', true).gte('day', ymd(m0)).lt('day', ymd(m1));
     if (!r.error) estN = r.data.length;
   }
-  S.td = { appts: ap.data.map(map), unpaid: (un.data || []).map(map), cashClosed: cd.data ? !!cd.data.closed_at : false, rev, estN, loaded: true };
+  S.td = { appts: ap.data.map(map), stray: (fu.data || []).map(map).filter(a => offSched(a, S.store)), next: (nx.data || []).map(map), nextDay: nd, unpaid: (un.data || []).map(map), cashClosed: cd.data ? !!cd.data.closed_at : false, rev, estN, loaded: true };
 }
 function todoList(){
   const L = [];
@@ -769,9 +814,12 @@ function todoList(){
   });
   const pend = S.conf.list.filter(x => x.ci.k === 'wait');
   if (pend.length && wr){
-    const notSent = pend.filter(x => !x.ci.sent).length;
-    L.push({ c:'gold', ic:'?', t1:`Επιβεβαίωσε ${pend.length} ${pend.length === 1 ? 'ραντεβού' : 'ραντεβού'}`, t2: notSent ? `${notSent} δεν έχουν λάβει μήνυμα ακόμα` : 'Έχουν λάβει μήνυμα · περιμένουμε απάντηση', a:'cfStart', go:'Ξεκίνα', urgent: true });
+    const notSent = pend.filter(x => !x.ci.sent).length, naN = pend.filter(x => x.ci.na).length;
+    const t2 = [notSent ? `${notSent} δεν έχουν λάβει μήνυμα` : '', naN ? `${naN} δεν απάντησαν στο τηλέφωνο` : ''].filter(Boolean).join(' · ') || 'Έχουν λάβει μήνυμα · περιμένουμε απάντηση';
+    L.push({ c:'gold', ic:'?', t1:`Επιβεβαίωσε ${pend.length} ραντεβού`, t2, a:'cfStart', go:'Ξεκίνα', urgent: true });
   }
+  const sw = (S.td.stray || []).length;
+  if (sw && wr) L.push({ c:'red', ic:'⚡', t1:`${sw} ${sw === 1 ? 'ραντεβού θέλει αλλαγή' : 'ραντεβού θέλουν αλλαγή'}`, t2:'Κλεισμένα εκτός προγράμματος (ρεπό, κλειστό ή εκτός βάρδιας)', a: sw === 1 ? 'openApptObj' : 'tab', v: sw === 1 ? S.td.stray[0].id : 'stray', go:'Δες', urgent: true });
   const un = S.td.unpaid.length;
   if (un && can('cash','write')) L.push({ c:'red', ic:'€', t1:`${un} ${un === 1 ? 'ραντεβού δεν πληρώθηκε' : 'ραντεβού δεν πληρώθηκαν'}`, t2:'Πέρασε η ώρα τους', a: un === 1 ? 'openApptObj' : 'tab', v: un === 1 ? S.td.unpaid[0].id : 'unpaid', go:'Δες', urgent: true });
   if (can('cash','write') && !S.td.cashClosed) L.push({ c:'gray', ic:'▣', t1:'Κλείσιμο ταμείου', t2:'Στο τέλος της μέρας', a:'tab', v:'cash', go:'Άνοιξε' });
@@ -792,7 +840,7 @@ function apRow(a){
   return `<button class="aprow" data-a="openApptObj" data-v="${a.id}"><span class="tm num">${hm(d.getHours()*60 + d.getMinutes())}</span><span style="flex:1;min-width:0"><span class="t1" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((a.client || {}).name || '—')}</span><span class="t2" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.svcText || '')} · ${esc(tech(a.tech_id).name)}</span></span><span class="pillst ${st[1]}">${st[0]}</span></button>`;
 }
 function findAppt(id){
-  const pools = [S.td.appts, S.td.unpaid, S.dayAppts, S.conf.list.map(x => x.a), (S.cash.unpaid || [])];
+  const pools = [S.td.appts, S.td.unpaid, S.td.next, S.td.stray, S.dayAppts, S.conf.list.map(x => x.a), (S.cash.unpaid || [])];
   for (const p of pools){ const a = (p || []).find(x => x.id === id); if (a) return { ...a, store_id: a.store_id || S.store, client: a.client || a.clients }; }
   return null;
 }
@@ -833,7 +881,7 @@ async function refresh(){
     else if (S.tab === 'cash') await loadCash();
     else if (S.tab === 'today') await loadToday();
     else if (S.tab === 'wait'){ await loadWait(); await loadFreed(); }
-    else if (S.tab === 'conf' || S.tab === 'unpaid'){ if (!S.td.loaded) await loadToday(); }
+    else if (S.tab === 'conf' || S.tab === 'unpaid' || S.tab === 'stray'){ if (!S.td.loaded) await loadToday(); }
     else if (S.tab === 'appts'){ if (S.day) await loadDay(); else await loadMonth(); }
     if (S.tab !== 'today' && !isTech()) Promise.all([loadConfirm(), loadFreed()]).then(() => paint()).catch(() => {});
   } catch(e) { toast(friendlyError(e)); }
@@ -858,8 +906,8 @@ function render(){
     const d = today(), hr = new Date().getHours(), first = (m.name || '').split(' ')[0];
     head = `<div style="flex:1;min-width:0"><h1>${hr < 12 ? 'Καλημέρα' : 'Καλησπέρα'} ${esc(first)}</h1><div class="sub">${WDF[wdOf(d)]} ${d.getDate()} ${MSHORT[d.getMonth()]}${!isTech() && S.ctx.stores.length ? ' · ' + esc(storeName(S.store)) : ''}</div></div>
       <button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
-  } else if (['conf','unpaid','wait'].includes(S.tab) || (S.tab === 'more')){
-    const tt = { conf:'Επιβεβαιώσεις', unpaid:'Απλήρωτα ραντεβού', wait:'Λίστα αναμονής', more:'Περισσότερα' }[S.tab];
+  } else if (['conf','unpaid','stray','wait'].includes(S.tab) || (S.tab === 'more')){
+    const tt = { conf:'Επιβεβαιώσεις', unpaid:'Απλήρωτα ραντεβού', stray:'Εκτός προγράμματος', wait:'Λίστα αναμονής', more:'Περισσότερα' }[S.tab];
     head = `${S.tab !== 'more' ? `<button class="rbtn sq" data-a="tab" data-v="${S.tab === 'wait' ? (S.waitBack || 'more') : 'today'}" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${tt}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else if (S.tab === 'settings'){
     const pt = { confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
@@ -873,10 +921,10 @@ function render(){
   const { prim, more } = navTabs(), moreKeys = more.map(x => x[0]).concat(['more','settings']);
   const tabs = prim.concat(more.length ? [['more','Περισσότερα',I.more]] : []);
   const nb = todoCount(), badge = nb ? `<span class="badge">${nb}</span>` : '';
-  const onKey = ['conf','unpaid'].includes(S.tab) ? 'today' : moreKeys.includes(S.tab) && more.length ? 'more' : S.tab;
+  const onKey = ['conf','unpaid','stray'].includes(S.tab) ? 'today' : moreKeys.includes(S.tab) && more.length ? 'more' : S.tab;
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
-    <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : renderSoon()}</main>
+    <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'stray' ? renderStray() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${onKey===t?'on':''}" data-a="tab" data-v="${t}">${t==='today'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span>${S.toast.undo ? '<button data-a="undo">Αναίρεση</button>' : ''}</div>` : ''}`;
@@ -944,13 +992,16 @@ function renderMonth(){
   return h;
 }
 function renderDay(){
-  const d = S.day, hrs = storeHours(S.store, d);
+  const d = S.day; let hrs = storeHours(S.store, d);
   let { on, off } = techsFor(S.store, d);
   if (isTech()){ on = on.filter(x => x === S.ctx.member.id); off = off.filter(x => x === S.ctx.member.id); if (!on.length && S.dayAppts.length) on = [S.ctx.member.id]; }
   let h = storeSeg();
   if (S.busy && !S.dayAppts.length) return h + '<div class="center"><div class="spin"></div></div>';
-  if (!hrs) return h + `<div class="center"><div class="t1" style="color:var(--ink)">Το κατάστημα είναι κλειστό</div><div>Πάτα τα βελάκια για άλλη μέρα.</div></div>`;
-  if (!on.length && !off.length) return h + `<div class="center"><div class="t1" style="color:var(--ink)">Καμία τεχνίτρια σε βάρδια</div><div>Ο admin ορίζει τις μέρες εργασίας από τις Ρυθμίσεις.</div></div>`;
+  const stray = S.dayAppts.filter(a => a.status === 'booked' && offSched(a, S.store));
+  if (!hrs) return h + `<div class="center"><div class="t1" style="color:var(--ink)">Το κατάστημα είναι κλειστό</div><div>Πάτα τα βελάκια για άλλη μέρα.</div></div>` + (stray.length ? `<div class="warn"><span style="font-size:18px">⚡</span><span><b>${stray.length} ${stray.length === 1 ? 'ραντεβού είναι κλεισμένο' : 'ραντεβού είναι κλεισμένα'} σε κλειστή μέρα</b><br>Άλλαξε μέρα ή ακύρωσέ τα.</span></div>` + stray.map(apRow).join('') : '');
+  const extra = [...new Set(S.dayAppts.filter(a => ['booked','arrived','done'].includes(a.status) && a.tech_id && !on.includes(a.tech_id) && !off.includes(a.tech_id)).map(a => a.tech_id))]
+    .filter(t => !isTech() || t === S.ctx.member.id);
+  if (!on.length && !off.length && !extra.length) return h + `<div class="center"><div class="t1" style="color:var(--ink)">Καμία τεχνίτρια σε βάρδια</div><div>Ο admin ορίζει τις μέρες εργασίας από τις Ρυθμίσεις.</div></div>`;
   if (S.freeOnly){
     h += `<div style="font-size:12px;color:var(--muted)">Φαίνονται μόνο τα κενά όπου χωράει η μικρότερη υπηρεσία (30΄).</div>`;
     on.forEach(t => {
@@ -962,14 +1013,19 @@ function renderDay(){
     off.forEach(t => { h += `<div class="card" style="display:flex;align-items:center;gap:10px;color:var(--muted)">${av(tech(t).name, 34)}<span class="t1">${esc(tech(t).name)} · Ρεπό</span></div>`; });
     return h;
   }
-  const PX = 84/60, H = (hrs[1]-hrs[0]) * PX, cols = on.concat(off);
+  // Το εύρος του ημερολογίου μεγαλώνει αν κάποιο ραντεβού πέφτει έξω από το ωράριο
+  const vis = S.dayAppts.filter(a => ['booked','arrived','done'].includes(a.status));
+  const lo = Math.min(hrs[0], ...vis.map(a => Math.floor(minsOf(a.starts_at) / 60) * 60)), hi = Math.max(hrs[1], ...vis.map(a => Math.ceil(minsOf(a.ends_at) / 60) * 60));
+  hrs = [lo, hi];
+  const PX = 84/60, H = (hrs[1]-hrs[0]) * PX, dim = off.concat(extra), cols = on.concat(dim);
   let hours = '', lines = '';
   for (let m = hrs[0]; m <= hrs[1]; m += 60){ hours += `<span class="num" style="position:absolute;top:${(m-hrs[0])*PX-6}px">${hm(m)}</span>`; lines += `<span class="hl" style="top:${(m-hrs[0])*PX}px"></span>`; }
-  h += `<div style="display:flex;padding-left:42px">${cols.map(t => `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;${off.includes(t)?'opacity:.55':''}">${av(tech(t).name, 30, tech(t).color[0], tech(t).color[1])}<span style="font-size:12px;font-weight:700">${esc(tech(t).name)}</span></div>`).join('')}</div>`;
+  h += `<div style="display:flex;padding-left:42px">${cols.map(t => `<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;${dim.includes(t)?'opacity:.55':''}">${av(tech(t).name, 30, tech(t).color[0], tech(t).color[1])}<span style="font-size:12px;font-weight:700">${esc(tech(t).name)}</span></div>`).join('')}</div>`;
   h += `<div class="tl" style="height:${H+8}px"><div class="hours">${hours}</div>`;
   cols.forEach(t => {
-    if (off.includes(t)) { h += `<div class="col offcol"><span class="tag t-gray" style="background:var(--surface)">Ρεπό</span></div>`; return; }
-    let c = `<div class="col">${lines}`;
+    const hasAp = S.dayAppts.some(a => a.tech_id === t && ['booked','arrived','done'].includes(a.status));
+    if (dim.includes(t) && !hasAp) { h += `<div class="col offcol"><span class="tag t-gray" style="background:var(--surface)">Ρεπό</span></div>`; return; }
+    let c = `<div class="col${dim.includes(t) ? ' offcol' : ''}">${lines}`;
     const ovm = overlapMap(S.dayAppts);
     S.dayAppts.filter(a => a.tech_id === t).forEach(a => {
       const s = minsOf(a.starts_at), e = minsOf(a.ends_at), ovs = ovm[a.id] || [];
@@ -978,17 +1034,18 @@ function renderDay(){
       const ovTag = ovs.length ? `<span class="ov" title="Υπερκάλυψη">⚠ ${Math.max(...ovs.map(o => o.min))}΄</span>` : '';
       const nm = a.client ? (isTech() ? a.client.name : a.client.name.split(' ')[0] + (a.client.name.split(' ')[1] ? ' ' + a.client.name.split(' ')[1][0] + '.' : '')) : '—';
       const w = (!isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '') + cfTag(confInfo({ ...a, store_id: a.store_id || S.store }));
-      const hpx = (e-s)*PX-2, short = hpx < 46;
+      const hpx = (e-s)*PX-2, short = hpx < 46, os = offSched(a, S.store), osc = os ? ' oss' : '';
+      const osTag = os ? '<span class="osb" title="Εκτός προγράμματος">⚡</span>' : '';
       c += short
-        ? `<button class="blk short b-${a.status}${ovs.length?' ovl':''}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
-        : `<button class="blk b-${a.status}${ovs.length?' ovl':''}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${hpx}px" data-a="openAppt" data-v="${a.id}"><b><span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b>${hm(s)}–${hm(e)} · ${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
+        ? `<button class="blk short b-${a.status}${ovs.length?' ovl':''}${osc}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b>${osTag}<span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
+        : `<button class="blk b-${a.status}${ovs.length?' ovl':''}${osc}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${hpx}px" data-a="openAppt" data-v="${a.id}"><b>${osTag}<span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b>${hm(s)}–${hm(e)} · ${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
     });
-    if (!isTech() && can('appts','write')) gapsFor(S.store, d, t, S.dayAppts).forEach(g => {
+    if (!isTech() && can('appts','write') && on.includes(t)) gapsFor(S.store, d, t, S.dayAppts).forEach(g => {
       c += `<button class="gap" style="top:${(g[0]-hrs[0])*PX+2}px;height:${(g[1]-g[0])*PX-4}px" data-a="newAppt" data-t="${t}" data-m="${g[0]}" aria-label="Νέο ραντεβού ${hm(g[0])}"><span style="font-size:16px;line-height:1">+</span><span class="num">${hm(g[0])}</span></button>`;
     });
     h += c + '</div>';
   });
-  h += `</div><div class="legend"><span><i style="background:var(--lilac)"></i>Κλεισμένο</span><span><i style="background:var(--tealbg)"></i>Ήρθε</span><span><i style="background:var(--chip)"></i>Ολοκληρώθηκε</span>${Object.keys(overlapMap(S.dayAppts)).length ? '<span><i style="background:var(--neg)"></i>Υπερκάλυψη</span>' : ''}</div>`;
+  h += `</div><div class="legend"><span><i style="background:var(--lilac)"></i>Κλεισμένο</span><span><i style="background:var(--tealbg)"></i>Ήρθε</span><span><i style="background:var(--chip)"></i>Ολοκληρώθηκε</span>${Object.keys(overlapMap(S.dayAppts)).length ? '<span><i style="background:var(--neg)"></i>Υπερκάλυψη</span>' : ''}${stray.length ? '<span>⚡ Εκτός προγράμματος</span>' : ''}</div>`;
   if (!isTech() && can('appts','write')) h += `<button class="btn navy" data-a="newAppt">+ Νέο ραντεβού</button>`;
   return h;
 }
@@ -1020,10 +1077,19 @@ function renderWait(){
       <div style="display:flex;gap:8px">
         <button class="btn ghost" style="min-height:46px;font-size:14px" data-a="call" data-v="${w.id}">${I.phone} Κάλεσε</button>
         ${mt ? `<button class="btn primary" style="min-height:46px;font-size:14px" data-a="fillFromWait" data-v="${w.id}">Κλείσε ${hm(S.freed.start)}</button>`
-             : (can('appts','write') ? `<button class="btn ghost" style="min-height:46px;font-size:14px;color:var(--neg)" data-a="rmWait" data-v="${w.id}">Αφαίρεση</button>` : '')}
+             : (can('appts','write') ? `<button class="btn ghost" style="min-height:46px;font-size:14px" data-a="wClose" data-v="${w.id}">Κλείσιμο…</button>` : '')}
       </div></div>`;
   });
   if (can('appts','write')) h += `<button class="btn navy" data-a="newWait">+ Προσθήκη στην αναμονή</button>`;
+  const H = S.waitHist || [];
+  if (H.length){
+    const ok = H.filter(x => x.status === 'booked'), lost = H.filter(x => x.status === 'expired');
+    const val = x => (x.service_ids || []).reduce((t, id) => t + Number((svcById(id) || {}).price || 0), 0);
+    const lostEur = lost.reduce((t, x) => t + val(x), 0);
+    h += `<details class="adv"><summary>Ιστορικό 30 ημερών · ${ok.length} εξυπηρετήθηκαν · ${lost.length} δεν εξυπηρετήθηκαν</summary>
+      ${lost.length && seesMoney() ? `<div class="t2" style="margin:8px 2px">Χαμένος τζίρος (εκτίμηση): <b class="num">${eur0(lostEur)}</b>. Αν μεγαλώνει, ίσως χρειάζεσαι κι άλλη τεχνίτρια ή μεγαλύτερο ωράριο.</div>` : ''}
+      <div class="card flush" style="margin-top:8px">${H.map(x => `<div class="row" style="cursor:default"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc((x.clients || {}).name || '—')}</span><span class="t2" style="display:block">${dlabel(new Date(x.closed_at))}${x.closed_reason === 'auto' ? ' · έληξε το διάστημα' : ''}</span></span><span class="tag ${x.status === 'booked' ? 't-teal' : 't-gray'}">${x.status === 'booked' ? 'Εξυπηρετήθηκε' : 'Δεν εξυπηρετήθηκε'}</span></div>`).join('')}</div></details>`;
+  }
   return h;
 }
 
@@ -1446,10 +1512,22 @@ function renderToday(){
     if (T.estN) h += `<button class="todo gold" data-a="exGoFixed"><span class="ic">▤</span><span class="tx"><span class="t1" style="display:block">${T.estN} ${T.estN === 1 ? 'σταθερό έξοδο περιμένει' : 'σταθερά έξοδα περιμένουν'} το πραγματικό ποσό</span><span class="t2" style="display:block">Έξοδα · Σταθερά</span></span><span class="go">Βάλε</span></button>`;
   }
   const next = act.filter(a => new Date(a.ends_at) > now || a.status === 'arrived').slice(0, 6);
-  h += `<div class="lbl" style="margin:6px 2px -4px">Επόμενα ραντεβού</div>`;
-  h += next.length ? next.map(apRow).join('') : `<div class="card" style="color:var(--muted);text-align:center">Δεν έχει άλλα ραντεβού σήμερα.</div>`;
-  h += `<button class="btn ghost" data-a="goDay">Όλο το πρόγραμμα της ημέρας</button>`;
+  const tmr = !next.length && T.nextDay && !sameDay(T.nextDay, today());
+  if (tmr){
+    h += `<div class="lbl" style="margin:6px 2px -4px">Επόμενα ραντεβού · ${dayWord(T.nextDay)}</div>`;
+    h += (T.next || []).length ? T.next.slice(0, 6).map(apRow).join('') : `<div class="card" style="color:var(--muted);text-align:center">Κανένα ραντεβού ακόμα.</div>`;
+    h += `<button class="btn ghost" data-a="goDay">Όλο το πρόγραμμα · ${dayWord(T.nextDay)}</button>`;
+  } else {
+    h += `<div class="lbl" style="margin:6px 2px -4px">Επόμενα ραντεβού</div>`;
+    h += next.length ? next.map(apRow).join('') : `<div class="card" style="color:var(--muted);text-align:center">Δεν έχει άλλα ραντεβού σήμερα.</div>`;
+    h += `<button class="btn ghost" data-a="goDay">Όλο το πρόγραμμα της ημέρας</button>`;
+  }
   return h;
+}
+function renderStray(){
+  const L = S.td.stray || [];
+  if (!L.length) return `<div class="allok">Όλα τα ραντεβού είναι μέσα στο πρόγραμμα ✓</div>`;
+  return `<div class="t2" style="margin:0 2px">Ραντεβού που κλείστηκαν σε μέρα ή ώρα που η τεχνίτρια δεν δουλεύει. Πάτα για να αλλάξεις ώρα ή τεχνίτρια.</div>` + L.map(a => { const d = new Date(a.starts_at); return `<div class="t2" style="margin:4px 2px -4px"><b>${dayWord(d)}</b> · <span style="color:var(--neg)">⚡ ${offSched(a, S.store)}</span></div>` + apRow(a); }).join('');
 }
 function renderUnpaid(){
   const L = S.td.unpaid;
@@ -1461,16 +1539,18 @@ function renderConfFlow(){
   if (!F || !F.items.length) return `<div class="allok">Δεν υπάρχει κάτι για επιβεβαίωση ✓</div><button class="btn ghost" data-a="tab" data-v="today">Πίσω στο Σήμερα</button>`;
   const done = F.done.length, tot = F.items.length;
   let idx = -1; for (let k = 0; k < tot; k++){ const j = (F.i + k) % tot; if (!F.done.includes(j)){ idx = j; break; } }
+  const naN = (F.na || []).length;
+  if (idx < 0 && naN) return `<div class="allok" style="padding:26px 16px;background:var(--goldbg);color:var(--gold)">Έμειναν ${naN} που δεν απάντησαν<div style="font-weight:500;font-size:13px;margin-top:6px">Θα τις βρεις στο «Σήμερα» για να τις ξαναπάρεις αργότερα.</div></div><button class="btn ghost" data-a="tab" data-v="today">Πίσω στο Σήμερα</button>`;
   if (idx < 0) return `<div class="allok" style="padding:26px 16px">Τελείωσες! ✓<div style="font-weight:500;font-size:13px;margin-top:6px">Όποια πατήσει «Θα έρθω» στο μήνυμα γίνεται αυτόματα επιβεβαιωμένη. Όποια δεν απαντήσει, θα ξαναεμφανιστεί στο «Σήμερα».</div></div><button class="btn ghost" data-a="tab" data-v="today">Πίσω στο Σήμερα</button>`;
   F.i = idx;
   const a = F.items[idx], c = a.client || {}, d = new Date(a.starts_at), ci = confInfo(a) || {};
   const ch = ({ whatsapp:'WhatsApp', viber:'Viber', sms:'SMS' })[(S.ctx.settings || {}).confirm_channel || 'whatsapp'];
   return `<div style="display:flex;align-items:center;gap:10px"><div class="prog"><i style="width:${done / tot * 100}%"></i></div><span class="num" style="font-size:13px;color:var(--muted)">${Math.min(done + 1, tot)} / ${tot}</span></div>
     <div class="cfcard"><div style="display:flex;align-items:center;gap:12px">${av(c.name, 50)}<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px">${esc(c.name)}</div><div class="t2">${dayWord(d)} · ${hm(d.getHours()*60 + d.getMinutes())} · ${esc(tech(a.tech_id).name)}</div><div class="t2">${esc(a.svcText || '')}</div></div></div>
-      ${ci.sent ? '<div class="t2" style="margin:0">Έχει ήδη λάβει μήνυμα. Μπορείς να ξαναστείλεις ή να πάρεις τηλέφωνο.</div>' : ''}
+      ${ci.na ? `<div class="t2" style="margin:0;color:var(--gold);font-weight:700">☎ Δεν απάντησε${a.confirm_attempts > 1 ? ' ' + a.confirm_attempts + ' φορές' : ''}. Δοκίμασε ξανά.</div>` : ci.sent ? '<div class="t2" style="margin:0">Έχει ήδη λάβει μήνυμα. Μπορείς να ξαναστείλεις ή να πάρεις τηλέφωνο.</div>' : ''}
       <button class="btn primary" data-a="cfFlowMsg">✉ Στείλε μήνυμα</button>
       <button class="btn ghost" data-a="cfFlowOk">☎ Επιβεβαιώθηκε τηλεφωνικά</button>
-      <div style="display:flex;justify-content:space-between">${c.phone ? `<a class="linkbtn" href="tel:${esc(c.phone)}" style="text-decoration:none">☎ Κάλεσε</a>` : '<span></span>'}<button class="linkbtn" data-a="cfFlowSkip">Αργότερα →</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">${c.phone ? `<a class="linkbtn" href="tel:${esc(c.phone)}" style="text-decoration:none">☎ Κάλεσε</a>` : '<span></span>'}<button class="linkbtn" data-a="cfFlowNa" style="color:var(--gold)">Δεν απάντησε →</button></div></div>
     <div class="t2" style="text-align:center;margin:0 10px">Το μήνυμα ανοίγει στο ${ch} με έτοιμο κείμενο. Πατάς «Αποστολή» και γυρνάς εδώ για την επόμενη.</div>`;
 }
 
@@ -1531,6 +1611,8 @@ function renderSheet(){
     const tot = (a.appointment_services||[]).reduce((x, q) => x + Number(q.price), 0);
     let b = `<div style="display:flex;align-items:center;gap:12px">${av(c.name, 50)}<div style="flex:1;min-width:0"><div class="t1" style="font-size:17px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span>${esc(c.name)}</span>${S.winter.has(a.client_id)?'<span class="mk">Χ</span>':''}${canEdit ? `<button class="pen" data-a="cfMove" data-v="${a.id}" aria-label="Αλλαγή μέρας ή ώρας">${I.pen}</button>` : ''}</div>${!isTech() && c.phone ? `<div class="t2 num" style="user-select:all">${esc(c.phone)}</div>` : ''}</div><span class="pillst ${st[1]}">${st[0]}</span></div>`;
     if (ci && ci.k === 'chg') b += `<div class="warn"><span style="font-size:18px">!</span><span><b>Πάτησε «Δεν μπορώ» στο μήνυμα</b>${a.confirm_note ? `<br>Έγραψε: «${esc(a.confirm_note)}»` : ''}<br>Πάρε τηλέφωνο και κανονίστε νέα ώρα.</span></div>`;
+    const osw = !isTech() ? offSched(a, S.store) : null;
+    if (osw) b += `<div class="warn"><span style="font-size:18px">⚡</span><span><b>Εκτός προγράμματος</b><br>${osw}<br>${canEdit ? 'Άλλαξε ώρα ή τεχνίτρια από «⋯ Περισσότερα → Αλλαγή μέρας ή ώρας».' : ''}</span></div>`;
     const ovs = overlapMap(pool)[a.id] || [];
     if (ovs.length) b += `<div class="warn"><span style="font-size:18px">⚠</span><span><b>Υπερκάλυψη</b><br>${ovs.map(o => `${o.min}΄ με ${esc(o.a.client ? o.a.client.name : 'άλλο ραντεβού')} (${hm(minsOf(o.a.starts_at))}–${hm(minsOf(o.a.ends_at))})`).join('<br>')}<br>Χρειάζεται πιο γρήγορη εξυπηρέτηση.</span></div>`;
     if (c.note && !isTech()) b += `<div style="background:var(--goldbg);color:var(--gold);border-radius:12px;padding:9px 12px;font-size:13px">Σημείωση: ${esc(c.note)}</div>`;
@@ -1652,6 +1734,11 @@ function renderSheet(){
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
     return sheet(sh.id ? 'Σταθερό έξοδο' : 'Νέο σταθερό έξοδο', b, `<button class="btn primary" data-a="reSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, esc(storeName(S.store)));
   }
+  if (sh.type === 'wClose'){
+    const w = S.wait.find(x => x.id === sh.id); if (!w) return '';
+    const opt = (v, t1, t2) => `<button class="row" data-a="wCloseDo" data-v="${v}" style="border:1.5px solid var(--line);border-radius:14px;margin-bottom:8px"><span style="flex:1"><span class="t1" style="display:block">${t1}</span><span class="t2" style="display:block">${t2}</span></span>${I.chev}</button>`;
+    return sheet('Κλείσιμο από την αναμονή', opt('lost', 'Δεν εξυπηρετήθηκε', 'Δεν βρέθηκε θέση για αυτή. Μετράει στον χαμένο τζίρο.') + opt('booked', 'Εξυπηρετήθηκε', 'Κλείστηκε ραντεβού με άλλο τρόπο (π.χ. τηλεφωνικά).') + opt('removed', 'Δεν το χρειάζεται πια', 'Το ακύρωσε η ίδια ή μπήκε κατά λάθος. Δεν μετράει πουθενά.'), '', esc((w.clients || {}).name || ''));
+  }
   if (sh.type === 'member'){
     const X = S.set, m = X.members.find(x => x.id === sh.id); if (!m) return '';
     const self = m.id === S.ctx.member.id, isAdm = m.role === 'admin';
@@ -1679,6 +1766,15 @@ function renderSheet(){
     }
     b += `<div class="field"><label for="mPw">Νέος κωδικός</label><div style="display:flex;gap:8px"><input id="mPw" class="inp" type="text" autocomplete="off" placeholder="τουλάχιστον 8 χαρακτήρες" value="${esc(sh.pw||'')}"><button class="pill" data-a="mPwGen" style="flex-shrink:0">Τυχαίος</button></div><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="mPwSave">Αλλαγή κωδικού</button></div>`;
     if (!self) b += `<div class="prm" style="border-top:1px solid var(--line)"><span class="tx"><b>Ενεργό</b><span class="t2" style="display:block">Αν το κλείσεις, δεν μπορεί να συνδεθεί. Το ιστορικό μένει.</span></span>${tgl(sh.active, 'mActive')}</div>`;
+    if (sh.block){
+      const B = sh.block, others = S.ctx.techs.filter(t => t.id !== sh.id);
+      const ln = (a, why) => { const d = new Date(a.starts_at); return `<div style="padding:6px 0;border-top:1px solid var(--line)"><b>${dlabel(d)} ${hm(minsOf(a.starts_at))}</b> · ${esc((a.client || {}).name || '—')}${S.ctx.stores.length > 1 ? ' · ' + esc(storeName(a.store_id)) : ''}${why ? `<br><span style="color:var(--neg)">⚡ ${why}</span>` : ''}</div>`; };
+      b += `<div class="warn" style="flex-direction:column;gap:8px"><span><b>Η ${esc(sh.name)} έχει ${B.list.length} μελλοντικά ραντεβού</b><br>${B.left ? 'Αυτά δεν χωράνε στην τεχνίτρια που διάλεξες. Άλλαξέ τα ένα ένα από το ημερολόγιο ή διάλεξε άλλη τεχνίτρια.' : 'Για να την απενεργοποιήσεις, μετάφερέ τα πρώτα σε άλλη τεχνίτρια.'}</span>
+        ${others.length ? `<div class="chips">${others.map(t => `<button class="pill ${B.to === t.id ? 'on' : ''}" data-a="mXferTo" data-v="${t.id}">${esc(t.name)}</button>`).join('')}</div>
+        <button class="btn primary" style="min-height:46px;font-size:15px" data-a="mXfer" ${S.busy || !B.to ? 'disabled' : ''}>Μεταφορά${B.to ? ' → ' + esc(tech(B.to).name) : ''}</button>` : '<span>Δεν υπάρχει άλλη ενεργή τεχνίτρια. Άλλαξε ή ακύρωσε τα ραντεβού από το ημερολόγιο.</span>'}
+        <button class="linkbtn" data-a="mXferShow" style="align-self:flex-start;color:var(--neg)">${B.show ? 'Κρύψε' : 'Δες'} τα ραντεβού</button>
+        ${B.show ? `<div style="color:var(--ink);font-size:13px;width:100%">${B.left ? B.left.map(x => ln(x.a, x.why)).join('') : B.list.map(a => ln(a)).join('')}</div>` : ''}</div>`;
+    }
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
     return sheet(esc(m.name), b, `<button class="btn primary" data-a="mSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`, ROLE_NAME[m.role] + (isAdm ? '' : ' · ο ρόλος δεν αλλάζει'));
   }
@@ -1901,13 +1997,13 @@ document.addEventListener('click', async ev => {
       document.getElementById('main') && (document.getElementById('main').scrollTop = 0);
       if (['today','wait','cash','sched','expenses','appts'].includes(v) || (v === 'clients' && !S.cl.loaded)) return refresh(); render(); return;
     }
-    case 'goDay': S.tab = 'appts'; S.day = today(); S.dayAppts = []; return refresh();
+    case 'goDay': S.tab = 'appts'; S.day = workDay(); S.dayAppts = []; return refresh();
     case 'exGoFixed': S.tab = 'expenses'; S.ex.view = 'fixed'; return refresh();
     case 'todoFreed': { const fs = S.freedList.find(x => x.id === v); if (!fs) break; if (S.tab !== 'wait') S.waitBack = S.tab; S.freed = slotObj(fs); S.tab = 'wait'; await loadWait(); break; }
     case 'freedDismiss': { await resolveFreed(v); S.freedList = S.freedList.filter(x => x.id !== v); S.freed = null; toast('Η θέση αφαιρέθηκε από τις ειδοποιήσεις', async () => { await sb.from('freed_slots').update({ resolved: false }).eq('id', v); }); break; }
     case 'openApptObj': {
       const ap = findAppt(v); if (!ap) break;
-      const pool = (S.td.appts.some(x => x.id === v) ? S.td.appts : S.dayAppts);
+      const pool = (S.td.appts.some(x => x.id === v) ? S.td.appts : (S.td.next || []).some(x => x.id === v) ? S.td.next : S.dayAppts);
       const nsh = { type:'appt', a: ap, pool }; S.sheet = nsh;
       if (!isTech() && ap.confirm_state){ paint(); const r = await sb.from('appointment_confirm_log').select('*').eq('appointment_id', ap.id).order('at'); if (S.sheet === nsh && !r.error) nsh.log = r.data; }
       break;
@@ -1917,9 +2013,20 @@ document.addEventListener('click', async ev => {
     case 'undo': { const fn = S.toast && S.toast.undo; S.toast = null; if (fn){ try { await fn(); toast('Αναιρέθηκε'); } catch(e){ toast(friendlyError(e)); } return refresh(); } break; }
     case 'cfStart': {
       const items = S.conf.list.filter(x => x.ci.k === 'wait').map(x => x.a);
-      S.cf = { items, i: 0, done: [] }; S.tab = 'conf'; break;
+      items.sort((x, y) => (x.confirm_state === 'no_answer') - (y.confirm_state === 'no_answer'));
+      S.cf = { items, i: 0, done: [], na: [] }; S.tab = 'conf'; break;
     }
-    case 'cfFlowSkip': { const F = S.cf; F.i = (F.i + 1) % F.items.length; break; }
+    case 'cfFlowNa': {
+      const F = S.cf, idx = F.i, ap = F.items[idx], prev = { confirm_state: ap.confirm_state || null, confirm_attempts: ap.confirm_attempts || 0 };
+      await confAction(ap, 'no_answer', { channel:'phone' });
+      F.done.push(idx); F.na.push(idx); F.i = (idx + 1) % F.items.length;
+      toast('Σημειώθηκε: δεν απάντησε · μένει για αργότερα', async () => {
+        await sb.from('appointments').update(prev).eq('id', ap.id);
+        F.done = F.done.filter(x => x !== idx); F.na = F.na.filter(x => x !== idx); F.i = idx; Object.assign(ap, prev);
+      });
+      loadConfirm().catch(() => {});
+      break;
+    }
     case 'cfFlowMsg': case 'cfFlowOk': {
       const F = S.cf, idx = F.i, ap = F.items[idx], prev = { confirm_state: ap.confirm_state || null };
       if (a === 'cfFlowMsg'){
@@ -2076,10 +2183,14 @@ document.addEventListener('click', async ev => {
       } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
       break;
     }
-    case 'rmWait': {
-      const r = await sb.from('waitlist').update({ status:'removed' }).eq('id', v);
+    case 'wClose': S.sheet = { type:'wClose', id: v }; break;
+    case 'wCloseDo': {
+      const id = sh.id, st = v === 'lost' ? 'expired' : v === 'booked' ? 'booked' : 'removed';
+      const r = await sb.from('waitlist').update({ status: st, closed_at: new Date().toISOString(), closed_reason: v }).eq('id', id);
       if (r.error) throw r.error;
-      toast('Αφαιρέθηκε από την αναμονή'); return refresh();
+      S.sheet = null;
+      toast({ lost:'Σημειώθηκε: δεν εξυπηρετήθηκε', booked:'Σημειώθηκε: εξυπηρετήθηκε', removed:'Αφαιρέθηκε' }[v], async () => { await sb.from('waitlist').update({ status:'active', closed_at: null, closed_reason: null }).eq('id', id); });
+      return refresh();
     }
     case 'clStage': S.cl.stage = v; S.cl.show = 60; break;
     case 'clTag': S.cl.tags = S.cl.tags.includes(v) ? S.cl.tags.filter(x => x !== v) : S.cl.tags.concat(v); S.cl.show = 60; break;
@@ -2237,7 +2348,32 @@ document.addEventListener('click', async ev => {
     case 'openMember': openMemberSheet(v); break;
     case 'mRole': sh.role = v; break;
     case 'mStore': sh.stores = sh.stores.includes(v) ? sh.stores.filter(x => x !== v) : sh.stores.concat(v); break;
-    case 'mActive': sh.active = !sh.active; break;
+    case 'mActive': {
+      if (sh.active && sh.role === 'user'){
+        const r = await loadFutureOf(sh.id); if (r === null) break;
+        if (r.length){ sh.block = { list: r, to: null, left: null }; toast('Έχει μελλοντικά ραντεβού · μετάφερέ τα πρώτα'); break; }
+      }
+      sh.active = !sh.active; sh.block = null; break;
+    }
+    case 'mXferTo': sh.block.to = v; break;
+    case 'mXferShow': sh.block.show = !sh.block.show; break;
+    case 'mXfer': {
+      const B = sh.block; if (!B || !B.to){ toast('Διάλεξε τεχνίτρια'); break; }
+      S.busy = true; paint();
+      let moved = 0; const left = [];
+      for (const a of B.list){
+        const na = { ...a, tech_id: B.to };
+        if (offSched(na)){ left.push({ a, why: offSched(na) }); continue; }
+        const r = await sb.from('appointments').update({ tech_id: B.to }).eq('id', a.id);
+        if (r.error){ left.push({ a, why: r.error.code === '23P01' ? `Η ${esc(tech(B.to).name)} έχει ήδη ραντεβού αυτή την ώρα.` : friendlyError(r.error) }); continue; }
+        moved++;
+      }
+      S.busy = false;
+      B.list = left.map(x => x.a); B.left = left; B.show = true;
+      if (!left.length){ sh.block = null; sh.active = false; toast(`Μεταφέρθηκαν ${moved} ραντεβού · πάτα «Αποθήκευση» για απενεργοποίηση`); }
+      else toast(`Μεταφέρθηκαν ${moved} · ${left.length} θέλουν αλλαγή ένα ένα`);
+      break;
+    }
     case 'offKind': sh.offKind = v; break;
     case 'offAdd': {
       if (!sh.offFrom){ sh.err = 'Διάλεξε ημερομηνία «Από».'; break; }
@@ -2282,6 +2418,10 @@ document.addEventListener('click', async ev => {
         schedRows.push({ member_id: sh.id, org_id: S.ctx.org.id, weekday: +w, store_id: sid, starts: a, ends: z });
       }
       if (sh.err) break;
+      if (!sh.active && m.active && m.role === 'user'){
+        const fut = await loadFutureOf(sh.id); if (fut === null) break;
+        if (fut.length){ sh.active = true; sh.block = { list: fut, to: null, left: null }; sh.err = 'Έχει μελλοντικά ραντεβού. Μετάφερέ τα πρώτα.'; break; }
+      }
       S.busy = true; paint();
       try {
         const chk = r => { if (r.error) throw r.error; };
@@ -2507,7 +2647,7 @@ document.addEventListener('click', async ev => {
       S.busy = true; paint();
       try {
         await bookSlot({ storeId: f.store, techId: f.tech, clientId: w.client_id, start: at(f.day, f.start), end: at(f.day, f.start + w.duration_min), svcs });
-        await sb.from('waitlist').update({ status:'booked' }).eq('id', w.id);
+        await sb.from('waitlist').update({ status:'booked', closed_at: new Date().toISOString(), closed_reason:'slot' }).eq('id', w.id);
         if (f.id) await resolveFreed(f.id);
         let msg = 'Κλείστηκε από την αναμονή · ' + dlabel(f.day) + ' ' + hm(f.start);
         S.freed = null;
