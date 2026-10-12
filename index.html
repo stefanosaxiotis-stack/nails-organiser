@@ -661,7 +661,8 @@ function confInfo(a){
   const ws = confWindowStart(a);
   if (now < ws && !a.confirm_state) return null;
   if (st.confirm_auto_inside !== false && !a.confirm_state && a.created_at && new Date(a.created_at) >= ws) return { k:'ok', label:'Κλείστηκε μέσα στο 24ωρο', sym:'✓', auto:true };
-  return { k:'wait', label:'Περιμένει απάντηση', sym:'?', sent: a.confirm_state === 'sent' || a.confirm_state === 'no_answer' };
+  const sent = a.confirm_state === 'sent' || a.confirm_state === 'no_answer';
+  return { k:'wait', label: sent ? 'Στάλθηκε · χωρίς απάντηση' : 'Να σταλεί μήνυμα', sym:'?', sent };
 }
 const cfTag = ci => ci ? `<span class="cf ${ci.k}" title="${esc(ci.label)}">${ci.sym}</span>` : '';
 function dayWord(d){
@@ -783,7 +784,7 @@ function apState(a){
   const ci = confInfo({ ...a, store_id: a.store_id || S.store });
   if (ci && ci.k === 'ok') return ['Επιβεβαιωμένο ✓','ps-conf'];
   if (ci && ci.k === 'chg') return ['Ζήτησε αλλαγή','ps-chg'];
-  if (ci && ci.k === 'wait') return ['Περιμένει απάντηση','ps-wait'];
+  if (ci && ci.k === 'wait') return [ci.label, 'ps-wait'];
   return ['Κλεισμένο','ps-book'];
 }
 function apRow(a){
@@ -1132,7 +1133,7 @@ function renderCash(){
   return h;
 }
 
-function timeOpts(cur){ let o = ''; if (cur && toTime(cur) % 30) o += `<option value="${cur}" selected>${cur}</option>`; for (let m = 6*60; m <= 23*60 + 30; m += 30){ const t = hm(m); o += `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`; } return o; }
+function timeOpts(cur, lo = 6*60, hi = 23*60 + 30){ let o = ''; const cm = cur ? toTime(cur) : null; if (cur && (cm % 30 || cm < lo || cm > hi)) o += `<option value="${cur}" selected>${cur}</option>`; for (let m = lo; m <= hi; m += 30){ const t = hm(m); o += `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`; } return o; }
 function renderSettings(){
   if (role() !== 'admin') return `<div class="center">Μόνο ο admin έχει πρόσβαση στις ρυθμίσεις.</div>`;
   const X = S.set;
@@ -1658,11 +1659,13 @@ function renderSheet(){
     if (X.emails && X.emails[m.id]) b += `<div class="t2" style="margin:-6px 2px 0">Σύνδεση με: <b>${esc(X.emails[m.id])}</b></div>`;
     if (sh.role === 'store') b += `<div class="field"><label>Καταστήματα που βλέπει στην εφαρμογή</label><div class="chips">${S.ctx.stores.map(x => `<button class="pill ${sh.stores.includes(x.id)?'on':''}" data-a="mStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>`;
     if (!isAdm){
-      const hOpt = (cur, ph) => `<option value="" ${!cur ? 'selected' : ''}>${ph}</option>` + timeOpts(cur);
+      // Μόνο ώρες μέσα στο ωράριο του καταστήματος εκείνη τη μέρα (το άνοιγμα/κλείσιμο είναι ήδη επιλογή)
+      const stHr = (sid, w) => { const x = S.ctx.hours.find(h => h.store_id === sid && h.weekday === w && !h.closed); return x ? [toTime(x.opens), toTime(x.closes)] : null; };
+      const hOpt = (cur, ph, rng) => `<option value="" ${!cur ? 'selected' : ''}>${ph}</option>` + (rng ? timeOpts(cur, rng[0], rng[1]) : timeOpts(cur));
       b += `<div class="field"><label>Σταθερό εβδομαδιαίο πρόγραμμα</label><div class="t2" style="margin:-2px 2px 2px">Ισχύει κάθε εβδομάδα, μέχρι να το αλλάξεις. Το «Ρεπό» είναι το σταθερό ρεπό.</div>
         <div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${[0,1,2,3,4,5,6].map(w => { const sid = sh.sched[w] || '', hr = sh.hrs[w] || {};
           return `<div class="prm" style="flex-wrap:wrap"><b class="tx">${WDF[w]}</b><select class="inp sm" style="width:150px" data-sched="${w}">${['', ...S.ctx.stores.map(x => x.id)].map(id => `<option value="${id}" ${sid===id?'selected':''}>${id ? esc(storeName(id)) : 'Ρεπό'}</option>`).join('')}</select>
-          ${sid ? `<div class="shrs" style="width:100%"><select class="inp sm" data-shs="${w}" aria-label="Από ${WDF[w]}"><option value="__off">Ρεπό</option>${hOpt(hr.s, 'Από το άνοιγμα')}</select><select class="inp sm" data-she="${w}" aria-label="Έως ${WDF[w]}"><option value="__off">Ρεπό</option>${hOpt(hr.e, 'Έως το κλείσιμο')}</select></div>` : ''}</div>`; }).join('')}</div></div>`;
+          ${sid ? `<div class="shrs" style="width:100%"><select class="inp sm" data-shs="${w}" aria-label="Από ${WDF[w]}"><option value="__off">Ρεπό</option>${hOpt(hr.s, 'Από το άνοιγμα', (r => r && [r[0] + 30, r[1] - 60])(stHr(sid, w)))}</select><select class="inp sm" data-she="${w}" aria-label="Έως ${WDF[w]}"><option value="__off">Ρεπό</option>${hOpt(hr.e, 'Έως το κλείσιμο', (r => r && [r[0] + 60, r[1] - 30])(stHr(sid, w)))}</select></div>` : ''}</div>`; }).join('')}</div></div>`;
     }
     if (!isAdm){
       const offs = X.off.filter(o => o.member_id === m.id);
