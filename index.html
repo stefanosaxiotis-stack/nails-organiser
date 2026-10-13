@@ -962,6 +962,7 @@ function renderLogin(){
 const sgn0 = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)).toLocaleString('el-GR') + ' €';
 const pct1 = v => v == null ? '—' : Number(v).toLocaleString('el-GR', { maximumFractionDigits: 1 }) + '%';
 const MGEN = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
+try { S.kbTel = localStorage.getItem('kbTel') === '1'; } catch(_){}
 const plCur = () => new Date(today().getFullYear(), today().getMonth(), 1);
 async function loadPL(){
   const P = S.pl, org = S.ctx.org.id;
@@ -1269,8 +1270,8 @@ function renderClients(){
   const tagOk = g => C.tags.every(t => g[t]);
   const stOk = (g, st) => st === 'all' || g.stage === st;
   const qOk = c => !q || norm(c.name).includes(q) || (qd.length >= 3 && String(c.phone||'').includes(qd));
-  const tel = C.kb === 'tel';
-  const srch = `<label class="srch" style="flex:1;min-width:0">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="${tel ? 'Τηλέφωνο' : 'Όνομα'}" inputmode="${tel ? 'tel' : 'text'}" value="${esc(C.q)}" autocomplete="off"></label><button class="btn ghost" data-a="clKb" aria-label="${tel ? 'Αναζήτηση με όνομα' : 'Αναζήτηση με τηλέφωνο'}" style="width:auto;flex:none;padding:0 12px;min-width:56px;font-size:15px">${tel ? 'Αβγ' : '123'}</button>`;
+  const tel = !!S.kbTel;
+  const srch = `<label class="srch" style="flex:1;min-width:0">${I.search}<input id="clQ" aria-label="Αναζήτηση πελάτισσας" placeholder="${tel ? 'Τηλέφωνο' : 'Όνομα'}" inputmode="${tel ? 'tel' : 'text'}" value="${esc(C.q)}" autocomplete="off"></label><button class="btn ghost" data-a="kbTog" data-v="clQ" aria-label="${tel ? 'Αναζήτηση με όνομα' : 'Αναζήτηση με τηλέφωνο'}" style="width:auto;flex:none;padding:0 12px;min-width:56px;font-size:15px">${tel ? 'Αβγ' : '123'}</button>`;
   let h = can('clients','write') ? `<div style="display:flex;gap:8px;align-items:stretch">${srch}<button class="btn navy" data-a="newClientCard" style="width:auto;flex:none;padding:0 16px;white-space:nowrap" aria-label="Νέα πελάτισσα">+ Νέα</button></div>` : `<div style="display:flex;gap:8px;align-items:stretch">${srch}</div>`;
   h += `<div><div class="lbl" style="margin:0 2px 6px">Σκαλί</div><div class="hs">${STAGES.map(([k, n]) => {
       const ct = all.filter(x => stOk(x.g, k) && tagOk(x.g)).length;
@@ -1761,6 +1762,14 @@ function sheet(title, body, foot, sub){
     <div class="sh"><div style="flex:1;min-width:0"><div style="font-family:var(--font-display);font-size:19px;font-weight:600">${title}</div>${sub?`<div class="t2">${sub}</div>`:''}</div><button class="x" data-a="closeSheet" aria-label="Κλείσιμο">✕</button></div>
     <div class="sb">${body}</div>${foot?`<div class="sf">${foot}</div>`:''}</div></div>`;
 }
+// Διάστημα αναμονής → [από, έως] σε YYYY-MM-DD
+function waitRange(sh){
+  const t0 = today(), k = sh.wr || '6';
+  if (k === 'today') return [ymd(t0), ymd(t0)];
+  if (k === 'tomorrow') return [ymd(addDays(t0, 1)), ymd(addDays(t0, 1))];
+  if (k === 'custom'){ const f = sh.wFrom || ymd(t0); let t = sh.wTo || f; if (t < f) t = f; return [f, t]; }
+  return [ymd(t0), ymd(addDays(t0, +k))];
+}
 function clientPicker(sh){
   const bad = sh.miss && sh.miss.client;
   let h = `<div class="field${bad ? ' bad' : ''}" id="fClient"><label for="clientQ">Πελάτισσα</label>`;
@@ -1771,7 +1780,7 @@ function clientPicker(sh){
       <label style="display:flex;gap:10px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="ncGdpr" ${sh.ncGdpr?'checked':''} style="width:20px;height:20px"> Συγκατάθεση για αποθήκευση στοιχείων</label>
       <button class="pill" data-a="pickExisting" style="align-self:flex-start">Υπάρχουσα πελάτισσα</button>`;
   } else {
-    h += `<input id="clientQ" class="inp" placeholder="Όνομα ή τηλέφωνο" value="${esc(sh.q||'')}" autocomplete="off">
+    h += `<div style="display:flex;gap:8px"><input id="clientQ" class="inp" style="flex:1;min-width:0" placeholder="${S.kbTel ? 'Τηλέφωνο' : 'Όνομα'}" inputmode="${S.kbTel ? 'tel' : 'text'}" value="${esc(sh.q||'')}" autocomplete="off"><button class="pill" data-a="kbTog" data-v="clientQ" aria-label="${S.kbTel ? 'Αναζήτηση με όνομα' : 'Αναζήτηση με τηλέφωνο'}" style="flex:none;min-width:56px;font-size:15px">${S.kbTel ? 'Αβγ' : '123'}</button></div>
       ${(sh.results||[]).map(c => `<button class="svc" data-a="pickClient" data-v="${c.id}">${av(c.name, 36)}<span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(c.name)}${S.winter.has(c.id)?' <span class="mk">Χ</span>':''}</span><span class="t2 num" style="display:block">${esc(c.phone||'')}${c.note?' · «'+esc(c.note)+'»':''}</span></span></button>`).join('')}
       ${sh.q && sh.searched && !(sh.results||[]).length ? '<div class="t2">Δεν βρέθηκε. Πρόσθεσέ τη ως νέα.</div>' : ''}
       <button class="pill" data-a="newClient" style="align-self:flex-start">+ Νέα πελάτισσα</button>`;
@@ -1885,7 +1894,9 @@ function renderSheet(){
   if (sh.type === 'wait'){
     let b = clientPicker(sh) + servicePicker(sh);
     b += `<div class="field"><label>Τεχνίτρια</label><div class="chips"><button class="pill ${!sh.wt?'on':''}" data-a="waitT" data-v="">Οποιαδήποτε</button>${S.ctx.techs.filter(t => S.ctx.schedule.some(s => s.member_id === t.id && s.store_id === S.store)).map(t => `<button class="pill ${sh.wt===t.id?'on':''}" data-a="waitT" data-v="${t.id}">${esc(t.name)}</button>`).join('')}</div></div>
-      <div class="field"><label>Διάστημα</label><div class="chips">${[['6','Αυτή την εβδομάδα'],['13','2 εβδομάδες'],['30','Ένας μήνας']].map(([k, n]) => `<button class="pill ${(sh.wr||'6')===k?'on':''}" data-a="waitR" data-v="${k}">${n}</button>`).join('')}</div></div>
+      <div class="field"><label>Διάστημα</label><div class="chips">${[['today','Σήμερα'],['tomorrow','Αύριο'],['6','Αυτή την εβδομάδα'],['13','2 εβδομάδες'],['30','Ένας μήνας'],['custom','Ημερομηνίες…']].map(([k, n]) => `<button class="pill ${(sh.wr||'6')===k?'on':''}" data-a="waitR" data-v="${k}">${n}</button>`).join('')}</div>
+        ${sh.wr === 'custom' ? `<div class="pair"><div class="field"><label for="wFrom" style="font-weight:400">Από</label><input id="wFrom" class="inp" type="date" min="${ymd(today())}" value="${esc(sh.wFrom || ymd(today()))}"></div><div class="field"><label for="wTo" style="font-weight:400">Έως</label><input id="wTo" class="inp" type="date" min="${esc(sh.wFrom || ymd(today()))}" value="${esc(sh.wTo || sh.wFrom || ymd(today()))}"></div></div>` : ''}
+        ${(() => { const [f, t] = waitRange(sh); return `<div class="t2">${f === t ? dlabel(parseYmd(f)) : dlabel(parseYmd(f)) + ' – ' + dlabel(parseYmd(t))}</div>`; })()}</div>
       <div class="field"><label>Προτίμηση ώρας</label><div class="chips">${[['any','Οποιαδήποτε ώρα'],['morning','Πρωινά'],['afternoon','Απογεύματα']].map(([k, n]) => `<button class="pill ${(sh.wp||'any')===k?'on':''}" data-a="waitP" data-v="${k}">${n}</button>`).join('')}</div></div>
       <div class="field"><label for="wNote">Σημείωση (προαιρετικό)</label><input id="wNote" class="inp" value="${esc(sh.note||'')}" placeholder="π.χ. μόνο μετά τις 5"></div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
@@ -2410,7 +2421,7 @@ document.addEventListener('click', async ev => {
         const cid = await ensureClient(sh);
         const r = await sb.from('waitlist').insert({ org_id: S.ctx.org.id, store_id: S.store, client_id: cid, tech_id: sh.wt || null,
           service_ids: svcs.map(s => s.id), duration_min: svcs.reduce((s, x) => s + x.duration_min, 0),
-          date_from: ymd(today()), date_to: ymd(addDays(today(), +(sh.wr || 6))), time_pref: sh.wp || 'any', note: sh.note || null });
+          date_from: waitRange(sh)[0], date_to: waitRange(sh)[1], time_pref: sh.wp || 'any', note: sh.note || null });
         if (r.error) throw r.error;
         S.sheet = null; S.busy = false; toast('Μπήκε στην αναμονή'); return refresh();
       } catch(e){ S.busy = false; sh.err = e.message && !e.code ? e.message : friendlyError(e); }
@@ -2425,9 +2436,10 @@ document.addEventListener('click', async ev => {
       toast({ lost:'Σημειώθηκε: δεν εξυπηρετήθηκε', booked:'Σημειώθηκε: εξυπηρετήθηκε', removed:'Αφαιρέθηκε' }[v], async () => { await sb.from('waitlist').update({ status:'active', closed_at: null, closed_reason: null }).eq('id', id); });
       return refresh();
     }
-    case 'clKb': {
-      S.cl.kb = S.cl.kb === 'tel' ? 'text' : 'tel'; paint();
-      const el = document.getElementById('clQ'); if (el){ el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch(_){} }
+    case 'kbTog': {
+      S.kbTel = !S.kbTel; try { localStorage.setItem('kbTel', S.kbTel ? '1' : ''); } catch(_){}
+      paint();
+      const el = document.getElementById(v || 'clQ'); if (el){ el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch(_){} }
       return;
     }
     case 'clStage': S.cl.stage = v; S.cl.show = 60; break;
@@ -2980,6 +2992,7 @@ document.addEventListener('change', async ev => {
   if (id === 'exDay'){ sh.day = ev.target.value; if (sh.locked){ sh.locked = false; paint(); } return; }
   if (id === 'reDay'){ sh.dom = +ev.target.value; return; }
   if (id === 'offFrom' || id === 'offTo'){ sh[id] = ev.target.value; return; }
+  if (id === 'wFrom' || id === 'wTo'){ sh[id] = ev.target.value; if (id === 'wFrom' && sh.wTo && sh.wTo < sh.wFrom) sh.wTo = sh.wFrom; paint(); return; }
   if (id === 'ncGdpr') sh.ncGdpr = ev.target.checked;
   if (id === 'ceGdpr') sh.gdpr = ev.target.checked;
   if (id === 'ceBd') sh.birthday = ev.target.value;
