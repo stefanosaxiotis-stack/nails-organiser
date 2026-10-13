@@ -923,14 +923,14 @@ function render(){
     const d = today(), hr = new Date().getHours(), first = (m.name || '').split(' ')[0];
     head = `<div style="flex:1;min-width:0"><h1>${hr < 12 ? 'Καλημέρα' : 'Καλησπέρα'} ${esc(first)}</h1><div class="sub">${WDF[wdOf(d)]} ${d.getDate()} ${MSHORT[d.getMonth()]}${!isTech() && S.ctx.stores.length ? ' · ' + esc(storeName(S.store)) : ''}</div></div>
       <button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
-  } else if (['conf','unpaid','stray','wait'].includes(S.tab) || (S.tab === 'more')){
+  } else if (['conf','unpaid','stray'].includes(S.tab) || (S.tab === 'more')){
     const tt = { conf:'Επιβεβαιώσεις', unpaid:'Απλήρωτα ραντεβού', stray:'Εκτός προγράμματος', wait:'Λίστα αναμονής', more:'Περισσότερα' }[S.tab];
     head = `${S.tab !== 'more' ? `<button class="rbtn sq" data-a="tab" data-v="${S.tab === 'wait' ? (S.waitBack || 'more') : 'today'}" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${tt}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else if (S.tab === 'settings'){
     const pt = { online:'Online κρατήσεις', confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
-    const titles = { appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
+    const titles = { wait:'Λίστα αναμονής', appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
     const d = today();
     head = `<div style="flex:1;min-width:0"><h1>${esc(titles[S.tab])}</h1><div class="sub">${WDF[wdOf(d)]}, ${d.getDate()} ${MSHORT[d.getMonth()]} · ${ROLE_NAME[m.role]}</div></div>
       <button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
@@ -942,7 +942,7 @@ function render(){
   app.innerHTML = `
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
     <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'stray' ? renderStray() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : S.tab === 'pl' ? renderPL() : renderSoon()}</main>
-    ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${onKey===t?'on':''}" data-a="tab" data-v="${t}">${t==='today'?badge:''}${ic}${n}</button>`).join('')}</nav>` : ''}
+    ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${onKey===t?'on':''}" data-a="tab" data-v="${t}">${t==='today'?badge:''}${t==='wait' && (S.wait || []).length ? `<span class="badge">${S.wait.length}</span>` : ''}${ic}${n}</button>`).join('')}</nav>` : ''}
     ${S.sheet ? renderSheet() : ''}
     ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span>${S.toast.undo ? '<button data-a="undo">Αναίρεση</button>' : ''}</div>` : ''}`;
 }
@@ -1665,10 +1665,10 @@ function renderExpenses(){
 function navTabs(){
   const prim = [['today','Σήμερα',I.home],['appts','Ημερολόγιο',I.cal]];
   if (isTech()) return { prim: prim.concat([['sched','Πρόγραμμα',I.clock]]), more: [] };
+  if (can('appts')) prim.push(['wait','Αναμονή',I.bell]);
   if (can('clients')) prim.push(['clients','Πελάτες',I.users]);
   if (can('cash')) prim.push(['cash','Ταμείο',I.cash]);
   const more = [['sched','Πρόγραμμα εργασίας',I.clock]];
-  if (can('appts')) more.push(['wait','Λίστα αναμονής',I.bell]);
   if (can('expenses')) more.push(['expenses','Έξοδα',I.exp]);
   if (can('pl')) more.push(['pl','P&L',I.pl]);
   if (role() === 'admin') more.push(['settings','Ρυθμίσεις',I.gear]);
