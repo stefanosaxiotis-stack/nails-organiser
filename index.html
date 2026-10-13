@@ -1770,6 +1770,21 @@ function waitRange(sh){
   if (k === 'custom'){ const f = sh.wFrom || ymd(t0); let t = sh.wTo || f; if (t < f) t = f; return [f, t]; }
   return [ymd(t0), ymd(addDays(t0, +k))];
 }
+// Ελεύθερες ώρες που ταιριάζουν στην αναμονή → κλείνεται κατευθείαν ραντεβού
+const waitDur = sh => S.ctx.services.filter(x => sh.svcs.includes(x.id)).reduce((a, x) => a + x.duration_min, 0);
+const waitFreeKey = sh => [S.store, waitDur(sh), sh.wt || '', waitRange(sh).join('_'), sh.wp || 'any'].join('|');
+async function loadWaitFree(sh, key){
+  const [f, t] = waitRange(sh), dur = waitDur(sh);
+  try {
+    const r = await sb.rpc('staff_free_slots', { p_store: S.store, p_from: f, p_to: t, p_dur: dur, p_tech: sh.wt || null, p_pref: sh.wp || 'any' });
+    if (sh.freeKey !== key) return;
+    if (r.error) throw r.error;
+    const by = new Map();
+    (r.data || []).forEach(x => { const L = by.get(x.day) || []; if (L.length < 6 && !L.some(y => y.t === x.t)) L.push({ t: x.t, tech: x.tech_id }); by.set(x.day, L); });
+    sh.free = [...by.entries()].slice(0, 5).map(([day, items]) => ({ day, items }));
+  } catch(e){ if (sh.freeKey === key) sh.free = []; }
+  if (S.sheet === sh) paint();
+}
 function clientPicker(sh){
   const bad = sh.miss && sh.miss.client;
   let h = `<div class="field${bad ? ' bad' : ''}" id="fClient"><label for="clientQ">Πελάτισσα</label>`;
@@ -1899,8 +1914,20 @@ function renderSheet(){
         ${(() => { const [f, t] = waitRange(sh); return `<div class="t2">${f === t ? dlabel(parseYmd(f)) : dlabel(parseYmd(f)) + ' – ' + dlabel(parseYmd(t))}</div>`; })()}</div>
       <div class="field"><label>Προτίμηση ώρας</label><div class="chips">${[['any','Οποιαδήποτε ώρα'],['morning','Πρωινά'],['afternoon','Απογεύματα']].map(([k, n]) => `<button class="pill ${(sh.wp||'any')===k?'on':''}" data-a="waitP" data-v="${k}">${n}</button>`).join('')}</div></div>
       <div class="field"><label for="wNote">Σημείωση (προαιρετικό)</label><input id="wNote" class="inp" value="${esc(sh.note||'')}" placeholder="π.χ. μόνο μετά τις 5"></div>`;
+    let hasFree = false;
+    if (sh.svcs.length){
+      const key = waitFreeKey(sh);
+      if (sh.freeKey !== key){ sh.freeKey = key; sh.free = null; setTimeout(() => loadWaitFree(sh, key), 0); }
+      if (sh.free === null) b += `<div class="t2">Ψάχνω ελεύθερες ώρες στο διάστημα…</div>`;
+      else if (!sh.free.length) b += `<div class="t2">Δεν υπάρχει ελεύθερη ώρα στο διάστημα. Μπαίνει στην αναμονή και θα ειδοποιηθείς μόλις ελευθερωθεί θέση που της ταιριάζει.</div>`;
+      else {
+        hasFree = true;
+        b += `<div style="background:var(--tealbg);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:10px"><div style="color:var(--tealink)"><b>Υπάρχουν ελεύθερες ώρες</b><br><span style="font-size:13px">Δεν χρειάζεται αναμονή. Πάτα μια ώρα για να κλείσει κατευθείαν το ραντεβού.</span></div>
+          ${sh.free.map(g => `<div style="display:flex;flex-direction:column;gap:6px"><div class="lbl" style="color:var(--tealink)">${dayWord(parseYmd(g.day))}</div><div class="chips">${g.items.map(x => `<button class="pill" style="min-height:40px" data-a="waitBook" data-v="${g.day}|${x.t}|${x.tech}">${hm(x.t)} · ${esc(tech(x.tech).name)}</button>`).join('')}</div></div>`).join('')}</div>`;
+      }
+    }
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
-    return sheet('Προσθήκη στην αναμονή', b, `<button class="btn navy" data-a="saveWait" ${S.busy?'disabled':''}>Μπαίνει στην αναμονή</button>`, esc(storeName(S.store)));
+    return sheet('Προσθήκη στην αναμονή', b, `<button class="btn ${hasFree ? 'ghost' : 'navy'}" data-a="saveWait" ${S.busy?'disabled':''}>${hasFree ? 'Θέλει άλλη ώρα · μπαίνει στην αναμονή' : 'Μπαίνει στην αναμονή'}</button>`, esc(storeName(S.store)));
   }
   if (sh.type === 'call'){
     const w = S.wait.find(x => x.id === sh.id), c = (w && w.clients) || {};
@@ -2410,6 +2437,18 @@ document.addEventListener('click', async ev => {
     }
     case 'newWait': S.sheet = { type:'wait', svcs: [], cat: S.ctx.cats[0] && S.ctx.cats[0].id, q:'', results:[], client:null }; break;
     case 'waitT': sh.wt = v || null; break;
+    case 'waitBook': {
+      const [day, t, techId] = v.split('|'), svcs = S.ctx.services.filter(x => sh.svcs.includes(x.id));
+      sh.miss = { client: !sh.client && !(sh.newClient && (sh.ncName||'').trim()), svcs: !svcs.length };
+      if (sh.miss.client){ sh.err = 'Διάλεξε ή γράψε πελάτισσα για να κλείσει το ραντεβού.'; break; }
+      S.busy = true; paint();
+      try {
+        const cid = await ensureClient(sh), d0 = parseYmd(day), dur = svcs.reduce((a, x) => a + x.duration_min, 0);
+        await bookSlot({ storeId: S.store, techId, clientId: cid, start: at(d0, +t), end: at(d0, +t + dur), svcs });
+        S.busy = false; S.sheet = null; toast(`Κλείστηκε ραντεβού · ${dlabel(d0)} ${hm(+t)} με ${tech(techId).name}`); return refresh();
+      } catch(e){ S.busy = false; sh.freeKey = null; sh.err = e.code === '23P01' ? 'Η ώρα μόλις πιάστηκε. Διάλεξε άλλη.' : (e.message && !e.code ? e.message : friendlyError(e)); }
+      break;
+    }
     case 'waitR': sh.wr = v; break;
     case 'waitP': sh.wp = v; break;
     case 'saveWait': {
