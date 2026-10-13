@@ -95,6 +95,20 @@ const P = new URLSearchParams(location.search), STORE = P.get('s') || '', TOKEN 
 const TZ = 'Europe/Athens', WD = ['Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ','Κυρ'], WDF = ['Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο','Κυριακή'];
 const MON = ['Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'], MONG = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
 const art = n => /^([αεηιουωάέήίόύώκπτξψ]|μπ|ντ|γκ|τσ|τζ)/i.test(String(n || '')) ? 'την' : 'τη';
+const ICS_FN = 'https://koliyglqlgpwsrkjahrn.supabase.co/functions/v1/book-ics';
+const gStamp = iso => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+// Κουμπιά «Πρόσθεσε στο ημερολόγιο»: Apple (αρχείο .ics από τη βάση, δουλεύει και μέσα από Instagram) και Google
+function calBlock(o){
+  const page = location.origin + location.pathname + '?m=' + o.token;
+  const det = [o.services, o.tech ? 'Με: ' + o.tech : '', o.phone ? 'Τηλ. καταστήματος: ' + o.phone : '', 'Το ραντεβού μου: ' + page].filter(Boolean).join('\n');
+  const g = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent('Νύχια · ' + o.org) + '&dates=' + gStamp(o.start) + '/' + gStamp(o.end)
+    + '&details=' + encodeURIComponent(det) + '&location=' + encodeURIComponent([o.org + ' ' + (o.store || ''), o.address].filter(Boolean).join(', '));
+  const a = ICS_FN + '?t=' + encodeURIComponent(o.token) + '&back=' + encodeURIComponent(page);
+  const ico = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+  return `<div class="card"><div style="font-weight:700">Πρόσθεσέ το στο ημερολόγιό σου</div><div class="t2">Με υπενθύμιση την προηγούμενη μέρα και 2 ώρες πριν.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn ghost" style="font-size:15px;padding:0 10px" href="${esc(a)}">${ico} Apple</a><a class="btn ghost" style="font-size:15px;padding:0 10px" href="${esc(g)}" target="_blank" rel="noopener">${ico} Google</a></div>
+    <div class="t2">Στο Google η υπενθύμιση είναι αυτή που έχεις ορίσει στο ημερολόγιό σου.</div></div>`;
+}
 const isDemo = () => P.get('demo') === '1' || /demo/i.test((I && I.org) || '');
 const isUuid = s => /^[0-9a-f-]{36}$/i.test(s);
 const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -177,6 +191,7 @@ function render(){
     const d = S.done, link = location.origin + location.pathname + '?m=' + d.token;
     h += `<div class="card res"><div class="ic">✓</div><h2>Το ραντεβού σου κλείστηκε!</h2><p class="t2" style="margin:0">Σε περιμένουμε.</p></div>
       <div class="card"><div class="sum"><div class="d">${esc(fmtDay(d.starts_at))}</div><div class="t">${esc(fmtTime(d.starts_at))}</div><div class="t2">${esc(selSvcs().map(s => s.name).join(', '))}${d.tech ? ' · με ' + art(d.tech) + ' ' + esc(d.tech) : ''}</div></div>${infoBlock(I)}</div>
+      ${calBlock({ token: d.token, start: d.starts_at, end: new Date(new Date(d.starts_at).getTime() + totDur() * 60000).toISOString(), org: I.org, store: I.store, address: I.address, phone: I.phone, services: selSvcs().map(s => s.name).join(', '), tech: d.tech })}
       <div class="card"><div style="font-weight:700">Κράτησε αυτόν τον σύνδεσμο</div><div class="t2">Από εδώ βλέπεις το ραντεβού σου${I.cancel_hours != null ? ' και μπορείς να το ακυρώσεις έως ' + I.cancel_hours + ' ώρες πριν' : ''}.</div>
         <a class="btn ghost" href="${esc(link)}">Το ραντεβού μου</a>
         <button class="btn ghost" data-a="copy" data-v="${esc(link)}">Αντιγραφή συνδέσμου</button></div>`;
@@ -194,6 +209,7 @@ function renderManage(m){
   let h = `<div class="card"><h2>Το ραντεβού σου${x.name ? ', ' + esc(x.name) : ''}</h2>
     <div class="sum" style="${x.status === 'cancelled' ? 'opacity:.6' : ''}"><div class="d">${esc(fmtDay(x.starts_at))}</div><div class="t">${esc(fmtTime(x.starts_at))}</div><div class="t2">${esc(x.services || '')}${x.tech ? ' · με ' + art(x.tech) + ' ' + esc(x.tech) : ''}</div></div>
     ${st ? `<div class="warn">${st}</div>` : ''}${infoBlock(x)}</div>`;
+  if (x.status === 'booked' && new Date(x.starts_at) > new Date()) h += calBlock({ token: TOKEN, start: x.starts_at, end: x.ends_at, org: x.org, store: x.store, address: x.address, phone: x.phone, services: x.services, tech: x.tech });
   if (x.status === 'booked'){
     if (x.can_cancel) h += `<div class="card"><div class="t2">Δεν μπορείς να έρθεις; Ακύρωσέ το για να το πάρει κάποια άλλη.</div>${S.confirmCancel ? `<button class="btn neg" data-a="cancelDo" ${S.busy ? 'disabled' : ''}>Ναι, ακύρωση του ραντεβού</button><button class="btn ghost" data-a="cancelNo">Όχι, θα έρθω</button>` : `<button class="btn neg" data-a="cancelAsk">Ακύρωση ραντεβού</button>`}${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
     else h += `<div class="card"><div class="t2">Η online ακύρωση γίνεται έως ${x.cancel_hours} ώρες πριν. Για αλλαγή πάρε τηλέφωνο στο κατάστημα.</div></div>`;
