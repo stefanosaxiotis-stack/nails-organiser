@@ -5,9 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1E1F4B">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nails">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <title>Nails Organiser</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="themes.js"></script>
 <style>
 :root{
   --bg:#F4F3F8; --surface:#FFFFFF; --chip:#F1F0F6; --track:#E9E8F0; --line:#E4E3EC;
@@ -1370,6 +1377,70 @@ function renderCash(){
 }
 
 function timeOpts(cur, lo = 6*60, hi = 23*60 + 30){ let o = ''; const cm = cur ? toTime(cur) : null; if (cur && (cm % 30 || cm < lo || cm > hi)) o += `<option value="${cur}" selected>${cur}</option>`; for (let m = lo; m <= hi; m += 30){ const t = hm(m); o += `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`; } return o; }
+// ----- Ρυθμίσεις: εμφάνιση σελίδας κρατήσεων (ανά κατάστημα) -----
+function bookLookDraft(X){
+  const sid = X.oStore || (S.ctx.stores[0] || {}).id, so = S.ctx.stores.find(x => x.id === sid) || {};
+  if (!X.bDraft || X.bDraft.sid !== sid){
+    const c = so.book_colors || {}, BT = window.BookThemes, th = so.book_theme || 'classic', base = BT.colorsOf(th, c);
+    X.bDraft = { sid, theme: th, palette: c.palette || BT.T[th].palettes[0].id, custom: { bg: base.bg, ink: base.ink, accent: base.accent, soft: base.soft }, banner: so.book_banner || '', slug: so.slug || '', slugErr: null };
+  }
+  return X.bDraft;
+}
+function bookCfg(B){ return B.palette === 'custom' ? { palette: 'custom', ...B.custom } : { palette: B.palette }; }
+function bookPreviewUrl(B){
+  const base = bookUrl(B.slug || B.sid), q = new URL(base);
+  q.searchParams.set('th', B.theme);
+  if (B.palette === 'custom') q.searchParams.set('c', ['bg','ink','accent','soft'].map(k => B.custom[k].replace('#', '')).join(','));
+  else q.searchParams.set('pal', B.palette);
+  return q.href;
+}
+function renderBookLook(X){
+  const BT = window.BookThemes; if (!BT) return '';
+  const B = bookLookDraft(X), T = BT.T, k = BT.colorsOf(B.theme, bookCfg(B));
+  const dots = c => ['bg','soft','accent','ink'].map(x => `<i style="width:16px;height:16px;border-radius:50%;background:${c[x]};border:1px solid rgba(0,0,0,.12);display:inline-block"></i>`).join('');
+  let h = `<div class="card" style="display:flex;flex-direction:column;gap:12px"><div class="lbl">Σελίδα κρατήσεων · εμφάνιση</div>`;
+  if (S.ctx.stores.length > 1) h += `<div class="seg">${S.ctx.stores.map(x => `<button class="${B.sid===x.id?'on':''}" data-a="bStore" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>`;
+  // σύνδεσμος
+  h += `<div class="field"><label for="bSlug">Σύνδεσμος για τις πελάτισσες</label><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="t2" style="margin:0">${esc(bookUrl('').replace(/\?s=$/, '?s='))}</span><input id="bSlug" class="inp${B.slugErr ? ' bad' : ''}" style="flex:1;min-width:140px;min-height:44px" value="${esc(B.slug)}" placeholder="π.χ. no47" autocapitalize="none" autocomplete="off"></div>
+    ${B.slugErr ? `<div class="err">${esc(B.slugErr)}</div>` : '<div class="t2" style="margin:0">Λατινικά μικρά, αριθμοί και παύλα. Το βάζεις στο Instagram και στο Google.</div>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" data-a="oCopy" data-v="${esc(bookUrl(B.slug || B.sid))}">Αντιγραφή συνδέσμου</button><a class="pill" href="${esc(bookPreviewUrl(B))}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Προεπισκόπηση ↗</a></div></div>`;
+  // θέμα
+  h += `<div class="field"><label>Στυλ</label><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${Object.keys(T).map(id => { const c = BT.colorsOf(id, {}); return `<button data-a="bTheme" data-v="${id}" style="text-align:left;border:1.5px solid ${B.theme===id?'var(--teal)':'var(--line)'};background:${B.theme===id?'var(--tealbg)':'var(--surface)'};border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;color:var(--ink)" aria-pressed="${B.theme===id}"><b style="font-size:15px">${T[id].name}${id === 'classic' ? ' <span class="t2">· προεπιλογή</span>' : ''}</b><span class="t2" style="margin:0">${T[id].note}</span><span style="display:flex;gap:4px">${dots(c)}</span></button>`; }).join('')}</div></div>`;
+  // χρώματα
+  h += `<div class="field"><label>Χρώματα</label><div class="chips">${T[B.theme].palettes.map(p => `<button class="pill ${B.palette===p.id?'on':''}" data-a="bPal" data-v="${p.id}" style="display:inline-flex;align-items:center;gap:8px"><span style="display:flex;gap:3px">${dots(p)}</span>${esc(p.name)}</button>`).join('')}<button class="pill ${B.palette==='custom'?'on':''}" data-a="bPal" data-v="custom">Δικά μου χρώματα</button></div>`;
+  if (B.palette === 'custom'){
+    const row = (key, lbl, sub) => `<div class="prm"><span class="tx">${lbl}<span class="t2" style="display:block">${sub}</span></span><div style="display:flex;gap:6px;align-items:center"><input type="color" id="bc_${key}" value="${esc(B.custom[key])}" aria-label="${lbl}" style="width:44px;height:44px;border:none;background:none;padding:0"><input id="bh_${key}" class="inp num" style="width:104px;min-height:44px;text-transform:uppercase" value="${esc(B.custom[key])}" maxlength="7" aria-label="${lbl} hex"></div></div>`;
+    h += `<div style="border:1.5px solid var(--line);border-radius:14px;padding:2px 12px">${row('bg','Φόντο','Το χρώμα της σελίδας')}${row('ink','Κείμενο','Γράμματα και επικεφαλίδες')}${row('accent','Κύριο','Κουμπιά και επιλογές')}${row('soft','Απαλό','Επιλεγμένη υπηρεσία, banner χωρίς φωτογραφία')}</div>`;
+    const w = [];
+    if (BT.contrast(k.ink, k.bg) < 4.5) w.push('Το κείμενο δεν διαβάζεται καλά πάνω στο φόντο.');
+    if (Math.max(BT.contrast(k.accent, '#FFFFFF'), BT.contrast(k.accent, k.ink)) < 3) w.push('Τα γράμματα πάνω στα κουμπιά δεν θα διαβάζονται καλά.');
+    if (w.length) h += `<div class="warn" style="padding:8px 12px"><span>!</span><span>${w.join(' ')}</span></div>`;
+  }
+  h += `</div>`;
+  // banner
+  h += `<div class="field"><label>Φωτογραφία banner</label>
+    ${B.banner ? `<div style="height:120px;border-radius:14px;background:center/cover no-repeat url('${esc(B.banner)}')" role="img" aria-label="Banner"></div>` : '<div class="t2" style="margin:0">Χωρίς φωτογραφία, η σελίδα δείχνει το απαλό χρώμα. Ιδανικά οριζόντια φωτογραφία, π.χ. του χώρου ή χεριών με σχέδιο.</div>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="pill" style="display:inline-flex;align-items:center;cursor:pointer">${B.banner ? 'Αλλαγή φωτογραφίας' : 'Ανέβασμα φωτογραφίας'}<input type="file" id="bBanner" accept="image/jpeg,image/png,image/webp" style="display:none"></label>${B.banner ? '<button class="pill" data-a="bBanDel" style="color:var(--neg)">Αφαίρεση</button>' : ''}${B.uploading ? '<span class="t2" style="margin:0;align-self:center">Ανεβαίνει…</span>' : ''}</div></div>`;
+  return h + `</div>`;
+}
+async function uploadBanner(file){
+  const X = S.set, B = X.bDraft; if (!B || !file) return;
+  if (!/^image\//.test(file.type)){ toast('Διάλεξε φωτογραφία'); return; }
+  B.uploading = true; paint();
+  try {
+    const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = URL.createObjectURL(file); });
+    const sc = Math.min(1, 1600 / img.width), cv = document.createElement('canvas');
+    cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.85));
+    const path = `${S.ctx.org.id}/${B.sid}-banner-${Date.now()}.jpg`;
+    const up = await sb.storage.from('public-assets').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (up.error) throw up.error;
+    B.banner = sb.storage.from('public-assets').getPublicUrl(path).data.publicUrl;
+    toast('Η φωτογραφία ανέβηκε · πάτα «Αποθήκευση»');
+  } catch(e){ toast('Δεν ανέβηκε: ' + friendlyError(e)); }
+  B.uploading = false; paint();
+}
 function renderSettings(){
   if (role() !== 'admin') return `<div class="center">Μόνο ο admin έχει πρόσβαση στις ρυθμίσεις.</div>`;
   const X = S.set;
@@ -1499,11 +1570,8 @@ function renderSettings(){
     const D = X.oDraft, seg = (k, opts) => `<div class="seg" style="width:100%">${opts.map(([v, n]) => `<button class="${D[k] === v ? 'on' : ''}" data-a="oSet" data-v="${k}:${v}">${n}</button>`).join('')}</div>`;
     let h = `<div class="card" style="padding:8px 16px"><div class="prm"><span class="tx"><b>Online κρατήσεις</b><span class="t2" style="display:block">Οι πελάτισσες κλείνουν μόνες τους από σύνδεσμο. Το ραντεβού μπαίνει αμέσως στο ημερολόγιο.</span></span>${tgl(D.online_enabled, 'oTog', 'online_enabled')}</div></div>`;
     if (D.online_enabled){
-      h += `<div class="card" style="display:flex;flex-direction:column;gap:10px"><div class="lbl">Σύνδεσμος για τις πελάτισσες</div>
-        ${S.ctx.stores.map(x => { const u = bookUrl(x.id); return `<div style="display:flex;flex-direction:column;gap:6px">${S.ctx.stores.length > 1 ? `<b>${esc(x.name)}</b>` : ''}<div class="t2" style="word-break:break-all;margin:0">${esc(u)}</div>
-          <div style="display:flex;gap:8px"><button class="pill" data-a="oCopy" data-v="${esc(u)}">Αντιγραφή</button><a class="pill" href="${esc(u)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Άνοιγμα</a></div></div>`; }).join('')}
-        <div class="t2" style="margin:0">Βάλ' τον στο Instagram, στο Google και στο WhatsApp του καταστήματος.</div></div>
-      <div class="card" style="padding:8px 16px">
+      h += renderBookLook(X);
+      h += `<div class="card" style="padding:8px 16px">
         <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πόσο νωρίτερα</b><span class="t2" style="display:block">Το λιγότερο πριν την ώρα του ραντεβού</span></span>${seg('online_lead_min', [[0,'Όποτε'],[60,'1 ώρα'],[120,'2 ώρες'],[240,'4 ώρες'],[1440,'1 μέρα']])}</div>
         <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Πόσο μπροστά</b><span class="t2" style="display:block">Μέχρι πόσες μέρες από σήμερα</span></span>${seg('online_horizon_days', [[7,'7'],[14,'14'],[30,'30'],[60,'60'],[90,'90']])}</div>
         <div class="prm" style="flex-wrap:wrap"><span class="tx"><b>Ακύρωση από την πελάτισσα</b><span class="t2" style="display:block">Από τον σύνδεσμό της, έως τόσες ώρες πριν. Η θέση εμφανίζεται ως ελεύθερη για τη λίστα αναμονής.</span></span>${seg('online_cancel_hours', [[6,'6 ώρες'],[12,'12 ώρες'],[24,'24 ώρες'],[48,'48 ώρες']])}</div></div>
@@ -2572,9 +2640,9 @@ document.addEventListener('click', async ev => {
     case 'weekStep': { if (+v === 0){ const t = today(); S.week = addDays(t, -wdOf(t)); } else S.week = addDays(S.week, 7 * (+v)); break; }
     case 'settings': S.tab = 'settings'; S.set.page = v || null; S.set.err = null; S.sheet = null; return refresh();
     case 'setBack':
-      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; break; }
+      if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; S.set.bDraft = null; break; }
       S.tab = 'more'; render(); return;
-    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; document.getElementById('main').scrollTop = 0; break;
+    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; S.set.bDraft = null; document.getElementById('main').scrollTop = 0; break;
     case 'hStore': S.set.hStore = v; S.set.hDraft = null; S.set.err = null; break;
     case 'hOpen': { const d = S.set.hDraft[+v]; d.closed = !d.closed; break; }
     case 'hCopy': { const m = S.set.hDraft[0]; for (let w = 1; w <= 4; w++) S.set.hDraft[w] = { ...m }; toast('Αντιγράφηκε · πάτα Αποθήκευση'); break; }
@@ -2779,6 +2847,10 @@ document.addEventListener('click', async ev => {
     }
     case 'cReset': S.set.cDraft.confirm_template = 'Καλησπέρα {όνομα}! Σας θυμίζουμε το ραντεβού σας {ημέρα} στις {ώρα} στο {επιχείρηση} {κατάστημα}. Πατήστε εδώ για επιβεβαίωση ή αλλαγή: {σύνδεσμος}'; break;
     case 'oTog': S.set.oDraft[v] = !S.set.oDraft[v]; break;
+    case 'bStore': S.set.oStore = v; S.set.bDraft = null; break;
+    case 'bTheme': { const B = S.set.bDraft; B.theme = v; if (B.palette !== 'custom') B.palette = window.BookThemes.T[v].palettes[0].id; break; }
+    case 'bPal': { const B = S.set.bDraft; if (v === 'custom' && B.palette !== 'custom'){ const k = window.BookThemes.colorsOf(B.theme, { palette: B.palette }); B.custom = { bg: k.bg, ink: k.ink, accent: k.accent, soft: k.soft }; } B.palette = v; break; }
+    case 'bBanDel': S.set.bDraft.banner = ''; break;
     case 'oSet': { const [k, n] = v.split(':'); S.set.oDraft[k] = +n; break; }
     case 'svcWeb': {
       const sv = S.ctx.services.find(x => x.id === v); if (!sv) break;
@@ -2793,8 +2865,16 @@ document.addEventListener('click', async ev => {
       try {
         const r = await sb.from('org_settings').update({ online_enabled: D.online_enabled, online_lead_min: D.online_lead_min, online_horizon_days: D.online_horizon_days, online_cancel_hours: D.online_cancel_hours, online_note: (D.online_note || '').trim() || null }).eq('org_id', S.ctx.org.id).select('*').single();
         if (r.error) throw r.error;
+        const B = S.set.bDraft;
+        if (B){
+          const slug = (B.slug || '').trim().toLowerCase();
+          if (slug && !/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug)){ B.slugErr = 'Ο σύνδεσμος θέλει 3–40 λατινικά μικρά, αριθμούς ή παύλα (όχι στην αρχή/τέλος).'; throw new Error(B.slugErr); }
+          const u = await sb.from('stores').update({ slug: slug || null, book_theme: B.theme, book_colors: bookCfg(B), book_banner: B.banner || null }).eq('id', B.sid).select('*').single();
+          if (u.error){ if (u.error.code === '23505'){ B.slugErr = 'Αυτός ο σύνδεσμος χρησιμοποιείται ήδη. Διάλεξε άλλον.'; throw new Error(B.slugErr); } throw u.error; }
+          B.slugErr = null; const i = S.ctx.stores.findIndex(x => x.id === B.sid); if (i >= 0) S.ctx.stores[i] = { ...S.ctx.stores[i], ...u.data };
+        }
         S.ctx.settings = r.data; S.set.err = null; S.busy = false; toast('Αποθηκεύτηκε');
-      } catch(e){ S.busy = false; S.set.err = friendlyError(e); }
+      } catch(e){ S.busy = false; S.set.err = e.message && !e.code ? e.message : friendlyError(e); }
       break;
     }
     case 'cSave': {
@@ -2957,6 +3037,9 @@ document.addEventListener('input', ev => {
   const id = ev.target.id, val = ev.target.value, sh = S.sheet;
   if (id === 'clQ'){ S.cl.q = val; S.cl.show = 60; paint(); return; }
   if (id === 'oNote' && S.set.oDraft){ S.set.oDraft.online_note = val; return; }
+  if (id === 'bSlug' && S.set.bDraft){ S.set.bDraft.slug = val.toLowerCase().replace(/\s+/g, '-'); S.set.bDraft.slugErr = null; return; }
+  if (/^bh_/.test(id) && S.set.bDraft){ const h = window.BookThemes.hex(val); if (h){ S.set.bDraft.custom[id.slice(3)] = '#' + h.toUpperCase(); paint(); } return; }
+  if (/^bc_/.test(id) && S.set.bDraft){ S.set.bDraft.custom[id.slice(3)] = val.toUpperCase(); clearTimeout(window.__bcT); window.__bcT = setTimeout(paint, 120); return; }
   if (id === 'cTpl' && S.set.cDraft){ S.set.cDraft.confirm_template = val; clearTimeout(window.__tplT); window.__tplT = setTimeout(paint, 350); return; }
   if (id === 'sPhone'){ S.set.sPhone = val; return; }
   if (id === 'sAddr'){ S.set.sAddr = val; return; }
@@ -2975,6 +3058,7 @@ document.addEventListener('input', ev => {
 });
 document.addEventListener('change', async ev => {
   const id = ev.target.id, sh = S.sheet, ds = ev.target.dataset;
+  if (id === 'bBanner'){ const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; if (f) uploadBanner(f); return; }
   if (/^h[OC]\d$/.test(id) && S.set.hDraft){ S.set.hDraft[+id[2]][id[1] === 'O' ? 'opens' : 'closes'] = ev.target.value; return; }
   if (ds.perm){
     const [r, t] = ds.perm.split(':'), lv = ev.target.value;
@@ -3027,5 +3111,6 @@ sb.auth.onAuthStateChange((evt, session) => {
   bootedFor = uid; boot(session);
 });
 </script>
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body>
 </html>
