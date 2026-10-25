@@ -1011,6 +1011,7 @@ function renderLogin(){
 const APP_DIR = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, ''); // φάκελος της εφαρμογής, τελειώνει σε /
 const appLink = () => APP_DIR;
 const bookLink = slug => slug ? APP_DIR + 'book.html?s=' + encodeURIComponent(slug) : '';
+const TRIAL_DAYS = 15; // δωρεάν δοκιμή νέου καταστήματος
 const SUB_LABEL = { trial: 'Δοκιμή', active: 'Ενεργή', suspended: 'Παγωμένη' };
 const fmtD = s => { if (!s) return ''; const p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0].slice(2); };
 const subUntil = s => s.status === 'trial' ? (s.trial_until ? 'Δοκιμή έως ' + fmtD(s.trial_until) : 'Δοκιμή')
@@ -1073,7 +1074,7 @@ function renderNewOrgSheet(){
 }
 function renderNewStoreSheet(){
   const sh = S.sheet, o = (S.sa.orgs || []).find(x => x.id === sh.org) || {};
-  const b = `<div class="t2">Προστίθεται στην «${esc(o.name || '')}» σε δοκιμή 30 ημερών.</div>
+  const b = `<div class="t2">Προστίθεται στην «${esc(o.name || '')}» σε δοκιμή ${TRIAL_DAYS} ημερών.</div>
     <div class="field"><label for="nsName">Όνομα καταστήματος</label><input id="nsName" class="inp" value="${esc(sh.name || '')}"></div>
     <div class="field"><label for="nsSlug">Σύντομος σύνδεσμος κρατήσεων <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><input id="nsSlug" class="inp" autocapitalize="off" value="${esc(sh.slug || '')}"></div>
     ${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`;
@@ -2495,7 +2496,7 @@ document.addEventListener('click', async ev => {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sh.adEmail)){ sh.err = 'Γράψε έγκυρο email.'; render(); return; }
       if ((sh.adPw || '').length < 8){ sh.err = 'Ο κωδικός θέλει τουλάχιστον 8 χαρακτήρες.'; render(); return; }
       sh.busy = true; sh.err = null; render();
-      const { data, error } = await sb.rpc('admin_create_org', { p_name: sh.name, p_store_name: sh.store, p_slug: sh.slug || null, p_trial_days: 30 });
+      const { data, error } = await sb.rpc('admin_create_org', { p_name: sh.name, p_store_name: sh.store, p_slug: sh.slug || null, p_trial_days: TRIAL_DAYS });
       if (error){ sh.busy = false; sh.err = slugErr(error); render(); return; }
       try { await createAdminAccount(data.org_id, sh.adName, sh.adEmail, sh.adPw); }
       catch(e){ sh.busy = false; sh.err = 'Η επιχείρηση φτιάχτηκε, αλλά ο λογαριασμός admin όχι: ' + e.message + ' Δες τη στη λίστα.'; try { await loadSuper(); } catch(_){} render(); return; }
@@ -2507,9 +2508,9 @@ document.addEventListener('click', async ev => {
       sh.name = g('nsName').trim(); sh.slug = g('nsSlug').trim();
       if (!sh.name){ sh.err = 'Γράψε όνομα καταστήματος.'; render(); return; }
       sh.busy = true; sh.err = null; render();
-      const { error } = await sb.rpc('admin_add_store', { p_org: sh.org, p_name: sh.name, p_slug: sh.slug || null, p_trial_days: 30 });
+      const { error } = await sb.rpc('admin_add_store', { p_org: sh.org, p_name: sh.name, p_slug: sh.slug || null, p_trial_days: TRIAL_DAYS });
       if (error){ sh.busy = false; sh.err = slugErr(error); render(); return; }
-      S.sheet = null; try { await loadSuper(); } catch(_){} render(); toast('Το κατάστημα προστέθηκε σε δοκιμή 30 ημερών.'); return;
+      S.sheet = null; try { await loadSuper(); } catch(_){} render(); toast(`Το κατάστημα προστέθηκε σε δοκιμή ${TRIAL_DAYS} ημερών.`); return;
     }
     case 'tab': {
       if (v === 'wait' && S.tab !== 'wait') S.waitBack = S.tab === 'more' ? 'more' : S.tab;
