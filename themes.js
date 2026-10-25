@@ -2,10 +2,10 @@
 (function(){
   const T = {
     classic: { name: 'Κλασικό', note: 'Καθαρό, όπως η εφαρμογή',
-      display: 'Comfortaa,"Varela Round",system-ui,sans-serif', body: '-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif',
+      display: 'Manrope,system-ui,sans-serif', body: '-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif',
       r: 22, rb: 18, rs: 14, italic: false,
       palettes: [
-        { id: 'navy',   name: 'Navy & πετρόλ',  bg: '#F4F3F8', ink: '#1E1F4B', accent: '#0B7F74', soft: '#D6EFEB' },
+        { id: 'navy',   name: 'Kalenda (γραφίτης & ροζ)', bg: '#F6F6F7', ink: '#1F2937', accent: '#BE185D', soft: '#FCE7F3' },
         { id: 'noir',   name: 'Μαύρο & χρυσό',  bg: '#F5F4F2', ink: '#1C1C1E', accent: '#9A7442', soft: '#F1E8DA' },
         { id: 'forest', name: 'Δάσος',          bg: '#F2F5F3', ink: '#1F3A33', accent: '#2F7D5B', soft: '#DCEFE4' } ] },
     blush: { name: 'Blush', note: 'Ρόδινο, απαλό, ρομαντικό',
@@ -27,7 +27,7 @@
         { id: 'mint',  name: 'Μέντα',           bg: '#EEF8F5', ink: '#1D3B35', accent: '#24806B', soft: '#FFE3B8' },
         { id: 'coral', name: 'Κοραλί',          bg: '#FFF1EE', ink: '#3D1F2B', accent: '#C9445A', soft: '#FFD7A8' } ] }
   };
-  const FONTS = 'https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Nunito+Sans:wght@400;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:wght@400;500;700&family=Nunito:wght@500;700;800&display=swap';
+  const FONTS = 'https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Comfortaa:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Nunito+Sans:wght@400;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:wght@400;500;700&family=Nunito:wght@500;700;800&display=swap';
   const hex = h => { const m = /^#?([0-9a-f]{6})$/i.exec(String(h || '').trim()); return m ? m[1] : null; };
   const rgb = h => { const x = hex(h) || '000000'; return [0, 2, 4].map(i => parseInt(x.substr(i, 2), 16)); };
   const toHex = a => '#' + a.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('').toUpperCase();
