@@ -307,6 +307,8 @@ select.inp{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xm
 .sa-acts button{flex:1;border:none;font:inherit;font-weight:700;border-radius:14px;padding:11px;font-size:14px}
 .sa-acts .ent{background:var(--ink);color:var(--surface)}.sa-acts .sub{background:var(--chip);color:var(--ink)}
 .sa-newbtn{border:1.5px dashed var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;border-radius:16px;padding:14px;font-size:15px}
+.sa-noadmin{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FBD9D9;color:#A12A2A;border-radius:14px;padding:10px 12px;font-size:13px;font-weight:700}
+.sa-noadmin button{margin-left:auto;border:none;background:#A12A2A;color:#fff;font:inherit;font-weight:700;border-radius:999px;padding:7px 13px;font-size:13px}
 </style>
 </head>
 <body>
@@ -1027,6 +1029,7 @@ function renderSuper(){
       <div class="top"><b>${esc(o.name)}</b></div>
       <div class="sa-meta"><span>${o.n_stores} ${o.n_stores === 1 ? 'κατάστημα' : 'καταστήματα'} · ${o.n_members} άτομα</span><span>Τζίρος μήνα: ${eur0(Number(o.month_revenue) || 0)}</span></div>
       ${stores}
+      ${o.n_admins === 0 ? `<div class="sa-noadmin">⚠ Δεν έχει λογαριασμό admin<button data-a="saAddAdmin" data-v="${o.id}">Προσθήκη admin</button></div>` : ''}
       <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button><button class="sub" data-a="saNewStore" data-v="${o.id}">+ Κατάστημα</button></div>
     </div>`;
   }).join('');
@@ -1038,7 +1041,17 @@ function renderSuper(){
   ${S.sheet && S.sheet.type === 'saSub' ? renderSubSheet() : ''}
   ${S.sheet && S.sheet.type === 'saNewOrg' ? renderNewOrgSheet() : ''}
   ${S.sheet && S.sheet.type === 'saNewStore' ? renderNewStoreSheet() : ''}
+  ${S.sheet && S.sheet.type === 'saAddAdmin' ? renderAddAdminSheet() : ''}
   ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span></div>` : ''}`;
+}
+function renderAddAdminSheet(){
+  const sh = S.sheet, o = (S.sa.orgs || []).find(x => x.id === sh.org) || {};
+  const b = `<div class="t2">Λογαριασμός ιδιοκτήτη για την «${esc(o.name || '')}».</div>
+    <div class="field"><label for="aaName">Ονοματεπώνυμο</label><input id="aaName" class="inp" value="${esc(sh.name || '')}"></div>
+    <div class="field"><label for="aaEmail">Email</label><input id="aaEmail" class="inp" type="email" autocapitalize="off" value="${esc(sh.email || '')}" placeholder="name@example.com"></div>
+    <div class="field"><label for="aaPw">Κωδικός</label><div style="display:flex;gap:8px"><input id="aaPw" class="inp" style="flex:1" value="${esc(sh.pw || '')}"><button class="pill" data-a="aaPwGen" style="flex:none">Τυχαίος</button></div></div>
+    ${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`;
+  return sheet('Προσθήκη admin', b, `<button class="btn primary" data-a="saAdminCreate" ${sh.busy ? 'disabled' : ''}>${sh.busy ? 'Δημιουργία…' : 'Δημιουργία'}</button>`);
 }
 function renderNewOrgSheet(){
   const sh = S.sheet;
@@ -2445,6 +2458,23 @@ document.addEventListener('click', async ev => {
     }
     case 'saNewOrg': S.sheet = { type:'saNewOrg', adPw: genPw() }; break;
     case 'saNewStore': S.sheet = { type:'saNewStore', org:v }; break;
+    case 'saAddAdmin': S.sheet = { type:'saAddAdmin', org:v, pw: genPw() }; break;
+    case 'aaPwGen': {
+      if (sh){ const g = id => (document.getElementById(id)||{}).value || ''; sh.name=g('aaName'); sh.email=g('aaEmail'); sh.pw = genPw(); }
+      break;
+    }
+    case 'saAdminCreate': {
+      if (!sh) return;
+      const g = id => (document.getElementById(id)||{}).value || '';
+      sh.name = g('aaName').trim(); sh.email = g('aaEmail').trim(); sh.pw = g('aaPw');
+      if (!sh.name){ sh.err = 'Γράψε ονοματεπώνυμο.'; render(); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sh.email)){ sh.err = 'Γράψε έγκυρο email.'; render(); return; }
+      if ((sh.pw || '').length < 8){ sh.err = 'Ο κωδικός θέλει τουλάχιστον 8 χαρακτήρες.'; render(); return; }
+      sh.busy = true; sh.err = null; render();
+      try { await createAdminAccount(sh.org, sh.name, sh.email, sh.pw); }
+      catch(e){ sh.busy = false; sh.err = e.message; render(); return; }
+      S.sheet = null; try { await loadSuper(); } catch(_){} render(); toast('Ο λογαριασμός admin δημιουργήθηκε.'); return;
+    }
     case 'noPwGen': {
       if (sh){ const g = id => (document.getElementById(id)||{}).value || ''; sh.name=g('noName'); sh.store=g('noStore'); sh.slug=g('noSlug'); sh.adName=g('noAdName'); sh.adEmail=g('noAdEmail'); sh.adPw = genPw(); }
       break;
