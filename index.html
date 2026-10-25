@@ -306,6 +306,7 @@ select.inp{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xm
 .sa-acts{display:flex;gap:8px}
 .sa-acts button{flex:1;border:none;font:inherit;font-weight:700;border-radius:14px;padding:11px;font-size:14px}
 .sa-acts .ent{background:var(--ink);color:var(--surface)}.sa-acts .sub{background:var(--chip);color:var(--ink)}
+.sa-newbtn{border:1.5px dashed var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;border-radius:16px;padding:14px;font-size:15px}
 </style>
 </head>
 <body>
@@ -1026,16 +1027,48 @@ function renderSuper(){
       <div class="top"><b>${esc(o.name)}</b></div>
       <div class="sa-meta"><span>${o.n_stores} ${o.n_stores === 1 ? 'κατάστημα' : 'καταστήματα'} · ${o.n_members} άτομα</span><span>Τζίρος μήνα: ${eur0(Number(o.month_revenue) || 0)}</span></div>
       ${stores}
-      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button></div>
+      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button><button class="sub" data-a="saNewStore" data-v="${o.id}">+ Κατάστημα</button></div>
     </div>`;
   }).join('');
   return `<div class="sa">
     <div class="sa-h"><h1>Επιχειρήσεις</h1><button class="rbtn" data-a="saReload" aria-label="Ανανέωση">${I.refresh}</button><button class="rbtn" data-a="logout" aria-label="Αποσύνδεση" style="font-size:12px;width:auto;padding:0 12px;border-radius:999px">Έξοδος</button></div>
+    <button class="sa-newbtn" data-a="saNewOrg">+ Νέα επιχείρηση</button>
     ${orgs.length ? cards : '<div class="card">Καμία επιχείρηση ακόμη.</div>'}
   </div>
   ${S.sheet && S.sheet.type === 'saSub' ? renderSubSheet() : ''}
+  ${S.sheet && S.sheet.type === 'saNewOrg' ? renderNewOrgSheet() : ''}
+  ${S.sheet && S.sheet.type === 'saNewStore' ? renderNewStoreSheet() : ''}
   ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span></div>` : ''}`;
 }
+function renderNewOrgSheet(){
+  const sh = S.sheet;
+  const b = `
+    <div class="field"><label for="noName">Επιχείρηση</label><input id="noName" class="inp" value="${esc(sh.name || '')}" placeholder="π.χ. Bella Nails"></div>
+    <div class="field"><label for="noStore">Πρώτο κατάστημα</label><input id="noStore" class="inp" value="${esc(sh.store || '')}" placeholder="π.χ. Κέντρο"></div>
+    <div class="field"><label for="noSlug">Σύντομος σύνδεσμος κρατήσεων <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><input id="noSlug" class="inp" autocapitalize="off" value="${esc(sh.slug || '')}" placeholder="bella-nails"></div>
+    <div class="t2" style="margin-top:2px;font-weight:700;color:var(--ink)">Λογαριασμός ιδιοκτήτη (admin)</div>
+    <div class="field"><label for="noAdName">Ονοματεπώνυμο</label><input id="noAdName" class="inp" value="${esc(sh.adName || '')}"></div>
+    <div class="field"><label for="noAdEmail">Email</label><input id="noAdEmail" class="inp" type="email" autocapitalize="off" value="${esc(sh.adEmail || '')}" placeholder="name@example.com"></div>
+    <div class="field"><label for="noAdPw">Κωδικός</label><div style="display:flex;gap:8px"><input id="noAdPw" class="inp" style="flex:1" value="${esc(sh.adPw || '')}"><button class="pill" data-a="noPwGen" style="flex:none">Τυχαίος</button></div></div>
+    ${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`;
+  return sheet('Νέα επιχείρηση', b, `<button class="btn primary" data-a="saOrgCreate" ${sh.busy ? 'disabled' : ''}>${sh.busy ? 'Δημιουργία…' : 'Δημιουργία'}</button>`);
+}
+function renderNewStoreSheet(){
+  const sh = S.sheet, o = (S.sa.orgs || []).find(x => x.id === sh.org) || {};
+  const b = `<div class="t2">Προστίθεται στην «${esc(o.name || '')}» σε δοκιμή 30 ημερών.</div>
+    <div class="field"><label for="nsName">Όνομα καταστήματος</label><input id="nsName" class="inp" value="${esc(sh.name || '')}"></div>
+    <div class="field"><label for="nsSlug">Σύντομος σύνδεσμος κρατήσεων <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><input id="nsSlug" class="inp" autocapitalize="off" value="${esc(sh.slug || '')}"></div>
+    ${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`;
+  return sheet('Νέο κατάστημα', b, `<button class="btn primary" data-a="saStoreCreate" ${sh.busy ? 'disabled' : ''}>${sh.busy ? 'Δημιουργία…' : 'Δημιουργία'}</button>`);
+}
+// Δημιουργία λογαριασμού admin για νέα επιχείρηση (η edge function τρέχει με service role)
+async function createAdminAccount(org_id, name, email, password){
+  const { data, error } = await sb.functions.invoke('team-admin', { body: { org_id, action:'create', name, email, password, role:'admin' } });
+  if (error){ let msg = ''; try { const j = await error.context.json(); msg = j && j.error; } catch(_){} throw new Error(msg || 'Δεν δημιουργήθηκε ο λογαριασμός admin.'); }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+const slugErr = e => e && e.code === '23505' ? 'Αυτός ο σύνδεσμος χρησιμοποιείται ήδη.' : e && e.code === '23514' ? 'Ο σύνδεσμος θέλει μικρά λατινικά, αριθμούς και παύλες.' : friendlyError(e);
 function renderSubSheet(){
   const sh = S.sheet;
   const opt = (k, lbl) => `<button class="${sh.status === k ? 'on' : ''}" data-a="saSubStatus" data-v="${k}">${lbl}</button>`;
@@ -2409,6 +2442,39 @@ document.addEventListener('click', async ev => {
       S.supportOrg = null; S.ctx = null; S.sheet = null; S.tab = 'today'; S.loading = true; render();
       try { await loadSuper(); } catch(e){ toast(friendlyError(e)); }
       S.loading = false; render(); return;
+    }
+    case 'saNewOrg': S.sheet = { type:'saNewOrg', adPw: genPw() }; break;
+    case 'saNewStore': S.sheet = { type:'saNewStore', org:v }; break;
+    case 'noPwGen': {
+      if (sh){ const g = id => (document.getElementById(id)||{}).value || ''; sh.name=g('noName'); sh.store=g('noStore'); sh.slug=g('noSlug'); sh.adName=g('noAdName'); sh.adEmail=g('noAdEmail'); sh.adPw = genPw(); }
+      break;
+    }
+    case 'saOrgCreate': {
+      if (!sh) return;
+      const g = id => (document.getElementById(id)||{}).value || '';
+      sh.name = g('noName').trim(); sh.store = g('noStore').trim(); sh.slug = g('noSlug').trim();
+      sh.adName = g('noAdName').trim(); sh.adEmail = g('noAdEmail').trim(); sh.adPw = g('noAdPw');
+      if (!sh.name){ sh.err = 'Γράψε όνομα επιχείρησης.'; render(); return; }
+      if (!sh.store){ sh.err = 'Γράψε όνομα πρώτου καταστήματος.'; render(); return; }
+      if (!sh.adName){ sh.err = 'Γράψε ονοματεπώνυμο ιδιοκτήτη.'; render(); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sh.adEmail)){ sh.err = 'Γράψε έγκυρο email.'; render(); return; }
+      if ((sh.adPw || '').length < 8){ sh.err = 'Ο κωδικός θέλει τουλάχιστον 8 χαρακτήρες.'; render(); return; }
+      sh.busy = true; sh.err = null; render();
+      const { data, error } = await sb.rpc('admin_create_org', { p_name: sh.name, p_store_name: sh.store, p_slug: sh.slug || null, p_trial_days: 30 });
+      if (error){ sh.busy = false; sh.err = slugErr(error); render(); return; }
+      try { await createAdminAccount(data.org_id, sh.adName, sh.adEmail, sh.adPw); }
+      catch(e){ sh.busy = false; sh.err = 'Η επιχείρηση φτιάχτηκε, αλλά ο λογαριασμός admin όχι: ' + e.message + ' Δες τη στη λίστα.'; try { await loadSuper(); } catch(_){} render(); return; }
+      S.sheet = null; try { await loadSuper(); } catch(_){} render(); toast('Έτοιμη! Δώσε στον ιδιοκτήτη το email και τον κωδικό.'); return;
+    }
+    case 'saStoreCreate': {
+      if (!sh) return;
+      const g = id => (document.getElementById(id)||{}).value || '';
+      sh.name = g('nsName').trim(); sh.slug = g('nsSlug').trim();
+      if (!sh.name){ sh.err = 'Γράψε όνομα καταστήματος.'; render(); return; }
+      sh.busy = true; sh.err = null; render();
+      const { error } = await sb.rpc('admin_add_store', { p_org: sh.org, p_name: sh.name, p_slug: sh.slug || null, p_trial_days: 30 });
+      if (error){ sh.busy = false; sh.err = slugErr(error); render(); return; }
+      S.sheet = null; try { await loadSuper(); } catch(_){} render(); toast('Το κατάστημα προστέθηκε σε δοκιμή 30 ημερών.'); return;
     }
     case 'tab': {
       if (v === 'wait' && S.tab !== 'wait') S.waitBack = S.tab === 'more' ? 'more' : S.tab;
