@@ -295,10 +295,14 @@ select.inp{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xm
 .sub-badge{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
 .sub-trial{background:#FFE8C2;color:#8A5A00}.sub-active{background:var(--tealbg);color:var(--tealink)}.sub-suspended{background:#FBD9D9;color:#A12A2A}
 .sa-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
-.sa-store{display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:14px;padding:9px 12px;font-size:14px}
-.sa-store .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.sa-store button{border:none;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:700;border-radius:999px;padding:6px 11px;display:flex;align-items:center;gap:5px}
-.sa-store button:disabled{opacity:.45}
+.sa-store{display:flex;flex-direction:column;gap:8px;background:var(--chip);border-radius:16px;padding:12px;font-size:14px}
+.sa-store .st-top{display:flex;align-items:center;gap:8px}
+.sa-store .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.sa-store .st-meta{font-size:13px;color:var(--muted)}
+.sa-store .st-acts{display:flex;flex-wrap:wrap;gap:8px}
+.sa-store .st-acts button{border:none;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:700;border-radius:999px;padding:7px 12px;display:flex;align-items:center;gap:5px}
+.sa-store .st-acts button:disabled{opacity:.45}
+.sa-store .st-acts .st-sub{margin-left:auto;background:var(--ink);color:var(--surface)}
 .sa-acts{display:flex;gap:8px}
 .sa-acts button{flex:1;border:none;font:inherit;font-weight:700;border-radius:14px;padding:11px;font-size:14px}
 .sa-acts .ent{background:var(--ink);color:var(--surface)}.sa-acts .sub{background:var(--chip);color:var(--ink)}
@@ -1001,24 +1005,28 @@ const appLink = () => APP_DIR;
 const bookLink = slug => slug ? APP_DIR + 'book.html?s=' + encodeURIComponent(slug) : '';
 const SUB_LABEL = { trial: 'Δοκιμή', active: 'Ενεργή', suspended: 'Παγωμένη' };
 const fmtD = s => { if (!s) return ''; const p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0].slice(2); };
+const subUntil = s => s.status === 'trial' ? (s.trial_until ? 'Δοκιμή έως ' + fmtD(s.trial_until) : 'Δοκιμή')
+                    : s.status === 'active' ? (s.paid_until ? 'Έως ' + fmtD(s.paid_until) : 'Χωρίς λήξη')
+                    : 'Παγωμένο — μόνο προβολή';
 function renderSuper(){
   const orgs = S.sa.orgs || [];
   const cards = orgs.map(o => {
-    const badge = `<span class="sub-badge sub-${o.status}">${SUB_LABEL[o.status] || o.status}</span>`;
-    const until = o.status === 'trial' ? (o.trial_until ? 'Δοκιμή έως ' + fmtD(o.trial_until) : 'Δοκιμή')
-                : o.status === 'active' ? (o.paid_until ? 'Πληρωμένο έως ' + fmtD(o.paid_until) : 'Χωρίς ημερομηνία λήξης')
-                : 'Παγωμένη — μόνο προβολή';
     const stores = (o.stores || []).map(s => {
       const bl = bookLink(s.slug);
-      return `<div class="sa-store"><span class="nm">${esc(s.name)}</span>
-        <button data-a="copy" data-v="${esc(appLink())}" title="Αντιγραφή συνδέσμου εφαρμογής">⧉ App</button>
-        <button data-a="copy" data-v="${esc(bl)}" ${bl ? '' : 'disabled title="Όρισε σύντομο σύνδεσμο στις ρυθμίσεις"'}>⧉ Κρατήσεις</button></div>`;
+      return `<div class="sa-store">
+        <div class="st-top"><span class="nm">${esc(s.name)}</span><span class="sub-badge sub-${s.status}">${SUB_LABEL[s.status] || s.status}</span></div>
+        <div class="st-meta">${subUntil(s)}</div>
+        <div class="st-acts">
+          <button data-a="copy" data-v="${esc(appLink())}" title="Σύνδεσμος εφαρμογής">⧉ App</button>
+          <button data-a="copy" data-v="${esc(bl)}" ${bl ? '' : 'disabled title="Όρισε σύντομο σύνδεσμο στις ρυθμίσεις"'}>⧉ Κρατήσεις</button>
+          <button data-a="saSub" data-v="${s.id}" class="st-sub">Συνδρομή</button>
+        </div></div>`;
     }).join('');
     return `<div class="sa-card">
-      <div class="top"><b>${esc(o.name)}</b>${badge}</div>
-      <div class="sa-meta"><span>${until}</span><span>${o.n_stores} ${o.n_stores === 1 ? 'κατάστημα' : 'καταστήματα'} · ${o.n_members} άτομα</span><span>Τζίρος μήνα: ${eur0(Number(o.month_revenue) || 0)}</span></div>
+      <div class="top"><b>${esc(o.name)}</b></div>
+      <div class="sa-meta"><span>${o.n_stores} ${o.n_stores === 1 ? 'κατάστημα' : 'καταστήματα'} · ${o.n_members} άτομα</span><span>Τζίρος μήνα: ${eur0(Number(o.month_revenue) || 0)}</span></div>
       ${stores}
-      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button><button class="sub" data-a="saSub" data-v="${o.id}">Συνδρομή</button></div>
+      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button></div>
     </div>`;
   }).join('');
   return `<div class="sa">
@@ -1029,14 +1037,14 @@ function renderSuper(){
   ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span></div>` : ''}`;
 }
 function renderSubSheet(){
-  const sh = S.sheet, o = (S.sa.orgs || []).find(x => x.id === sh.org) || {};
+  const sh = S.sheet;
   const opt = (k, lbl) => `<button class="${sh.status === k ? 'on' : ''}" data-a="saSubStatus" data-v="${k}">${lbl}</button>`;
   const dateRow = sh.status === 'trial'
     ? `<div class="field"><label for="saTrial">Δοκιμή έως</label><input id="saTrial" class="inp" type="date" value="${esc(sh.trial_until || '')}"></div>`
     : sh.status === 'active'
     ? `<div class="field"><label for="saPaid">Πληρωμένο έως</label><input id="saPaid" class="inp" type="date" value="${esc(sh.paid_until || '')}"></div>`
-    : `<div class="t2">Η επιχείρηση γίνεται μόνο για προβολή — το προσωπικό δεν μπορεί να καταχωρεί μέχρι να ξεπαγώσει.</div>`;
-  return sheet('Συνδρομή · ' + esc(o.name || ''),
+    : `<div class="t2">Το κατάστημα γίνεται μόνο για προβολή — το προσωπικό δεν μπορεί να καταχωρεί μέχρι να ξεπαγώσει. Τα υπόλοιπα καταστήματα δεν επηρεάζονται.</div>`;
+  return sheet('Συνδρομή · ' + esc(sh.name || ''),
     `<div class="field"><label>Κατάσταση</label><div class="seg">${opt('trial', 'Δοκιμή')}${opt('active', 'Ενεργή')}${opt('suspended', 'Πάγωμα')}</div></div>${dateRow}
      ${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`,
     `<button class="btn primary" data-a="saSubSave" ${sh.busy ? 'disabled' : ''}>${sh.busy ? 'Αποθήκευση…' : 'Αποθήκευση'}</button>`);
@@ -2368,7 +2376,10 @@ document.addEventListener('click', async ev => {
       toast('Αντιγράφηκε'); return;
     }
     case 'saReload': { S.loading = true; render(); try { await loadSuper(); } catch(e){ toast(friendlyError(e)); } S.loading = false; render(); return; }
-    case 'saSub': { const o = (S.sa.orgs || []).find(x => x.id === v) || {}; S.sheet = { type:'saSub', org:v, status:o.status, trial_until:o.trial_until, paid_until:o.paid_until }; break; }
+    case 'saSub': {
+      let st = null; for (const o of (S.sa.orgs || [])) { const f = (o.stores || []).find(x => x.id === v); if (f) { st = f; break; } }
+      st = st || {}; S.sheet = { type:'saSub', store:v, name:st.name, status:st.status || 'trial', trial_until:st.trial_until, paid_until:st.paid_until }; break;
+    }
     case 'saSubStatus': {
       if (sh){ const ti = document.getElementById('saTrial'), pi = document.getElementById('saPaid'); if (ti) sh.trial_until = ti.value; if (pi) sh.paid_until = pi.value; sh.status = v; sh.err = null; }
       break;
@@ -2379,7 +2390,7 @@ document.addEventListener('click', async ev => {
       const trial = sh.status === 'trial' ? (ti ? ti.value || null : sh.trial_until || null) : null;
       const paid = sh.status === 'active' ? (pi ? pi.value || null : sh.paid_until || null) : null;
       sh.busy = true; sh.err = null; render();
-      const { error } = await sb.rpc('admin_set_subscription', { p_org: sh.org, p_status: sh.status, p_trial_until: trial, p_paid_until: paid });
+      const { error } = await sb.rpc('admin_set_store_sub', { p_store: sh.store, p_status: sh.status, p_trial_until: trial, p_paid_until: paid });
       if (error){ sh.busy = false; sh.err = friendlyError(error); render(); return; }
       S.sheet = null; try { await loadSuper(); } catch(e){} render(); toast('Η συνδρομή ενημερώθηκε'); return;
     }
