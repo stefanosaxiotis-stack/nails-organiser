@@ -283,6 +283,25 @@ select.inp{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xm
 /* login */
 .login{height:100%;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:18px;max-width:420px;margin:0 auto}
 .login h1{font-family:var(--font-display);font-size:30px;font-weight:700;margin:0;color:var(--ink)}
+.supbar{display:flex;align-items:center;gap:12px;background:#7A4FD0;color:#fff;padding:8px 16px;font-size:13px;font-weight:600;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.supbar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.supbar button{border:none;background:rgba(255,255,255,.22);color:#fff;font:inherit;font-weight:700;border-radius:999px;padding:5px 14px}
+.sa{max-width:560px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.sa-h{display:flex;align-items:center;gap:12px;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.sa-h h1{font-family:var(--font-display);font-size:24px;font-weight:700;margin:0;flex:1}
+.sa-card{background:var(--surface);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.sa-card .top{display:flex;align-items:flex-start;gap:10px}
+.sa-card .top b{font-size:17px;flex:1;min-width:0}
+.sub-badge{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.sub-trial{background:#FFE8C2;color:#8A5A00}.sub-active{background:var(--tealbg);color:var(--tealink)}.sub-suspended{background:#FBD9D9;color:#A12A2A}
+.sa-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.sa-store{display:flex;align-items:center;gap:8px;background:var(--chip);border-radius:14px;padding:9px 12px;font-size:14px}
+.sa-store .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sa-store button{border:none;background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:700;border-radius:999px;padding:6px 11px;display:flex;align-items:center;gap:5px}
+.sa-store button:disabled{opacity:.45}
+.sa-acts{display:flex;gap:8px}
+.sa-acts button{flex:1;border:none;font:inherit;font-weight:700;border-radius:14px;padding:11px;font-size:14px}
+.sa-acts .ent{background:var(--ink);color:var(--surface)}.sa-acts .sub{background:var(--chip);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -363,12 +382,19 @@ const S = {
 };
 
 // ===== Δεδομένα =====
-async function loadContext(){
+async function loadContext(forOrg){
   const uid = S.session.user.id;
-  const { data: mem, error } = await sb.from('members').select('*').eq('user_id', uid).eq('active', true).limit(1);
-  if (error) throw error;
-  if (!mem || !mem.length) return null;
-  const member = mem[0], org_id = member.org_id;
+  let member;
+  if (forOrg){
+    // Λειτουργία υποστήριξης: ο πάροχος μπαίνει στην επιχείρηση ως admin.
+    member = { id: '00000000-0000-0000-0000-000000000000', org_id: forOrg, role: 'admin', name: 'Υποστήριξη', active: true, _support: true };
+  } else {
+    const { data: mem, error } = await sb.from('members').select('*').eq('user_id', uid).eq('active', true).limit(1);
+    if (error) throw error;
+    if (!mem || !mem.length) return null;
+    member = mem[0];
+  }
+  const org_id = member.org_id;
   const [org, settings, stores, mstores, rperm, mperm, members, hours, sched, off, cats, svcs] = await Promise.all([
     sb.from('organizations').select('*').eq('id', org_id).single(),
     sb.from('org_settings').select('*').eq('org_id', org_id).single(),
@@ -646,7 +672,7 @@ async function fnCall(body){
   if (data && data.error) throw new Error(data.error);
   return data;
 }
-async function reloadCtx(){ const keep = { tab:S.tab, store:S.store }; S.ctx = await loadContext(); S.tab = keep.tab; S.store = keep.store; S.cl.loaded = false; }
+async function reloadCtx(){ const keep = { tab:S.tab, store:S.store }; S.ctx = await loadContext(S.supportOrg || undefined); S.tab = keep.tab; S.store = keep.store; S.cl.loaded = false; }
 async function loadSettings(){
   const org = S.ctx.org.id;
   const [mem, ms, rp, mp, sc, off, hrs, set, svc, cats] = await Promise.all([
@@ -917,7 +943,10 @@ function render(){
   const app = document.getElementById('app');
   if (S.loading) { app.innerHTML = '<div class="center" style="height:100%"><div class="spin"></div></div>'; return; }
   if (!S.session) { app.innerHTML = renderLogin(); return; }
-  if (!S.ctx) { app.innerHTML = `<div class="login"><h1>Nails Organiser</h1><div class="card">Ο λογαριασμός σου δεν ανήκει ακόμα σε κάποια επιχείρηση ή έχει απενεργοποιηθεί. Μίλα με τον υπεύθυνο του καταστήματος.</div><button class="btn ghost" data-a="logout">Αποσύνδεση</button></div>`; return; }
+  if (!S.ctx) {
+    if (S.super) { app.innerHTML = renderSuper(); return; }
+    app.innerHTML = `<div class="login"><h1>Nails Organiser</h1><div class="card">Ο λογαριασμός σου δεν ανήκει ακόμα σε κάποια επιχείρηση ή έχει απενεργοποιηθεί. Μίλα με τον υπεύθυνο του καταστήματος.</div><button class="btn ghost" data-a="logout">Αποσύνδεση</button></div>`; return;
+  }
   const m = S.ctx.member;
   let head;
   if (S.tab === 'appts' && S.day && S.view === 'cal'){
@@ -947,6 +976,7 @@ function render(){
   const nb = todoCount(), badge = nb ? `<span class="badge">${nb}</span>` : '';
   const onKey = ['conf','unpaid','stray'].includes(S.tab) ? 'today' : moreKeys.includes(S.tab) && more.length ? 'more' : S.tab;
   app.innerHTML = `
+    ${m._support ? `<div class="supbar"><span>⚙︎ Υποστήριξη · <b>${esc(S.ctx.org.name)}</b></span><button data-a="saExit">Έξοδος</button></div>` : ''}
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
     <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'stray' ? renderStray() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : S.tab === 'pl' ? renderPL() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${onKey===t?'on':''}" data-a="tab" data-v="${t}">${t==='today'?badge:''}${t==='wait' && (S.wait || []).length ? `<span class="badge">${S.wait.length}</span>` : ''}${ic}${n}</button>`).join('')}</nav>` : ''}
@@ -964,6 +994,52 @@ function renderLogin(){
     </div>
     <div style="font-size:12px;color:var(--muted);text-align:center">Ξέχασες τον κωδικό; Ζήτα από τον υπεύθυνο του καταστήματος να σου ορίσει νέο.</div>
   </form>`;
+}
+// ===== Panel παρόχου (super admin) =====
+const APP_DIR = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, ''); // φάκελος της εφαρμογής, τελειώνει σε /
+const appLink = () => APP_DIR;
+const bookLink = slug => slug ? APP_DIR + 'book.html?s=' + encodeURIComponent(slug) : '';
+const SUB_LABEL = { trial: 'Δοκιμή', active: 'Ενεργή', suspended: 'Παγωμένη' };
+const fmtD = s => { if (!s) return ''; const p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0].slice(2); };
+function renderSuper(){
+  const orgs = S.sa.orgs || [];
+  const cards = orgs.map(o => {
+    const badge = `<span class="sub-badge sub-${o.status}">${SUB_LABEL[o.status] || o.status}</span>`;
+    const until = o.status === 'trial' ? (o.trial_until ? 'Δοκιμή έως ' + fmtD(o.trial_until) : 'Δοκιμή')
+                : o.status === 'active' ? (o.paid_until ? 'Πληρωμένο έως ' + fmtD(o.paid_until) : 'Χωρίς ημερομηνία λήξης')
+                : 'Παγωμένη — μόνο προβολή';
+    const stores = (o.stores || []).map(s => {
+      const bl = bookLink(s.slug);
+      return `<div class="sa-store"><span class="nm">${esc(s.name)}</span>
+        <button data-a="copy" data-v="${esc(appLink())}" title="Αντιγραφή συνδέσμου εφαρμογής">⧉ App</button>
+        <button data-a="copy" data-v="${esc(bl)}" ${bl ? '' : 'disabled title="Όρισε σύντομο σύνδεσμο στις ρυθμίσεις"'}>⧉ Κρατήσεις</button></div>`;
+    }).join('');
+    return `<div class="sa-card">
+      <div class="top"><b>${esc(o.name)}</b>${badge}</div>
+      <div class="sa-meta"><span>${until}</span><span>${o.n_stores} ${o.n_stores === 1 ? 'κατάστημα' : 'καταστήματα'} · ${o.n_members} άτομα</span><span>Τζίρος μήνα: ${eur0(Number(o.month_revenue) || 0)}</span></div>
+      ${stores}
+      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button><button class="sub" data-a="saSub" data-v="${o.id}">Συνδρομή</button></div>
+    </div>`;
+  }).join('');
+  return `<div class="sa">
+    <div class="sa-h"><h1>Επιχειρήσεις</h1><button class="rbtn" data-a="saReload" aria-label="Ανανέωση">${I.refresh}</button><button class="rbtn" data-a="logout" aria-label="Αποσύνδεση" style="font-size:12px;width:auto;padding:0 12px;border-radius:999px">Έξοδος</button></div>
+    ${orgs.length ? cards : '<div class="card">Καμία επιχείρηση ακόμη.</div>'}
+  </div>
+  ${S.sheet && S.sheet.type === 'saSub' ? renderSubSheet() : ''}
+  ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span></div>` : ''}`;
+}
+function renderSubSheet(){
+  const sh = S.sheet, o = (S.sa.orgs || []).find(x => x.id === sh.org) || {};
+  const opt = (k, lbl) => `<button class="${sh.status === k ? 'on' : ''}" data-a="saSubStatus" data-v="${k}">${lbl}</button>`;
+  const dateRow = sh.status === 'trial'
+    ? `<div class="field"><label for="saTrial">Δοκιμή έως</label><input id="saTrial" class="inp" type="date" value="${esc(sh.trial_until || '')}"></div>`
+    : sh.status === 'active'
+    ? `<div class="field"><label for="saPaid">Πληρωμένο έως</label><input id="saPaid" class="inp" type="date" value="${esc(sh.paid_until || '')}"></div>`
+    : `<div class="t2">Η επιχείρηση γίνεται μόνο για προβολή — το προσωπικό δεν μπορεί να καταχωρεί μέχρι να ξεπαγώσει.</div>`;
+  return sheet('Συνδρομή · ' + esc(o.name || ''),
+    `<div class="field"><label>Κατάσταση</label><div class="seg">${opt('trial', 'Δοκιμή')}${opt('active', 'Ενεργή')}${opt('suspended', 'Πάγωμα')}</div></div>${dateRow}
+     ${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`,
+    `<button class="btn primary" data-a="saSubSave" ${sh.busy ? 'disabled' : ''}>${sh.busy ? 'Αποθήκευση…' : 'Αποθήκευση'}</button>`);
 }
 // ===== P&L =====
 const sgn0 = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)).toLocaleString('el-GR') + ' €';
@@ -2285,6 +2361,44 @@ document.addEventListener('click', async ev => {
     case 'logout': S.sheet = null; await sb.auth.signOut(); return;
     case 'me': S.sheet = { type:'me' }; break;
     case 'closeSheet': S.sheet = null; break;
+    case 'copy': {
+      const txt = v || '';
+      try { await navigator.clipboard.writeText(txt); }
+      catch(_){ const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(e){} document.body.removeChild(ta); }
+      toast('Αντιγράφηκε'); return;
+    }
+    case 'saReload': { S.loading = true; render(); try { await loadSuper(); } catch(e){ toast(friendlyError(e)); } S.loading = false; render(); return; }
+    case 'saSub': { const o = (S.sa.orgs || []).find(x => x.id === v) || {}; S.sheet = { type:'saSub', org:v, status:o.status, trial_until:o.trial_until, paid_until:o.paid_until }; break; }
+    case 'saSubStatus': {
+      if (sh){ const ti = document.getElementById('saTrial'), pi = document.getElementById('saPaid'); if (ti) sh.trial_until = ti.value; if (pi) sh.paid_until = pi.value; sh.status = v; sh.err = null; }
+      break;
+    }
+    case 'saSubSave': {
+      if (!sh) return;
+      const ti = document.getElementById('saTrial'), pi = document.getElementById('saPaid');
+      const trial = sh.status === 'trial' ? (ti ? ti.value || null : sh.trial_until || null) : null;
+      const paid = sh.status === 'active' ? (pi ? pi.value || null : sh.paid_until || null) : null;
+      sh.busy = true; sh.err = null; render();
+      const { error } = await sb.rpc('admin_set_subscription', { p_org: sh.org, p_status: sh.status, p_trial_until: trial, p_paid_until: paid });
+      if (error){ sh.busy = false; sh.err = friendlyError(error); render(); return; }
+      S.sheet = null; try { await loadSuper(); } catch(e){} render(); toast('Η συνδρομή ενημερώθηκε'); return;
+    }
+    case 'saEnter': {
+      S.loading = true; render();
+      try { await sb.rpc('support_start', { p_org: v }); S.supportOrg = v; S.ctx = await loadContext(v); }
+      catch(e){ S.loading = false; S.ctx = null; render(); toast(friendlyError(e)); return; }
+      if (S.ctx && S.ctx.stores.length) S.store = S.ctx.stores[0].id;
+      S.month = new Date(today().getFullYear(), today().getMonth(), 1); S.day = null; S.view = 'cal'; S.tab = 'today'; S.sheet = null; S.loading = false;
+      try { startRealtime(); } catch(e){}
+      return refresh();
+    }
+    case 'saExit': {
+      try { sb.removeAllChannels(); } catch(e){}
+      try { await sb.rpc('support_end'); } catch(e){}
+      S.supportOrg = null; S.ctx = null; S.sheet = null; S.tab = 'today'; S.loading = true; render();
+      try { await loadSuper(); } catch(e){ toast(friendlyError(e)); }
+      S.loading = false; render(); return;
+    }
     case 'tab': {
       if (v === 'wait' && S.tab !== 'wait') S.waitBack = S.tab === 'more' ? 'more' : S.tab;
       S.tab = v; S.sheet = null; if (v === 'wait') S.freed = null; if (v === 'appts' && !S.month) S.month = new Date(today().getFullYear(), today().getMonth(), 1);
@@ -3087,7 +3201,7 @@ document.addEventListener('change', async ev => {
 
 // ===== Εκκίνηση =====
 async function boot(session){
-  S.session = session; S.ctx = null; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }; S.pl = { view:'month', month:null, year:null, store:null, m:null, y:null, loaded:false, confirm:null }; S.conf = { list:[], loaded:false }; S.td = { appts:[], unpaid:[], freed:[], cashClosed:null, rev:null, estN:0, loaded:false }; S.freedList = []; S.cf = null;
+  S.session = session; S.ctx = null; S.super = false; S.supportOrg = null; S.sa = { orgs: [], loaded: false }; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }; S.pl = { view:'month', month:null, year:null, store:null, m:null, y:null, loaded:false, confirm:null }; S.conf = { list:[], loaded:false }; S.td = { appts:[], unpaid:[], freed:[], cashClosed:null, rev:null, estN:0, loaded:false }; S.freedList = []; S.cf = null;
   try { sb.removeAllChannels(); } catch(e) {}
   if (!session){ S.loading = false; render(); return; }
   S.loading = true; render();
@@ -3099,8 +3213,16 @@ async function boot(session){
       try { startRealtime(); } catch(e) {}
       await refresh(); return;
     }
+    // Όχι μέλος επιχείρησης — μήπως είναι ο πάροχος (super admin);
+    const { data: pa } = await sb.from('platform_admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
+    if (pa){ S.super = true; await loadSuper(); S.loading = false; render(); return; }
   } catch(e){ S.loading = false; render(); toast(friendlyError(e)); return; }
   S.loading = false; render();
+}
+async function loadSuper(){
+  const { data, error } = await sb.rpc('admin_orgs');
+  if (error) throw error;
+  S.sa = { orgs: data || [], loaded: true };
 }
 setInterval(() => { if (S.ctx && !S.sheet) quietRefresh(); }, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.ctx) quietRefresh(); });
