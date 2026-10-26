@@ -751,7 +751,9 @@ function confInfo(a){
   if (a.confirm_state === 'change_requested') return { k:'chg', label:'Ζήτησε αλλαγή', sym:'!' };
   const ws = confWindowStart(a);
   if (now < ws && !a.confirm_state) return null;
-  if (st.confirm_auto_inside !== false && !a.confirm_state && a.created_at && new Date(a.created_at) >= ws) return { k:'ok', label:'Κλείστηκε μέσα στο 24ωρο', sym:'✓', auto:true };
+  // Τελευταία στιγμή: αν κλείστηκε < 12 ώρες πριν, δεν χρειάζεται επιβεβαίωση (μόλις της μίλησες).
+  const lastMin = new Date(s0.getTime() - 12 * 3600e3);
+  if (st.confirm_auto_inside !== false && !a.confirm_state && a.created_at && new Date(a.created_at) >= lastMin) return { k:'ok', label:'Κλείστηκε τελευταία στιγμή', sym:'✓', auto:true };
   if (a.confirm_state === 'no_answer') return { k:'wait', label:'Δεν απάντησε' + (a.confirm_attempts > 1 ? ' (' + a.confirm_attempts + ')' : ''), sym:'?', sent:true, na:true };
   const sent = a.confirm_state === 'sent';
   return { k:'wait', label: sent ? 'Στάλθηκε · χωρίς απάντηση' : 'Να σταλεί μήνυμα', sym:'?', sent };
@@ -1695,7 +1697,7 @@ function renderSettings(){
         <button class="pill" style="align-self:flex-start" data-a="cReset">Επαναφορά προεπιλογής</button></div>
       <details class="adv"><summary>Για προχωρημένους</summary>
         <div class="prm"><span class="tx">Αν πέφτει σε κλειστή μέρα, ξεκινά την προηγούμενη ανοιχτή<span class="t2" style="display:block">Π.χ. τα ραντεβού Δευτέρας επιβεβαιώνονται το Σάββατο</span></span>${tgl(D.confirm_shift_closed, 'cTog', 'confirm_shift_closed')}</div>
-        <div class="prm"><span class="tx">Ραντεβού που κλείνεται μέσα στο παράθυρο θεωρείται επιβεβαιωμένο</span>${tgl(D.confirm_auto_inside, 'cTog', 'confirm_auto_inside')}</div></details>`;
+        <div class="prm"><span class="tx">Ραντεβού τελευταίας στιγμής θεωρείται επιβεβαιωμένο<span class="t2" style="display:block">Αν κλειστεί λιγότερο από 12 ώρες πριν — μόλις μίλησες μαζί της</span></span>${tgl(D.confirm_auto_inside, 'cTog', 'confirm_auto_inside')}</div></details>`;
     }
     if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
     return h + `<button class="btn primary" data-a="cSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`;
