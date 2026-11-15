@@ -13,8 +13,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>Kalenda</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="vendor/fonts.css">
+<script src="vendor/supabase.js"></script>
 <script src="themes.js"></script>
 <style>
 :root{
@@ -54,8 +54,13 @@ header .sub{font-family:var(--font-display);font-size:12px;color:var(--headmuted
 main{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px 28px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
 main>*{flex-shrink:0}
 nav{flex-shrink:0;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:6px 4px max(6px, calc(env(safe-area-inset-bottom,0px) - 14px))}
-nav button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;letter-spacing:-.2px;color:var(--muted);min-height:48px;position:relative;padding:0}
+nav button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;letter-spacing:-.3px;white-space:nowrap;color:var(--muted);min-height:48px;position:relative;padding:0}
 nav button.on{color:var(--teal);font-weight:700}
+nav button svg{width:22px;height:22px}
+.subbar{display:flex;gap:10px;align-items:center;background:var(--goldbg);color:var(--gold);padding:9px 16px;font-size:13px;line-height:1.4}
+.subbar.neg{background:var(--negbg);color:var(--neg)}
+.gap{justify-content:flex-start!important;padding-top:4px}
+.gap .gh{position:absolute;left:0;right:0;text-align:center;font-size:10px;opacity:.75;pointer-events:none}
 nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3px;border-radius:2px;background:var(--pink)}
 .badge{position:absolute;top:-4px;right:calc(50% - 22px);min-width:18px;height:18px;border-radius:9px;background:var(--coral);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
 .card{background:var(--surface);border-radius:22px;padding:16px}
@@ -353,7 +358,7 @@ function friendlyError(e){
   const m = (e && (e.message || e.error_description)) || String(e);
   if (/Invalid login/i.test(m)) return 'Λάθος email ή κωδικός.';
   if (/appointments_no_overlap|exclusion/i.test(m)) return 'Η τεχνίτρια έχει ήδη ραντεβού σε αυτή την ώρα. Διάλεξε άλλο κενό.';
-  if (/row-level security|permission denied|42501/i.test(m)) return 'Δεν έχεις δικαίωμα για αυτή την ενέργεια.';
+  if (/row-level security|permission denied|42501/i.test(m)) return (typeof storeReadOnly === 'function' && S.ctx && storeReadOnly()) ? 'Το κατάστημα είναι σε «μόνο ανάγνωση» γιατί έληξε η συνδρομή. Γράψε μας στο app.kalenda@gmail.com.' : 'Δεν έχεις δικαίωμα για αυτή την ενέργεια.';
   if (/Failed to fetch|NetworkError/i.test(m)) return 'Δεν υπάρχει σύνδεση. Έλεγξε το internet και ξαναδοκίμασε.';
   return 'Κάτι πήγε στραβά: ' + m;
 }
@@ -422,6 +427,7 @@ async function loadContext(forOrg){
     sb.from('services').select('*').eq('org_id', org_id).order('sort')
   ]);
   for (const r of [org, settings, stores, mstores, rperm, mperm, members, hours, sched, off, cats, svcs]) if (r.error) throw r.error;
+  const acc = await sb.rpc('my_store_access', { p_org: org_id });
   const levels = {};
   for (const tab of ['appts','clients','cash','expenses','pl','services']){
     if (member.role === 'admin') { levels[tab] = 'full'; continue; }
@@ -433,7 +439,7 @@ async function loadContext(forOrg){
   const techs = members.data.filter(m => m.role === 'user');
   techs.forEach((t, i) => t.color = TECH_COLORS[i % TECH_COLORS.length]);
   return { member, org: org.data, settings: settings.data, stores: stores.data.filter(s => myStoreIds.includes(s.id)),
-           levels, techs, members: members.data, hours: hours.data, schedule: sched.data, timeOff: off.data, cats: cats.data, services: svcs.data };
+           levels, techs, members: members.data, access: acc.error ? [] : (acc.data || []), hours: hours.data, schedule: sched.data, timeOff: off.data, cats: cats.data, services: svcs.data };
 }
 const can = (tab, need) => S.ctx && LV.indexOf(S.ctx.levels[tab]) >= LV.indexOf(need || 'view');
 const role = () => S.ctx.member.role;
@@ -952,6 +958,293 @@ async function refresh(){
   S.busy = false; render();
 }
 
+const pdate = s => { const p = String(s).slice(0, 10).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); };
+// ===== Συνδρομή: «μόνο ανάγνωση» μετά τη λήξη (Α2) =====
+function storeAccess(id){ return ((S.ctx && S.ctx.access) || []).find(x => x.store_id === (id || S.store)) || null; }
+function storeReadOnly(id){ const a = storeAccess(id); return !!(a && !a.writable && !(S.ctx.member || {})._support); }
+function subBanner(){
+  if (!S.ctx) return '';
+  const a = storeAccess(); if (!a || !a.ends_on) return '';
+  const days = Math.round((pdate(a.ends_on) - today()) / 86400000), what = a.status === 'trial' ? 'Η δοκιμή' : 'Η συνδρομή';
+  if (!a.writable) return `<div class="subbar neg"><span><b>${what} έληξε στις ${fmtD(a.ends_on)}.</b> Βλέπεις τα δεδομένα σου, αλλά δεν γίνονται νέες καταχωρίσεις. Γράψε μας στο app.kalenda@gmail.com.</span></div>`;
+  if (role() !== 'admin') return '';
+  if (days < 0) return `<div class="subbar"><span><b>${what} έληξε στις ${fmtD(a.ends_on)}.</b> Η εφαρμογή περνά σε «μόνο ανάγνωση» σε ${3 + days} ${3 + days === 1 ? 'μέρα' : 'μέρες'}.</span></div>`;
+  if (days <= 5) return `<div class="subbar"><span><b>${what} λήγει ${days === 0 ? 'σήμερα' : 'στις ' + fmtD(a.ends_on)}.</b> Για να συνεχίσεις, γράψε μας στο app.kalenda@gmail.com.</span></div>`;
+  return '';
+}
+
+// ===== Αποδοχή όρων από τον υπεύθυνο (Α8) =====
+const TERMS_VERSION = '1.0';
+function needsTerms(){ const m = S.ctx && S.ctx.member; return !!(m && m.role === 'admin' && !m._support && (S.ctx.org || {}).terms_version !== TERMS_VERSION); }
+function renderTerms(){
+  const T = S.terms || {};
+  return `<form class="login" id="termsForm" onsubmit="return false">
+    <div><h1 class="brand"><img src="icons/icon-192.png" alt="" width="40" height="40">kalenda</h1><div style="color:var(--muted);margin-top:6px">${esc(S.ctx.org.name)}</div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div class="t1" style="font-size:18px">Πριν ξεκινήσεις</div>
+      <div style="font-size:14px;color:var(--ink2);line-height:1.5">Ως υπεύθυνος της επιχείρησης, διάβασε και αποδέξου τους όρους. Τα στοιχεία των πελατών σου ανήκουν σε σένα. Εμείς τα φυλάμε μόνο για να δουλεύει το Kalenda για το κατάστημά σου.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+        <a href="https://kalenda.gr/terms.html" target="_blank" rel="noopener">Όροι Χρήσης ↗</a>
+        <a href="https://kalenda.gr/dpa.html" target="_blank" rel="noopener">Σύμβαση Επεξεργασίας Δεδομένων ↗</a>
+        <a href="https://kalenda.gr/privacy.html" target="_blank" rel="noopener">Πολιτική Απορρήτου ↗</a>
+      </div>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer"><input type="checkbox" id="termsOk" style="width:22px;height:22px;flex:none;margin:0" ${T.ok ? 'checked' : ''}><span>Διάβασα και αποδέχομαι τους Όρους Χρήσης και τη Σύμβαση Επεξεργασίας Δεδομένων για λογαριασμό της επιχείρησης.</span></label>
+      ${T.err ? `<div class="err">${esc(T.err)}</div>` : ''}
+      <button class="btn primary" type="button" data-a="termsAccept" ${T.busy ? 'disabled' : ''}>${T.busy ? 'Αποθήκευση…' : 'Αποδοχή και συνέχεια'}</button>
+    </div>
+    <button class="pill" type="button" data-a="logout" style="align-self:center">Αποσύνδεση</button>
+  </form>`;
+}
+
+// ===== Ιστορικό αλλαγών (Α9) =====
+const AU_GROUPS = {
+  all:{ n:'Όλα', t:null },
+  appts:{ n:'Ραντεβού', t:['appointments'] },
+  clients:{ n:'Πελάτες', t:['clients'] },
+  cash:{ n:'Ταμείο', t:['cash_movements','cash_days'] },
+  expenses:{ n:'Έξοδα', t:['expenses'] },
+  team:{ n:'Ομάδα', t:['members','member_permissions','role_permissions','member_stores'] },
+  settings:{ n:'Ρυθμίσεις', t:['org_settings','stores','services','terms'] }
+};
+const AU_KEYS = {
+  online_enabled:'Online κρατήσεις', online_horizon_days:'Μέρες μπροστά για online', online_cancel_hours:'Όριο online ακύρωσης (ώρες)', online_lead_min:'Ελάχιστος χρόνος πριν (λεπτά)', online_note:'Σημείωμα σελίδας κρατήσεων',
+  confirm_enabled:'Επιβεβαίωση ραντεβού', confirm_hours:'Ώρες πριν την επιβεβαίωση', confirm_channel:'Κανάλι επιβεβαίωσης', confirm_urgent_hours:'Επείγουσα επιβεβαίωση (ώρες)', allow_past_cash_edit:'Διόρθωση παλιών ταμείων',
+  marks_store:'Σήματα για γραμματεία', marks_tech:'Σήματα για τεχνίτριες', name:'Όνομα', phone:'Τηλέφωνο', email:'Email', birthday:'Γενέθλια', note:'Σημείωση', price:'Τιμή', duration_min:'Διάρκεια (λεπτά)', active:'Ενεργό', online:'Στη σελίδα κρατήσεων',
+  role:'Ρόλος', address:'Διεύθυνση', slug:'Σύνδεσμος κρατήσεων', book_theme:'Στυλ σελίδας κρατήσεων', book_colors:'Χρώματα σελίδας κρατήσεων', book_banner:'Φωτογραφία σελίδας κρατήσεων',
+  status:'Κατάσταση', starts_at:'Ώρα', ends_at:'Λήξη', tech_id:'Τεχνίτρια', store_id:'Κατάστημα', amount:'Ποσό', method:'Τρόπος πληρωμής', gross:'Ποσό', day:'Ημέρα', opening:'Αρχικό ποσό', counted:'Καταμέτρηση', manual_winter:'Χειροκίνητο Χ', anonymized:'Ανωνυμοποίηση', level:'Επίπεδο'
+};
+const AU_SKIP = ['id','org_id','created_at','updated_at','created_by','confirm_token','confirm_attempts','sort'];
+const AU_STATUS = { booked:'Κλεισμένο', arrived:'Ήρθε', done:'Ολοκληρώθηκε', cancelled:'Ακυρώθηκε', no_show:'Δεν ήρθε' };
+function auVal(k, v){
+  if (v == null || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Ναι' : 'Όχι';
+  if (k === 'status') return AU_STATUS[v] || v;
+  if (k === 'starts_at' || k === 'ends_at') { const d = new Date(v); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + hm(minsOf(v)); }
+  if (k === 'tech_id') return (S.ctx.members.find(x => x.id === v) || {}).name || '—';
+  if (k === 'store_id') return storeName(v) || '—';
+  if (k === 'method') return v === 'cash' ? 'Μετρητά' : v === 'card' ? 'Κάρτα' : v;
+  if (k === 'level') return LV_NAMES[v] || v;
+  if (k === 'role') return ROLE_NAME[v] || v;
+  if (['amount','gross','price','opening','counted'].includes(k)) return eur(v);
+  if (typeof v === 'object') return '(αλλαγή)';
+  return String(v);
+}
+function auDiff(b, a){
+  if (!b || !a) return [];
+  return Object.keys(a).filter(k => !AU_SKIP.includes(k) && JSON.stringify(b[k]) !== JSON.stringify(a[k]))
+    .map(k => `${AU_KEYS[k] || k}: ${auVal(k, b[k])} → ${auVal(k, a[k])}`);
+}
+function auText(r){
+  const A = S.set.au, x = r.after || r.before || {}, act = r.action, D = auDiff(r.before, r.after);
+  const cl = id => (A.clients[id] || 'πελάτισσα'), mem = id => (S.ctx.members.find(m => m.id === id) || {}).name || (A.memNames[id] || 'μέλος');
+  const verb = act === 'insert' ? 'Νέο' : act === 'delete' ? 'Σβήστηκε' : 'Αλλαγή';
+  switch (r.table_name){
+    case 'appointments': {
+      const when = auVal('starts_at', x.starts_at);
+      if (act === 'insert') return [`Νέο ραντεβού · ${cl(x.client_id)}`, `${when} · ${auVal('tech_id', x.tech_id)}${x.source === 'online' ? ' · online' : ''}`];
+      if (act === 'delete') return [`Σβήστηκε ραντεβού · ${cl(x.client_id)}`, when];
+      return [`Ραντεβού · ${cl(x.client_id)}`, D.filter(s => !/^confirm/.test(s)).join(' · ') || when];
+    }
+    case 'clients':
+      if (act === 'insert') return [`Νέα πελάτισσα · ${x.name || ''}`, ''];
+      if (r.after && r.after.anonymized && !(r.before || {}).anonymized) return ['Ανωνυμοποίηση πελάτισσας', (r.before || {}).name || ''];
+      return [`${verb} πελάτισσα · ${(r.before || x).name || ''}`, D.join(' · ')];
+    case 'cash_movements': {
+      const k = x.kind === 'drawer_out' ? 'Πληρωμή από συρτάρι' : x.kind === 'product' ? 'Πώληση προϊόντος' : 'Είσπραξη ραντεβού';
+      return [act === 'update' ? `Αλλαγή κίνησης ταμείου · ${k}` : act === 'delete' ? `Σβήστηκε κίνηση ταμείου · ${k}` : k,
+        act === 'update' ? D.join(' · ') : `${eur(x.amount)} · ${auVal('method', x.method)} · ${fmtD(x.day)}`];
+    }
+    case 'cash_days':
+      if (r.after && r.after.closed_at && !(r.before || {}).closed_at) return [`Κλείσιμο ταμείου · ${fmtD(x.day)}`, `${storeName(x.store_id)}${Number(x.difference) ? ' · διαφορά ' + eur(x.difference) : ' · χωρίς διαφορά'}`];
+      return [`Ταμείο ${fmtD(x.day)}`, D.filter(s => !/closed_at|expected|difference/.test(s)).join(' · ')];
+    case 'expenses': return [`${verb} έξοδο · ${eur(x.gross)}`, act === 'update' ? D.join(' · ') : `${fmtD(x.day)}${x.note ? ' · ' + x.note : ''}`];
+    case 'members': return [`Ομάδα · ${x.name || ''}`, D.join(' · ')];
+    case 'member_permissions': return [`Εξαίρεση δικαιώματος · ${mem(x.member_id)}`, `${TAB_NAMES[x.tab] || x.tab}: ${act === 'delete' ? 'αφαιρέθηκε' : auVal('level', x.level)}`];
+    case 'role_permissions': return [`Δικαιώματα ρόλου · ${ROLE_NAME[x.role] || x.role}`, `${TAB_NAMES[x.tab] || x.tab}: ${act === 'update' ? auVal('level', (r.before || {}).level) + ' → ' : ''}${auVal('level', x.level)}`];
+    case 'member_stores': return [`Καταστήματα · ${mem(x.member_id)}`, `${storeName(x.store_id) || 'κατάστημα'} ${act === 'delete' ? 'αφαιρέθηκε' : 'προστέθηκε'}`];
+    case 'org_settings': return ['Ρυθμίσεις', D.join(' · ')];
+    case 'stores': return [`Κατάστημα · ${x.name || ''}`, D.join(' · ')];
+    case 'services': return [`${act === 'insert' ? 'Νέα υπηρεσία' : act === 'delete' ? 'Σβήστηκε υπηρεσία' : 'Υπηρεσία'} · ${x.name || ''}`, act === 'update' ? D.join(' · ') : (x.price != null ? eur(x.price) : '')];
+    case 'terms': return ['Αποδοχή Όρων Χρήσης', 'Έκδοση ' + ((r.after || {}).version || '')];
+    default: return [`${r.table_name} · ${act}`, D.join(' · ')];
+  }
+}
+async function loadAudit(more){
+  const A = S.set.au || (S.set.au = { rows: [], grp: 'all', who: '', done: false, clients: {}, memNames: {} });
+  if (!more){ A.rows = []; A.done = false; }
+  A.loading = true; paint();
+  try {
+    let q = sb.from('audit_log').select('id,actor,table_name,row_id,action,before,after,at').eq('org_id', S.ctx.org.id).order('id', { ascending: false }).limit(40);
+    if (AU_GROUPS[A.grp].t) q = q.in('table_name', AU_GROUPS[A.grp].t);
+    if (A.who) q = q.eq('actor', A.who);
+    if (more && A.rows.length) q = q.lt('id', A.rows[A.rows.length - 1].id);
+    const { data, error } = await q; if (error) throw error;
+    const need = [...new Set(data.filter(r => r.table_name === 'appointments').map(r => (r.after || r.before || {}).client_id).filter(id => id && !(id in A.clients)))];
+    if (need.length){ const c = await sb.from('clients').select('id,name').in('id', need); (c.data || []).forEach(x => A.clients[x.id] = x.name); }
+    (S.set.members || []).forEach(m => A.memNames[m.id] = m.name);
+    A.rows = A.rows.concat(data); A.done = data.length < 40; A.err = null;
+  } catch(e){ A.err = friendlyError(e); }
+  A.loading = false; paint();
+}
+function renderAudit(){
+  const A = S.set.au || { rows: [], grp: 'all', who: '' };
+  const users = (S.set.members || []).filter(m => m.user_id);
+  const who = uid => { if (!uid) return 'Online / σύστημα'; const m = users.find(x => x.user_id === uid); return m ? m.name : 'Υποστήριξη Kalenda'; };
+  let h = `<div class="hs" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">${Object.entries(AU_GROUPS).map(([k, g]) => `<button class="pill ${A.grp === k ? 'on' : ''}" data-a="auGrp" data-v="${k}">${g.n}</button>`).join('')}</div>
+    <select class="inp sm" id="auWho" aria-label="Άτομο"><option value="">Όλα τα άτομα</option>${users.map(m => `<option value="${m.user_id}" ${A.who === m.user_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>`;
+  if (A.err) h += `<div class="err">${esc(A.err)}</div>`;
+  if (!A.rows.length) return h + (A.loading ? '<div class="center"><div class="spin"></div></div>' : '<div class="card" style="text-align:center;color:var(--muted)">Δεν υπάρχουν αλλαγές για αυτό το φίλτρο.</div>');
+  let last = '';
+  A.rows.forEach(r => {
+    const d = new Date(r.at), dk = ymd(d);
+    if (dk !== last){ if (last) h += '</div>'; last = dk; h += `<div class="lbl" style="margin:6px 2px -4px">${dlabel(d)}</div><div class="card flush">`; }
+    const [t, sub] = auText(r);
+    h += `<div class="row" style="align-items:flex-start;cursor:default"><span class="num" style="flex:none;width:42px;color:var(--muted);font-size:13px;padding-top:1px">${hm(d.getHours() * 60 + d.getMinutes())}</span><span style="flex:1;min-width:0"><span class="t1" style="display:block;font-size:14px">${esc(t)}</span>${sub ? `<span class="t2" style="display:block;overflow-wrap:anywhere">${esc(sub)}</span>` : ''}<span class="t2" style="display:block;font-size:12px">${esc(who(r.actor))}</span></span></div>`;
+  });
+  h += '</div>';
+  if (!A.done) h += `<button class="btn ghost" data-a="auMore" ${A.loading ? 'disabled' : ''}>${A.loading ? 'Φόρτωση…' : 'Παλαιότερες αλλαγές'}</button>`;
+  return h + `<div class="t2" style="margin:0 2px">Οι αλλαγές καταγράφονται αυτόματα και δεν σβήνονται από την εφαρμογή. Το ιστορικό το βλέπει μόνο ο υπεύθυνος.</div>`;
+}
+
+// ===== Εξαγωγή δεδομένων σε CSV (Α11) =====
+function csvOf(rows){
+  const q = v => { if (v == null) return ''; const s = String(v); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  return '﻿' + rows.map(r => r.map(q).join(';')).join('\r\n');
+}
+function downloadFile(name, text){
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+async function fetchAll(build){
+  let out = [], from = 0;
+  for (;;){ const { data, error } = await build().range(from, from + 999); if (error) throw error; out = out.concat(data); if (data.length < 1000) break; from += 1000; }
+  return out;
+}
+const dt = v => { if (!v) return ''; const d = new Date(v); return ymd(d) + ' ' + hm(d.getHours() * 60 + d.getMinutes()); };
+async function exportData(kind){
+  const org = S.ctx.org.id, stamp = ymd(today()), techName = id => (S.ctx.members.find(m => m.id === id) || {}).name || '';
+  if (kind === 'clients'){
+    const r = await fetchAll(() => sb.from('clients').select('name,phone,email,birthday,note,gdpr_consent,created_at').eq('org_id', org).eq('anonymized', false).order('name'));
+    downloadFile(`kalenda-pelates-${stamp}.csv`, csvOf([['Ονοματεπώνυμο','Τηλέφωνο','Email','Γενέθλια','Σημείωση','Συγκατάθεση online','Καταχώριση']].concat(r.map(c => [c.name, c.phone, c.email, c.birthday, c.note, c.gdpr_consent ? 'Ναι' : 'Όχι', dt(c.created_at)]))));
+    return r.length;
+  }
+  if (kind === 'appts'){
+    const r = await fetchAll(() => sb.from('appointments').select('starts_at,ends_at,store_id,tech_id,status,source,created_at,clients(name,phone),appointment_services(name,price)').eq('org_id', org).order('starts_at'));
+    downloadFile(`kalenda-rantevou-${stamp}.csv`, csvOf([['Ημερομηνία','Ώρα','Λήξη','Κατάστημα','Τεχνίτρια','Πελάτισσα','Τηλέφωνο','Υπηρεσίες','Τιμή καταλόγου','Κατάσταση','Πηγή','Καταχώριση']].concat(r.map(a => [ymd(new Date(a.starts_at)), hm(minsOf(a.starts_at)), hm(minsOf(a.ends_at)), storeName(a.store_id), techName(a.tech_id), (a.clients || {}).name, (a.clients || {}).phone, (a.appointment_services || []).map(s => s.name).join(', '), (a.appointment_services || []).reduce((x, s) => x + Number(s.price), 0).toFixed(2).replace('.', ','), AU_STATUS[a.status] || a.status, a.source === 'online' ? 'Online' : 'Κατάστημα', dt(a.created_at)]))));
+    return r.length;
+  }
+  if (kind === 'cash'){
+    const r = await fetchAll(() => sb.from('cash_movements').select('day,store_id,kind,method,list_amount,amount,note,created_at').eq('org_id', org).order('day'));
+    const K = { appointment:'Είσπραξη ραντεβού', product:'Πώληση προϊόντος', drawer_out:'Πληρωμή από συρτάρι' };
+    downloadFile(`kalenda-tameio-${stamp}.csv`, csvOf([['Ημέρα','Κατάστημα','Είδος','Τρόπος','Τιμή καταλόγου','Ποσό','Σημείωση','Καταχώριση']].concat(r.map(m => [m.day, storeName(m.store_id), K[m.kind] || m.kind, m.method === 'cash' ? 'Μετρητά' : 'Κάρτα', m.list_amount != null ? Number(m.list_amount).toFixed(2).replace('.', ',') : '', Number(m.amount).toFixed(2).replace('.', ','), m.note, dt(m.created_at)]))));
+    return r.length;
+  }
+  if (kind === 'expenses'){
+    const [r, cats, sups] = await Promise.all([
+      fetchAll(() => sb.from('expenses').select('day,store_id,category_id,supplier_id,gross,vat_rate,from_cash,note').eq('org_id', org).order('day')),
+      sb.from('expense_categories').select('id,name').eq('org_id', org), sb.from('suppliers').select('id,name').eq('org_id', org)]);
+    const cn = id => ((cats.data || []).find(x => x.id === id) || {}).name || '', sn = id => ((sups.data || []).find(x => x.id === id) || {}).name || '';
+    downloadFile(`kalenda-exoda-${stamp}.csv`, csvOf([['Ημέρα','Κατάστημα','Κατηγορία','Προμηθευτής','Ποσό με ΦΠΑ','ΦΠΑ %','Από συρτάρι','Σημείωση']].concat(r.map(e => [e.day, storeName(e.store_id), cn(e.category_id), sn(e.supplier_id), Number(e.gross).toFixed(2).replace('.', ','), e.vat_rate, e.from_cash ? 'Ναι' : 'Όχι', e.note]))));
+    return r.length;
+  }
+}
+async function exportClient(id){
+  const [c, ap] = await Promise.all([
+    sb.from('clients').select('name,phone,email,birthday,note,gdpr_consent,created_at').eq('id', id).single(),
+    sb.from('appointments').select('starts_at,store_id,status,source,appointment_services(name,price)').eq('client_id', id).order('starts_at')]);
+  if (c.error) throw c.error; if (ap.error) throw ap.error;
+  const x = c.data, rows = [['Στοιχεία πελάτισσας', ''], ['Ονοματεπώνυμο', x.name], ['Τηλέφωνο', x.phone], ['Email', x.email], ['Γενέθλια', x.birthday], ['Σημείωση καταστήματος', x.note], ['Συγκατάθεση online', x.gdpr_consent ? 'Ναι' : 'Όχι'], ['Καταχώριση', dt(x.created_at)], ['Επιχείρηση', S.ctx.org.name], [], ['Ραντεβού'], ['Ημερομηνία','Ώρα','Κατάστημα','Υπηρεσίες','Τιμή καταλόγου','Κατάσταση','Πηγή']];
+  ap.data.forEach(a => rows.push([ymd(new Date(a.starts_at)), hm(minsOf(a.starts_at)), storeName(a.store_id), (a.appointment_services || []).map(s => s.name).join(', '), (a.appointment_services || []).reduce((s, q) => s + Number(q.price), 0).toFixed(2).replace('.', ','), AU_STATUS[a.status] || a.status, a.source === 'online' ? 'Online' : 'Κατάστημα']));
+  downloadFile(`kalenda-pelatissa-${(x.name || 'stoixeia').replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}-${ymd(today())}.csv`, csvOf(rows));
+}
+function renderExport(){
+  const E = S.set.ex || {};
+  const btn = (k, t, d) => `<button class="row" data-a="exDo" data-v="${k}" ${E.busy ? 'disabled' : ''}><span style="flex:1;min-width:0"><span class="t1" style="display:block">${t}</span><span class="t2" style="display:block">${d}</span></span>${E.busy === k ? '<div class="spin" style="width:20px;height:20px"></div>' : I.chev}</button>`;
+  return `<div class="card flush">${btn('clients', 'Πελάτες', 'Ονόματα, τηλέφωνα, email, γενέθλια, σημειώσεις')}${btn('appts', 'Ραντεβού', 'Όλα τα ραντεβού με πελάτισσα, τεχνίτρια και υπηρεσίες')}${btn('cash', 'Ταμείο', 'Όλες οι κινήσεις ταμείου')}${btn('expenses', 'Έξοδα', 'Όλα τα έξοδα με κατηγορία και ΦΠΑ')}</div>
+    ${E.msg ? `<div class="card" style="background:var(--posbg);color:var(--pos);font-size:14px">${esc(E.msg)}</div>` : ''}${E.err ? `<div class="err">${esc(E.err)}</div>` : ''}
+    <div class="t2" style="margin:0 2px">Τα αρχεία ανοίγουν στο Excel. Περιέχουν προσωπικά δεδομένα πελατισσών: φύλαξέ τα με προσοχή και μην τα στέλνεις σε τρίτους.</div>
+    <div class="t2" style="margin:0 2px">Για αίτημα μίας πελάτισσας («θέλω τα στοιχεία μου»), άνοιξε την καρτέλα της και πάτα «Εξαγωγή στοιχείων».</div>`;
+}
+
+// ===== Εισαγωγή πελατολογίου από τον πάροχο (Α10) =====
+function parseCSV(text){
+  const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+  const d = [';', '\t', ','].map(c => [c, first.split(c).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if (q){ if (ch === '"'){ if (text[i + 1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; continue; }
+    if (ch === '"') q = true; else if (ch === d){ row.push(cur); cur = ''; } else if (ch === '\n' || ch === '\r'){ if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; } else cur += ch;
+  }
+  if (cur || row.length){ row.push(cur); rows.push(row); }
+  return rows.map(r => r.map(c => c.trim())).filter(r => r.some(c => c));
+}
+const normPhone = p => { let d = String(p || '').replace(/\D/g, ''); if (/^00/.test(d)) d = d.slice(2); if (/^30\d{10}$/.test(d)) d = d.slice(2); return d || null; };
+function normDate(s){
+  s = String(s || '').trim(); let m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+  if ((m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/))){ const y = m[3].length === 2 ? (+m[3] > 30 ? '19' : '20') + m[3] : m[3]; if (+m[2] <= 12 && +m[1] <= 31) return `${y}-${pad(+m[2])}-${pad(+m[1])}`; }
+  return null;
+}
+async function importRead(file){
+  const sh = S.sheet; sh.err = null; sh.rows = null; sh.file = file.name;
+  const buf = await file.arrayBuffer();
+  let text = new TextDecoder('utf-8').decode(buf);
+  if (text.includes('�')) text = new TextDecoder('windows-1253').decode(buf);
+  text = text.replace(/^﻿/, '');
+  const rows = parseCSV(text);
+  if (!rows.length){ sh.err = 'Το αρχείο είναι άδειο.'; paint(); return; }
+  const H = rows[0].map(h => h.toLowerCase()), find = re => H.findIndex(h => re.test(h));
+  const hasHead = H.some(h => /όνομα|ονομα|name|τηλ|phone|κινητ/.test(h));
+  let col = { name: 0, phone: 1, email: -1, birthday: -1, note: -1, last: -1 };
+  if (hasHead){
+    col = { name: find(/ονοματεπ|ονοματεπώνυμο|^name$|full|πελάτ|πελατ/), last: find(/επώνυμο|επωνυμο|surname|last/), phone: find(/τηλ|κινητ|phone|mobile/), email: find(/mail/), birthday: find(/γενέθ|γενεθ|birth/), note: find(/σημείωσ|σημειωσ|note|σχόλ|σχολ/) };
+    if (col.name < 0) col.name = find(/όνομα|ονομα|first|name/);
+  }
+  if (col.name < 0){ sh.err = 'Δεν βρέθηκε στήλη με όνομα. Η πρώτη γραμμή πρέπει να γράφει π.χ. «Όνομα», «Τηλέφωνο».'; paint(); return; }
+  const data = rows.slice(hasHead ? 1 : 0).map(r => {
+    const nm = [r[col.name], col.last >= 0 ? r[col.last] : ''].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    return { name: nm, phone: col.phone >= 0 ? normPhone(r[col.phone]) : null, email: col.email >= 0 ? (r[col.email] || null) : null, birthday: col.birthday >= 0 ? normDate(r[col.birthday]) : null, note: col.note >= 0 ? (r[col.note] || null) : null };
+  });
+  const ex = await fetchAll(() => sb.from('clients').select('phone').eq('org_id', sh.org).not('phone', 'is', null));
+  const have = new Set(ex.map(x => normPhone(x.phone)).filter(Boolean)), seen = new Set();
+  data.forEach(x => {
+    if (x.name.length < 2) x.skip = 'χωρίς όνομα';
+    else if (x.phone && have.has(x.phone)) x.skip = 'υπάρχει ήδη';
+    else if (x.phone && seen.has(x.phone)) x.skip = 'διπλό στο αρχείο';
+    if (x.phone) seen.add(x.phone);
+  });
+  sh.rows = data; paint();
+}
+function renderImportSheet(){
+  const sh = S.sheet, o = (S.sa.orgs || []).find(x => x.id === sh.org) || {};
+  const ok = (sh.rows || []).filter(x => !x.skip), sk = (sh.rows || []).filter(x => x.skip);
+  const cnt = k => sk.filter(x => x.skip === k).length;
+  let b = `<div class="t2">Πελατολόγιο για την «${esc(o.name || '')}». Αρχείο CSV από Excel (Αποθήκευση ως → CSV UTF-8). Η πρώτη γραμμή με τίτλους στηλών: Όνομα, Τηλέφωνο, Email, Γενέθλια, Σημείωση.</div>
+    <label class="btn ghost" style="min-height:48px;font-size:15px;cursor:pointer">${sh.file ? 'Άλλο αρχείο' : 'Διάλεξε αρχείο'}<input type="file" id="impFile" accept=".csv,.txt,text/csv" style="display:none"></label>`;
+  if (sh.file) b += `<div class="t2">Αρχείο: <b>${esc(sh.file)}</b></div>`;
+  if (sh.rows){
+    b += `<div class="card" style="border:1.5px solid var(--line);display:flex;flex-direction:column;gap:4px;font-size:14px"><div><b>${ok.length}</b> πελάτισσες θα καταχωριστούν</div>${cnt('υπάρχει ήδη') ? `<div class="t2">${cnt('υπάρχει ήδη')} υπάρχουν ήδη (ίδιο τηλέφωνο) και παραλείπονται</div>` : ''}${cnt('διπλό στο αρχείο') ? `<div class="t2">${cnt('διπλό στο αρχείο')} διπλές μέσα στο αρχείο</div>` : ''}${cnt('χωρίς όνομα') ? `<div class="t2">${cnt('χωρίς όνομα')} γραμμές χωρίς όνομα</div>` : ''}${ok.filter(x => !x.phone).length ? `<div class="t2">${ok.filter(x => !x.phone).length} χωρίς τηλέφωνο</div>` : ''}</div>`;
+    if (ok.length) b += `<div class="card flush" style="border:1.5px solid var(--line)">${ok.slice(0, 5).map(x => `<div class="row" style="cursor:default"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(x.name)}</span><span class="t2">${esc(x.phone || '—')}${x.email ? ' · ' + esc(x.email) : ''}${x.birthday ? ' · ' + fmtD(x.birthday) : ''}</span></span></div>`).join('')}${ok.length > 5 ? `<div class="t2" style="padding:8px 16px">και άλλες ${ok.length - 5}…</div>` : ''}</div>`;
+  }
+  if (sh.done) b += `<div class="card" style="background:var(--posbg);color:var(--pos)">Καταχωρίστηκαν ${sh.done} πελάτισσες.</div>`;
+  if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+  return sheet('Εισαγωγή πελατών', b, sh.rows && ok.length && !sh.done ? `<button class="btn primary" data-a="impGo" ${sh.busy ? 'disabled' : ''}>${sh.busy ? `Καταχώριση… ${sh.prog || 0}/${ok.length}` : `Εισαγωγή ${ok.length} πελατισσών`}</button>` : '');
+}
+async function importGo(){
+  const sh = S.sheet, ok = sh.rows.filter(x => !x.skip);
+  sh.busy = true; sh.err = null; sh.prog = 0; paint();
+  try {
+    for (let i = 0; i < ok.length; i += 200){
+      const part = ok.slice(i, i + 200).map(x => ({ org_id: sh.org, name: x.name, phone: x.phone, email: x.email, birthday: x.birthday, note: x.note }));
+      const { error } = await sb.from('clients').insert(part); if (error) throw error;
+      sh.prog = Math.min(ok.length, i + 200); paint();
+    }
+    sh.done = ok.length;
+  } catch(e){ sh.err = friendlyError(e) + (sh.prog ? ` (καταχωρίστηκαν ${sh.prog} πριν το σφάλμα)` : ''); }
+  sh.busy = false; paint();
+}
+
 // ===== Render =====
 function render(){
   const app = document.getElementById('app');
@@ -961,6 +1254,7 @@ function render(){
     if (S.super) { app.innerHTML = renderSuper(); return; }
     app.innerHTML = `<div class="login"><h1 class="brand"><img src="icons/icon-192.png" alt="" width="40" height="40">kalenda</h1><div class="card">Ο λογαριασμός σου δεν ανήκει ακόμα σε κάποια επιχείρηση ή έχει απενεργοποιηθεί. Μίλα με τον υπεύθυνο του καταστήματος.</div><button class="btn ghost" data-a="logout">Αποσύνδεση</button></div>`; return;
   }
+  if (needsTerms()){ app.innerHTML = renderTerms(); return; }
   const m = S.ctx.member;
   let head;
   if (S.tab === 'appts' && S.day && S.view === 'cal'){
@@ -977,7 +1271,7 @@ function render(){
     const tt = { conf:'Επιβεβαιώσεις', unpaid:'Απλήρωτα ραντεβού', stray:'Εκτός προγράμματος', wait:'Λίστα αναμονής', more:'Περισσότερα' }[S.tab];
     head = `${S.tab !== 'more' ? `<button class="rbtn sq" data-a="tab" data-v="${S.tab === 'wait' ? (S.waitBack || 'more') : 'today'}" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${tt}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else if (S.tab === 'settings'){
-    const pt = { online:'Online κρατήσεις', confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο' }[S.set.page];
+    const pt = { online:'Online κρατήσεις', confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο', audit:'Ιστορικό αλλαγών', export:'Εξαγωγή δεδομένων' }[S.set.page];
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
     const titles = { wait:'Λίστα αναμονής', appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
@@ -990,7 +1284,7 @@ function render(){
   const nb = todoCount(), badge = nb ? `<span class="badge">${nb}</span>` : '';
   const onKey = ['conf','unpaid','stray'].includes(S.tab) ? 'today' : moreKeys.includes(S.tab) && more.length ? 'more' : S.tab;
   app.innerHTML = `
-    ${m._support ? `<div class="supbar"><span>⚙︎ Υποστήριξη · <b>${esc(S.ctx.org.name)}</b></span><button data-a="saExit">Έξοδος</button></div>` : ''}
+    ${subBanner()}${m._support ? `<div class="supbar"><span>⚙︎ Υποστήριξη · <b>${esc(S.ctx.org.name)}</b></span><button data-a="saExit">Έξοδος</button></div>` : ''}
     <header>${head}<button class="rbtn" data-a="me" aria-label="Ο λογαριασμός μου" style="background:var(--teal);font-size:13px;font-weight:700">${esc(initials(m.name))}</button></header>
     <main id="main">${S.tab === 'today' ? renderToday() : S.tab === 'conf' ? renderConfFlow() : S.tab === 'unpaid' ? renderUnpaid() : S.tab === 'stray' ? renderStray() : S.tab === 'more' ? renderMore() : S.tab === 'wait' ? (storeSeg() + renderWait()) : S.tab === 'appts' ? renderAppts() : S.tab === 'clients' ? renderClients() : S.tab === 'cash' ? renderCash() : S.tab === 'settings' ? renderSettings() : S.tab === 'sched' ? renderSchedule() : S.tab === 'expenses' ? renderExpenses() : S.tab === 'pl' ? renderPL() : renderSoon()}</main>
     ${tabs.length > 1 ? `<nav>${tabs.map(([t,n,ic]) => `<button class="${onKey===t?'on':''}" data-a="tab" data-v="${t}">${t==='today'?badge:''}${t==='wait' && (S.wait || []).length ? `<span class="badge">${S.wait.length}</span>` : ''}${ic}${n}</button>`).join('')}</nav>` : ''}
@@ -1038,7 +1332,7 @@ function renderSuper(){
       <div class="sa-meta"><span>${o.n_stores} ${o.n_stores === 1 ? 'κατάστημα' : 'καταστήματα'} · ${o.n_members} άτομα</span><span>Τζίρος μήνα: ${eur0(Number(o.month_revenue) || 0)}</span></div>
       ${stores}
       ${o.n_admins === 0 ? `<div class="sa-noadmin">⚠ Δεν έχει λογαριασμό admin<button data-a="saAddAdmin" data-v="${o.id}">Προσθήκη admin</button></div>` : ''}
-      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button><button class="sub" data-a="saNewStore" data-v="${o.id}">+ Κατάστημα</button></div>
+      <div class="sa-acts"><button class="ent" data-a="saEnter" data-v="${o.id}">Είσοδος υποστήριξης</button><button class="sub" data-a="saNewStore" data-v="${o.id}">+ Κατάστημα</button><button class="sub" data-a="saImport" data-v="${o.id}">Εισαγωγή πελατών</button></div>
     </div>`;
   }).join('');
   return `<div class="sa">
@@ -1050,6 +1344,7 @@ function renderSuper(){
   ${S.sheet && S.sheet.type === 'saNewOrg' ? renderNewOrgSheet() : ''}
   ${S.sheet && S.sheet.type === 'saNewStore' ? renderNewStoreSheet() : ''}
   ${S.sheet && S.sheet.type === 'saAddAdmin' ? renderAddAdminSheet() : ''}
+  ${S.sheet && S.sheet.type === 'saImport' ? renderImportSheet() : ''}
   ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span></div>` : ''}`;
 }
 function renderAddAdminSheet(){
@@ -1355,7 +1650,8 @@ function renderDay(){
         : `<button class="blk b-${a.status}${ovs.length?' ovl':''}${osc}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${hpx}px" data-a="openAppt" data-v="${a.id}"><b>${osTag}<span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b>${hm(s)}–${hm(e)} · ${esc(a.svcText||'')}${a.status==='arrived'?'<br>Ήρθε ✓':''}</button>`;
     });
     if (!isTech() && can('appts','write') && on.includes(t)) gapsFor(S.store, d, t, S.dayAppts).forEach(g => {
-      c += `<button class="gap" style="top:${(g[0]-hrs[0])*PX+2}px;height:${(g[1]-g[0])*PX-4}px" data-a="newAppt" data-t="${t}" data-m="${g[0]}" aria-label="Νέο ραντεβού ${hm(g[0])}"><span style="font-size:16px;line-height:1">+</span><span class="num">${hm(g[0])}</span></button>`;
+      let marks = ''; for (let mm = Math.ceil((g[0] + 1) / 60) * 60; mm <= g[1] - 30; mm += 60) marks += `<span class="gh num" style="top:${(mm - g[0]) * PX - 6}px">+ ${hm(mm)}</span>`;
+      c += `<button class="gap" style="top:${(g[0]-hrs[0])*PX+2}px;height:${(g[1]-g[0])*PX-4}px" data-a="newAppt" data-t="${t}" data-m="${g[0]}" data-g0="${g[0]}" data-g1="${g[1]}" aria-label="Νέο ραντεβού από ${hm(g[0])}"><span class="num" style="font-size:12px;font-weight:700">+ ${hm(g[0])}</span>${marks}</button>`;
     });
     h += c + '</div>';
   });
@@ -1594,13 +1890,19 @@ function renderSettings(){
       ['online','Online κρατήσεις', st.online_enabled ? `Ενεργές · έως ${st.online_horizon_days} μέρες μπροστά` : 'Ανενεργές'],
       ['confirm','Επιβεβαίωση ραντεβού', st.confirm_enabled ? `${st.confirm_hours} ώρες πριν · ${({ whatsapp:'WhatsApp', viber:'Viber', sms:'SMS' })[st.confirm_channel]}` : 'Ανενεργή'],
       ['seg','Πελάτες & segment','Όρια σκαλιών, VIP, Χ/Κ, ποιος βλέπει τα σήματα'],
-      ['cash','Ταμείο', 'Διόρθωση παλιών ημερών: ' + (st.allow_past_cash_edit ? 'επιτρέπεται' : 'κλειστή')]
+      ['cash','Ταμείο', 'Διόρθωση παλιών ημερών: ' + (st.allow_past_cash_edit ? 'επιτρέπεται' : 'κλειστή')],
+      ['audit','Ιστορικό αλλαγών','Ποιος άλλαξε τι και πότε'],
+      ['export','Εξαγωγή δεδομένων','Πελάτες, ραντεβού, ταμείο, έξοδα σε αρχείο Excel']
     ];
     const rowF = ([k, t, d]) => `<button class="row" data-a="setPage" data-v="${k}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${t}</span><span class="t2" style="display:block">${esc(d)}</span></span>${I.chev}</button>`;
-    const basic = ['hours','team','services','online','confirm'], adv = ['perm','seg','cash'];
+    const basic = ['hours','team','services','online','confirm'], adv = ['perm','seg','cash'], data = ['audit','export'], O = S.ctx.org;
     return `<div class="card flush">${items.filter(x => basic.includes(x[0])).map(rowF).join('')}</div>
-      <div class="lbl" style="margin:6px 2px -4px">Για προχωρημένους</div><div class="card flush">${items.filter(x => adv.includes(x[0])).map(rowF).join('')}</div>`;
+      <div class="lbl" style="margin:6px 2px -4px">Για προχωρημένους</div><div class="card flush">${items.filter(x => adv.includes(x[0])).map(rowF).join('')}</div>
+      <div class="lbl" style="margin:6px 2px -4px">Δεδομένα</div><div class="card flush">${items.filter(x => data.includes(x[0])).map(rowF).join('')}</div>
+      ${O.terms_accepted_at ? `<div class="t2" style="margin:0 2px">Όροι Χρήσης και Σύμβαση Επεξεργασίας: αποδεκτοί στις ${fmtD(O.terms_accepted_at)} (έκδοση ${esc(O.terms_version || '')}).</div>` : ''}`;
   }
+  if (X.page === 'audit') return renderAudit();
+  if (X.page === 'export') return renderExport();
   if (X.page === 'hours'){
     const sid = X.hStore || S.ctx.stores[0].id;
     if (!X.hDraft || X.hDraftFor !== sid){
@@ -1639,7 +1941,7 @@ function renderSettings(){
     const lvl = (r, t) => (X.rperms.find(x => x.role === r && x.tab === t) || {}).level || 'none';
     const sel = (r, t) => `<select class="inp sm" data-perm="${r}:${t}" aria-label="${ROLE_NAME[r]} · ${TAB_NAMES[t]}">${LV.map(l => `<option value="${l}" ${lvl(r, t)===l?'selected':''}>${LV_NAMES[l]}</option>`).join('')}</select>`;
     let h = `<div class="card"><div class="pgrid"><span></span><span class="h">Γραμματεία</span><span class="h">Τεχνίτρια</span>
-      ${Object.keys(TAB_NAMES).map(t => `<b style="font-size:14px">${TAB_NAMES[t]}</b>${sel('store', t)}${sel('user', t)}`).join('')}</div></div>
+      ${Object.keys(TAB_NAMES).map(t => `<b style="font-size:14px">${TAB_NAMES[t]}</b>${sel('store', t)}<span style="font-size:13px;color:var(--muted);align-self:center">${t === 'appts' ? 'Μόνο τα δικά της' : 'Όχι'}</span>`).join('')}</div></div>
       <div class="card" style="font-size:13px;color:var(--ink2);display:flex;flex-direction:column;gap:6px">
         <div><b>Όχι</b> · δεν εμφανίζεται η καρτέλα</div><div><b>Βλέπει</b> · μόνο ανάγνωση</div><div><b>Γράφει</b> · καταχωρίζει και αλλάζει</div><div><b>Πλήρης</b> · και διαγραφές/ρυθμίσεις της καρτέλας</div>
         <div class="t2">Η τεχνίτρια βλέπει πάντα μόνο τα δικά της ραντεβού, χωρίς τηλέφωνα. Όποιος έχει P&L βλέπει και τζίρο/ποσά προηγούμενων ημερών. Εξαιρέσεις ανά άτομο ορίζεις από την Ομάδα.</div></div>`;
@@ -2068,7 +2370,7 @@ function renderSheet(){
       <div class="field"><label>Έκπτωση</label><div style="display:flex;gap:8px">${opts.map((p, i) => `<button class="pill ${sh.d===i?'on':''}" style="flex:1" data-a="payD" data-v="${i}">${p ? '−' + p + '%' : 'Καμία'}</button>`).join('')}</div></div>
       <div class="field"><label>Τρόπος πληρωμής</label><div class="seg"><button class="${sh.m==='cash'?'on':''}" data-a="payM" data-v="cash">Μετρητά</button><button class="${sh.m==='card'?'on':''}" data-a="payM" data-v="card">Κάρτα</button></div></div>
       <div class="t2" style="text-align:center">Γράφεται αυτόματα στο σημερινό ταμείο ${esc(storeName(a.store_id || S.store))}</div>${sh.err ? `<div class="err">${esc(sh.err)}</div>` : ''}`;
-    return sheet('Πληρωμή', b, `<button class="btn primary split" data-a="payDone" ${S.busy?'disabled':''}><span>Πληρώθηκε</span><span class="num">${eur(fin)}</span></button>`, esc((a.client||{}).name));
+    return sheet('Πληρωμή', b, `<button class="btn primary split" data-a="payDone" ${S.busy || !sh.m ?'disabled':''}><span>${sh.m ? 'Πληρώθηκε' : 'Διάλεξε τρόπο πληρωμής'}</span><span class="num">${eur(fin)}</span></button>`, esc((a.client||{}).name));
   }
   if (sh.type === 'new'){
     const d = sh.d, st = sh.store, hrs = storeHours(st, d), { on } = techsFor(st, d);
@@ -2192,7 +2494,7 @@ function renderSheet(){
           <div class="t2">Υπολογίζεται στον καθαρό τζίρο της (χωρίς ΦΠΑ) κάθε μήνα${num(sh.compThr) > 0 ? ', μόνο στο κομμάτι πάνω από ' + eur0(num(sh.compThr)) : ''}. ${ex}</div>` : ''}
         <div class="t2">Σταθερό μπόνους; Πέρασέ το στα Έξοδα, κατηγορία «Μπόνους».</div></div>`;
     }
-    if (!isAdm){
+    if (!isAdm && sh.role !== 'user'){
       const rl = t => (X.rperms.find(x => x.role === sh.role && x.tab === t) || {}).level || 'none';
       b += `<div class="field"><label>Εξαιρέσεις δικαιωμάτων</label><div class="card" style="padding:4px 12px;border:1.5px solid var(--line)">${Object.keys(TAB_NAMES).map(t => `<div class="prm"><b class="tx">${TAB_NAMES[t]}</b><select class="inp sm" style="width:170px" data-mperm="${t}"><option value="" ${!sh.perms[t]?'selected':''}>Όπως ο ρόλος (${LV_NAMES[rl(t)]})</option>${LV.map(l => `<option value="${l}" ${sh.perms[t]===l?'selected':''}>${LV_NAMES[l]}</option>`).join('')}</select></div>`).join('')}</div></div>`;
     }
@@ -2304,7 +2606,7 @@ function renderSheet(){
     if (role() === 'admin'){
       b += sh.anon
         ? `<div class="card" style="background:var(--negbg);color:var(--neg);display:flex;flex-direction:column;gap:10px"><div style="font-size:13px"><b>Οριστική ανωνυμοποίηση.</b> Σβήνονται όνομα, τηλέφωνο, email, γενέθλια και σημείωση. Τα ραντεβού και τα ποσά μένουν για τα στατιστικά. Δεν αναιρείται.</div><div style="display:flex;gap:8px"><button class="btn ghost" style="min-height:44px;font-size:14px" data-a="clAnonNo">Άκυρο</button><button class="btn danger" style="min-height:44px;font-size:14px;border:1.5px solid var(--neg)" data-a="clAnonYes">Ανωνυμοποίηση</button></div></div>`
-        : `<button class="btn danger" style="min-height:44px;font-size:14px" data-a="clAnon">Διαγραφή στοιχείων (GDPR)</button>`;
+        : `<div style="display:flex;gap:8px"><button class="btn ghost" style="min-height:44px;font-size:14px;flex:1" data-a="clExport">Εξαγωγή στοιχείων</button><button class="btn danger" style="min-height:44px;font-size:14px;flex:1" data-a="clAnon">Διαγραφή στοιχείων</button></div>`;
     }
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
     const f = (can('clients','write') ? `<button class="btn ghost" style="flex:0 0 auto;width:auto" data-a="editClient">Επεξεργασία</button>` : '')
@@ -2420,8 +2722,32 @@ document.addEventListener('click', async ev => {
   const a = el.dataset.a, v = el.dataset.v, sh = S.sheet;
   try {
   switch (a){
-    case 'logout': S.sheet = null; await sb.auth.signOut(); return;
+    case 'logout': {
+      S.sheet = null; S.terms = null;
+      let r = null; try { r = await sb.auth.signOut({ scope: 'local' }); } catch(e){ r = { error: e }; }
+      if (r && r.error){ try { Object.keys(localStorage).filter(k => /^sb-.*-auth-token/.test(k)).forEach(k => localStorage.removeItem(k)); } catch(e){} bootedFor = null; boot(null); }
+      return;
+    }
     case 'me': S.sheet = { type:'me' }; break;
+    case 'termsAccept': {
+      const T = S.terms = S.terms || {}; T.ok = !!(document.getElementById('termsOk') || {}).checked;
+      if (!T.ok){ T.err = 'Τσέκαρε ότι αποδέχεσαι τους όρους για να συνεχίσεις.'; render(); return; }
+      T.busy = true; T.err = null; render();
+      const { error } = await sb.rpc('accept_terms', { p_org: S.ctx.org.id, p_version: TERMS_VERSION });
+      T.busy = false;
+      if (error){ T.err = friendlyError(error); render(); return; }
+      S.ctx.org.terms_version = TERMS_VERSION; S.ctx.org.terms_accepted_at = new Date().toISOString(); S.terms = null; return refresh();
+    }
+    case 'auGrp': S.set.au.grp = v; loadAudit(); return;
+    case 'auMore': loadAudit(true); return;
+    case 'exDo': {
+      const E = S.set.ex = { busy: v }; paint();
+      try { const n = await exportData(v); E.msg = `Έτοιμο: ${n} γραμμές. Το αρχείο κατέβηκε στη συσκευή σου.`; } catch(e){ E.err = friendlyError(e); }
+      E.busy = null; paint(); return;
+    }
+    case 'clExport': { try { await exportClient(sh.id); toast('Το αρχείο της πελάτισσας κατέβηκε'); } catch(e){ toast(friendlyError(e)); } return; }
+    case 'saImport': S.sheet = { type:'saImport', org: v }; break;
+    case 'impGo': await importGo(); return;
     case 'closeSheet': S.sheet = null; break;
     case 'copy': {
       const txt = v || '';
@@ -2608,7 +2934,11 @@ document.addEventListener('click', async ev => {
       }
       break;
     }
-    case 'newAppt': await openNew(S.day, el.dataset.t, el.dataset.m != null ? +el.dataset.m : null); return;
+    case 'newAppt': {
+      let mm = el.dataset.m != null ? +el.dataset.m : null;
+      if (el.dataset.g0 != null && ev.clientY){ const r = el.getBoundingClientRect(), g0 = +el.dataset.g0, g1 = +el.dataset.g1; mm = Math.min(Math.max(g0, g0 + Math.floor((ev.clientY - r.top) / (84/60) / 15) * 15), Math.max(g0, g1 - 15)); }
+      await openNew(S.day, el.dataset.t, mm); return;
+    }
     case 'pickClient': { sh.client = (sh.results||[]).find(c => c.id === v); sh.err = null; if (sh.miss) sh.miss.client = false; break; }
     case 'squeeze': sh.squeeze = !sh.squeeze; if (sh.miss) sh.miss.time = false; sh.err = null; break;
     case 'clearClient': sh.client = null; sh.q = ''; sh.results = []; break;
@@ -2682,10 +3012,11 @@ document.addEventListener('click', async ev => {
       });
       return refresh();
     }
-    case 'pay': S.sheet = { type:'pay', a: sh.a, d: 0, m: 'card' }; break;
+    case 'pay': S.sheet = { type:'pay', a: sh.a, d: 0, m: null }; break;
     case 'payD': sh.d = +v; break;
     case 'payM': sh.m = v; break;
     case 'payDone': {
+      if (!sh.m){ sh.err = 'Διάλεξε πρώτα Μετρητά ή Κάρτα.'; break; }
       const ap = sh.a, list = (ap.appointment_services||[]).reduce((x, q) => x + Number(q.price), 0);
       const fin = list - Math.round(list * [0,10,15,20][sh.d]) / 100;
       S.busy = true; paint();
@@ -2871,7 +3202,8 @@ document.addEventListener('click', async ev => {
     case 'setBack':
       if (S.set.page){ S.set.page = null; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; S.set.bDraft = null; break; }
       S.tab = 'more'; render(); return;
-    case 'setPage': S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; S.set.bDraft = null; document.getElementById('main').scrollTop = 0; break;
+    case 'setPage': if (v === 'audit'){ S.set.page = v; document.getElementById('main').scrollTop = 0; loadAudit(); return; } if (v === 'export') S.set.ex = {};
+      S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.sDraft = null; S.set.cDraft = null; S.set.sInfoFor = null; S.set.oDraft = null; S.set.bDraft = null; document.getElementById('main').scrollTop = 0; break;
     case 'hStore': S.set.hStore = v; S.set.hDraft = null; S.set.err = null; break;
     case 'hOpen': { const d = S.set.hDraft[+v]; d.closed = !d.closed; break; }
     case 'hCopy': { const m = S.set.hDraft[0]; for (let w = 1; w <= 4; w++) S.set.hDraft[w] = { ...m }; toast('Αντιγράφηκε · πάτα Αποθήκευση'); break; }
@@ -2982,7 +3314,7 @@ document.addEventListener('click', async ev => {
           chk(await sb.from('tech_schedule').delete().eq('member_id', sh.id));
           if (schedRows.length) chk(await sb.from('tech_schedule').insert(schedRows));
           chk(await sb.from('member_permissions').delete().eq('member_id', sh.id));
-          const pr = Object.entries(sh.perms).filter(([, l]) => l).map(([t, l]) => ({ member_id: sh.id, org_id: org, tab: t, level: l }));
+          const pr = m.role === 'user' ? [] : Object.entries(sh.perms).filter(([, l]) => l).map(([t, l]) => ({ member_id: sh.id, org_id: org, tab: t, level: l }));
           if (pr.length) chk(await sb.from('member_permissions').insert(pr));
         }
         if (m.role === 'user' && seesMoney()){
@@ -3287,6 +3619,8 @@ document.addEventListener('input', ev => {
 });
 document.addEventListener('change', async ev => {
   const id = ev.target.id, sh = S.sheet, ds = ev.target.dataset;
+  if (id === 'impFile'){ const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; if (f && S.sheet && S.sheet.type === 'saImport'){ S.sheet.done = null; try { await importRead(f); } catch(e){ S.sheet.err = 'Δεν διαβάστηκε το αρχείο: ' + (e.message || e); paint(); } } return; }
+  if (id === 'auWho'){ S.set.au.who = ev.target.value; loadAudit(); return; }
   if (id === 'bBanner'){ const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; if (f) uploadBanner(f); return; }
   if (/^h[OC]\d$/.test(id) && S.set.hDraft){ S.set.hDraft[+id[2]][id[1] === 'O' ? 'opens' : 'closes'] = ev.target.value; return; }
   if (ds.perm){

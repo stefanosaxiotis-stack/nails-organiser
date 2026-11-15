@@ -1,7 +1,7 @@
 // Service worker της εφαρμογής: πρώτα το δίκτυο (πάντα η τελευταία έκδοση), αποθήκευση για όταν πέφτει η σύνδεση.
 // Δεν αγγίζει τις κλήσεις στη βάση (supabase.co) — αυτές πάνε πάντα κατευθείαν.
-const CACHE = 'kalenda-v1';
-const SHELL = ['./', './index.html', './themes.js', './manifest.webmanifest', './icons/icon-192.png'];
+const CACHE = 'kalenda-v2';
+const SHELL = ['./', './index.html', './themes.js', './manifest.webmanifest', './icons/icon-192.png', './vendor/supabase.js', './vendor/fonts.css', './vendor/manrope-greek.woff2', './vendor/manrope-latin.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

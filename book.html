@@ -7,9 +7,10 @@
 <title>Κλείσε ραντεβού</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" id="fonts" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" id="fonts">
 <script src="themes.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="vendor/supabase.js"></script>
 <style>
 :root{
   --bg:#F6F6F7; --surface:#FFFFFF; --chip:#F3F4F6; --line:#E5E7EB; --ink:#1F2937; --muted:#6B7280; --head:#1F2937; --headmuted:#D1D5DB;
@@ -236,6 +237,8 @@ function render(){
       <div class="field"><label for="fPhone">Κινητό τηλέφωνο</label><input id="fPhone" class="inp ${S.bad.phone ? 'bad' : ''}" type="tel" inputmode="tel" autocomplete="tel" placeholder="69xxxxxxxx" value="${esc(S.phone)}"></div>
       <div class="field"><label for="fNote">Σημείωση <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><textarea id="fNote" class="inp" maxlength="300" placeholder="π.χ. θέλω σχέδιο στα 2 νύχια">${esc(S.note)}</textarea></div>
       <label class="chk ${S.bad.ok ? 'err' : ''}"><input type="checkbox" id="fOk" ${S.ok ? 'checked' : ''}><span>Συμφωνώ να κρατήσει το κατάστημα το όνομα και το τηλέφωνό μου για τα ραντεβού μου.</span></label>
+      <div class="t2" style="font-size:13px;margin-top:-6px">Τα στοιχεία σου τα χρησιμοποιεί μόνο το κατάστημα «${esc(I.store)}» για τα ραντεβού σου. <a href="https://kalenda.gr/privacy.html#booking" target="_blank" rel="noopener" style="color:var(--teal)">Περισσότερα</a></div>
+      <input id="fWeb" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
       ${I.cancel_hours ? `<div class="t2">Μπορείς να ακυρώσεις μόνη σου έως ${I.cancel_hours} ώρες πριν, από τον σύνδεσμο που θα πάρεις.</div>` : ''}
       ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
     bar.hidden = false;
@@ -288,7 +291,7 @@ function firstOpenDay(){
   for (let i = 0; i <= I.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); if (I.open_days.includes(wdOf(d))) return d; }
   return null;
 }
-const REASONS = { taken:'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.', phone:'Γράψε ένα σωστό ελληνικό τηλέφωνο (10 ψηφία).', name:'Γράψε το ονοματεπώνυμό σου.', limit:'Έχεις ήδη 3 online ραντεβού. Για περισσότερα πάρε τηλέφωνο.', date:'Η ημερομηνία δεν είναι διαθέσιμη.', services:'Κάποια υπηρεσία δεν είναι πια διαθέσιμη. Ξεκίνα από την αρχή.', disabled:'Οι online κρατήσεις δεν είναι διαθέσιμες αυτή τη στιγμή.' };
+const REASONS = { busy:'Έγιναν πολλές κρατήσεις από αυτή τη σύνδεση. Δοκίμασε ξανά σε λίγα λεπτά ή πάρε τηλέφωνο στο κατάστημα.', error:'Κάτι πήγε στραβά. Δοκίμασε ξανά.', taken:'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.', phone:'Γράψε ένα σωστό ελληνικό τηλέφωνο (10 ψηφία).', name:'Γράψε το ονοματεπώνυμό σου.', limit:'Έχεις ήδη 3 online ραντεβού. Για περισσότερα πάρε τηλέφωνο.', date:'Η ημερομηνία δεν είναι διαθέσιμη.', services:'Κάποια υπηρεσία δεν είναι πια διαθέσιμη. Ξεκίνα από την αρχή.', disabled:'Οι online κρατήσεις δεν είναι διαθέσιμες αυτή τη στιγμή.' };
 async function book(){
   S.name = (document.getElementById('fName') || {}).value || S.name; S.phone = (document.getElementById('fPhone') || {}).value || S.phone;
   S.note = (document.getElementById('fNote') || {}).value || ''; S.ok = !!(document.getElementById('fOk') || {}).checked;
@@ -297,8 +300,10 @@ async function book(){
   if (S.bad.name || S.bad.phone || S.bad.ok){ S.err = S.bad.phone && !S.bad.name ? REASONS.phone : S.bad.ok && !S.bad.name && !S.bad.phone ? 'Χρειάζεται η συγκατάθεσή σου για να κλείσει το ραντεβού.' : 'Συμπλήρωσε τα πεδία με κόκκινο.'; render(); return; }
   S.busy = true; S.err = ''; render();
   try {
-    const { data, error } = await sb.rpc('book_create', { p_store: STORE, p_date: ymd(S.day), p_time: S.time, p_services: S.sel, p_tech: S.tech || null, p_name: S.name.trim(), p_phone: digits, p_note: S.note.trim() || null });
-    if (error) throw error;
+    const res = await fetch('https://koliyglqlgpwsrkjahrn.supabase.co/functions/v1/book', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_0JPsGiN40GN8y4ZFRnYp2A_47M-yXM_' },
+      body: JSON.stringify({ store: STORE, date: ymd(S.day), time: S.time, services: S.sel, tech: S.tech || null, name: S.name.trim(), phone: digits, note: S.note.trim() || null, website: (document.getElementById('fWeb') || {}).value || '' }) });
+    const data = await res.json();
+    if (!data || (data.ok === false && !data.reason)) throw new Error('book');
     S.busy = false;
     if (!data.ok){
       S.err = REASONS[data.reason] || 'Κάτι πήγε στραβά. Δοκίμασε ξανά.';
