@@ -1275,8 +1275,8 @@ function render(){
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
     const titles = { wait:'Λίστα αναμονής', appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
-    const d = today();
-    head = `<div style="flex:1;min-width:0"><h1>${esc(titles[S.tab])}</h1><div class="sub">${WDF[wdOf(d)]}, ${d.getDate()} ${MSHORT[d.getMonth()]} · ${ROLE_NAME[m.role]}</div></div>
+    const d = today(), fromMore = !isTech() && ['sched','expenses','pl'].includes(S.tab);
+    head = `${fromMore ? `<button class="rbtn sq" data-a="tab" data-v="more" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${esc(titles[S.tab])}</h1><div class="sub">${WDF[wdOf(d)]}, ${d.getDate()} ${MSHORT[d.getMonth()]} · ${ROLE_NAME[m.role]}</div></div>
       <button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
   }
   const { prim, more } = navTabs(), moreKeys = more.map(x => x[0]).concat(['more','settings']);
@@ -3675,6 +3675,18 @@ async function loadSuper(){
 }
 setInterval(() => { if (S.ctx && !S.sheet) quietRefresh(); }, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.ctx) quietRefresh(); });
+// Σύρσιμο από την αριστερή άκρη προς τα δεξιά = «Πίσω» (κλείνει φύλλο ή πατά το κουμπί πίσω της κεφαλίδας)
+function goBack(){
+  const b = document.querySelector('.sheet [data-a="closeSheet"]') || document.querySelector('header [data-a="setBack"]') || document.querySelector('header [aria-label="Πίσω"]') || document.querySelector('header [data-a="toMonth"]');
+  if (b){ b.click(); return true; }
+  return false;
+}
+(() => {
+  let sx = 0, sy = 0, on = false;
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; on = e.touches.length === 1 && t.clientX <= 28; sx = t.clientX; sy = t.clientY; }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!on) return; const t = e.touches[0]; if (Math.abs(t.clientY - sy) > 40) on = false; }, { passive: true });
+  document.addEventListener('touchend', e => { if (!on) return; on = false; const t = e.changedTouches[0]; if (t.clientX - sx > 70 && Math.abs(t.clientY - sy) < 40) goBack(); }, { passive: true });
+})();
 let bootedFor;
 sb.auth.onAuthStateChange((evt, session) => {
   const uid = session ? session.user.id : null;
