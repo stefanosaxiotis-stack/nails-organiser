@@ -1161,7 +1161,7 @@ function renderExport(){
   const E = S.set.ex || {};
   const btn = (k, t, d) => `<button class="row" data-a="exDo" data-v="${k}" ${E.busy ? 'disabled' : ''}><span style="flex:1;min-width:0"><span class="t1" style="display:block">${t}</span><span class="t2" style="display:block">${d}</span></span>${E.busy === k ? '<div class="spin" style="width:20px;height:20px"></div>' : I.chev}</button>`;
   return `<div class="card flush">${btn('clients', 'Πελάτες', 'Ονόματα, τηλέφωνα, email, γενέθλια, σημειώσεις')}${btn('appts', 'Ραντεβού', 'Όλα τα ραντεβού με πελάτισσα, τεχνίτρια και υπηρεσίες')}${btn('cash', 'Ταμείο', 'Όλες οι κινήσεις ταμείου')}${btn('expenses', 'Έξοδα', 'Όλα τα έξοδα με κατηγορία και ΦΠΑ')}</div>
-    ${E.msg ? `<div class="card" style="background:var(--posbg);color:var(--pos);font-size:14px">${esc(E.msg)}</div>` : ''}${E.err ? `<div class="err">${esc(E.err)}</div>` : ''}
+    ${E.busy ? '<div class="t2" style="margin:0 2px">Ετοιμάζεται το αρχείο. Τα ραντεβού και το ταμείο μπορεί να πάρουν έως ένα λεπτό.</div>' : ''}${E.msg ? `<div class="card" style="background:var(--posbg);color:var(--pos);font-size:14px">${esc(E.msg)}</div>` : ''}${E.err ? `<div class="err">${esc(E.err)}</div>` : ''}
     <div class="t2" style="margin:0 2px">Τα αρχεία ανοίγουν στο Excel. Περιέχουν προσωπικά δεδομένα πελατισσών: φύλαξέ τα με προσοχή και μην τα στέλνεις σε τρίτους.</div>
     <div class="t2" style="margin:0 2px">Για αίτημα μίας πελάτισσας («θέλω τα στοιχεία μου»), άνοιξε την καρτέλα της και πάτα «Εξαγωγή στοιχείων».</div>`;
 }
