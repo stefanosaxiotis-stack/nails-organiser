@@ -42,7 +42,7 @@ header.img .st{color:#F2F2F2}
 .ha.img{color:#FFFFFF}
 .ha.img::before{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 65%)}
 .ha > *{position:relative}
-.ha .st{font-size:11px;letter-spacing:.24em;text-transform:uppercase;opacity:.85}
+.ha .st{font-size:12px;letter-spacing:.24em;text-transform:uppercase;opacity:.85}
 .ha .org{font-family:var(--font-display);font-size:44px;font-weight:500;line-height:1;margin-top:6px}
 .hg{position:relative;overflow:hidden;padding:calc(24px + env(safe-area-inset-top,0px)) 20px 6px;max-width:560px;margin:0 auto}
 .hg .blob1{position:absolute;top:-80px;right:-70px;width:230px;height:230px;border-radius:50%;background:var(--tealbg)}
@@ -96,7 +96,7 @@ textarea.inp{min-height:80px;resize:vertical}
 .bar .in{max-width:520px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .btn{border:none;border-radius:var(--rb,18px);min-height:54px;font-size:17px;font-weight:700;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .btn.pri{background:var(--teal);color:var(--onacc,#fff);flex:1}
-.btn.pri:disabled{opacity:.45;cursor:default}
+.btn.pri:disabled{background:#E5E7EB;color:#374151;cursor:default}
 .btn.ghost{background:var(--chip);color:var(--ink)}
 .btn.neg{background:var(--negbg);color:var(--neg);width:100%}
 .back{background:none;border:none;color:var(--teal);font-weight:700;font-size:15px;padding:6px 0;align-self:flex-start}
@@ -229,17 +229,17 @@ function render(){
     if (S.err) h += `<div class="err">${esc(S.err)}</div>`;
     h += `</div>`;
     bar.hidden = false;
-    bi.innerHTML = `<div style="flex:none;font-size:14px"><b>${S.time ? S.time : '—'}</b><div class="t2">${S.day ? WD[wdOf(S.day)] + ' ' + S.day.getDate() + ' ' + MON[S.day.getMonth()] : 'διάλεξε ώρα'}</div></div><button class="btn pri" data-a="to3" ${S.time ? '' : 'disabled'}>Συνέχεια</button>`;
+    bi.innerHTML = `<div style="flex:none;font-size:14px"><b>${S.time ? S.time : '—'}</b><div class="t2">${S.day ? WD[wdOf(S.day)] + ' ' + S.day.getDate() + '/' + (S.day.getMonth() + 1) : 'διάλεξε ώρα'}</div></div><button class="btn pri" data-a="to3" ${S.time ? '' : 'disabled'}>Συνέχεια</button>`;
   } else if (S.step === 3){
     h += `<div class="card">${steps(3)}<button class="back" data-a="to2">‹ Ημέρα και ώρα</button><h2>Τα στοιχεία σου</h2>
       <div class="sum"><div class="d">${longDay(S.day)}</div><div class="t">${S.time}</div><div class="t2">${esc(selSvcs().map(s => s.name).join(', '))} · ${totDur()}΄ · ${eur(totPrice())}${S.tech ? ' · με ' + art(techName(S.tech)) + ' ' + esc(techName(S.tech)) : ''}</div></div>
       <div class="field"><label for="fName">Ονοματεπώνυμο</label><input id="fName" class="inp ${S.bad.name ? 'bad' : ''}" autocomplete="name" value="${esc(S.name)}" maxlength="80"></div>
-      <div class="field"><label for="fPhone">Κινητό τηλέφωνο</label><input id="fPhone" class="inp ${S.bad.phone ? 'bad' : ''}" type="tel" inputmode="tel" autocomplete="tel" placeholder="69xxxxxxxx" value="${esc(S.phone)}"></div>
+      <div class="field"><label for="fPhone">Κινητό τηλέφωνο</label><input id="fPhone" class="inp ${S.bad.phone ? 'bad' : ''}" type="tel" inputmode="tel" autocomplete="tel" placeholder="69xxxxxxxx ή +44…" value="${esc(S.phone)}"></div>
       <div class="field"><label for="fNote">Σημείωση <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><textarea id="fNote" class="inp" maxlength="300" placeholder="π.χ. θέλω σχέδιο στα 2 νύχια">${esc(S.note)}</textarea></div>
       <label class="chk ${S.bad.ok ? 'err' : ''}"><input type="checkbox" id="fOk" ${S.ok ? 'checked' : ''}><span>Συμφωνώ να κρατήσει το κατάστημα το όνομα και το τηλέφωνό μου για τα ραντεβού μου.</span></label>
       <div class="t2" style="font-size:13px;margin-top:-6px">Τα στοιχεία σου τα χρησιμοποιεί μόνο το κατάστημα «${esc(I.org)}» για τα ραντεβού σου. <a href="https://kalenda.gr/privacy.html#booking" target="_blank" rel="noopener" style="color:var(--teal)">Περισσότερα</a></div>
       <input id="fWeb" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
-      ${I.cancel_hours ? `<div class="t2">Μπορείς να ακυρώσεις μόνη σου έως ${I.cancel_hours} ώρες πριν, από τον σύνδεσμο που θα πάρεις.</div>` : ''}
+      ${I.cancel_hours ? `<div class="t2">Μπορείς να αλλάξεις ή να ακυρώσεις μόνη σου έως ${I.cancel_hours} ώρες πριν, από τον σύνδεσμο που θα πάρεις.</div>` : ''}
       ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
     bar.hidden = false;
     bi.innerHTML = `<button class="btn pri" data-a="book" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Κλείνει…' : 'Κλείσε το ραντεβού'}</button>`;
@@ -248,7 +248,7 @@ function render(){
     h += `<div class="card res"><div class="ic">✓</div><h2>Το ραντεβού σου κλείστηκε!</h2><p class="t2" style="margin:0">Σε περιμένουμε.</p></div>
       <div class="card"><div class="sum"><div class="d">${esc(fmtDay(d.starts_at))}</div><div class="t">${esc(fmtTime(d.starts_at))}</div><div class="t2">${esc(selSvcs().map(s => s.name).join(', '))}${d.tech ? ' · με ' + art(d.tech) + ' ' + esc(d.tech) : ''}</div></div>${infoBlock(I)}</div>
       ${calBlock({ token: d.token, start: d.starts_at, end: new Date(new Date(d.starts_at).getTime() + totDur() * 60000).toISOString(), org: I.org, store: I.store, address: I.address, phone: I.phone, services: selSvcs().map(s => s.name).join(', '), tech: d.tech })}
-      <div class="card"><div style="font-weight:700">Κράτησε αυτόν τον σύνδεσμο</div><div class="t2">Από εδώ βλέπεις το ραντεβού σου${I.cancel_hours != null ? ' και μπορείς να το ακυρώσεις έως ' + I.cancel_hours + ' ώρες πριν' : ''}.</div>
+      <div class="card"><div style="font-weight:700">Κράτησε αυτόν τον σύνδεσμο</div><div class="t2">Από εδώ βλέπεις το ραντεβού σου${I.cancel_hours != null ? ' και μπορείς να το αλλάξεις ή να το ακυρώσεις έως ' + I.cancel_hours + ' ώρες πριν' : ''}. Πρόσθεσέ το και στην οθόνη αφετηρίας του κινητού σου.</div>
         <a class="btn ghost" href="${esc(link)}">Το ραντεβού μου</a>
         <button class="btn ghost" data-a="copy" data-v="${esc(link)}">Αντιγραφή συνδέσμου</button></div>`;
     if (isDemo()) h += `<div class="card" style="border:1.5px dashed var(--line)"><div class="t2"><b>Λειτουργία demo.</b> Το ραντεβού μένει κανονικά στο πρόγραμμα του μαγαζιού. Το κουμπί καθαρίζει μόνο αυτή τη σελίδα για νέα δοκιμή.</div>
@@ -262,16 +262,46 @@ function renderManage(m){
   if (!x.found){ m.innerHTML = `<div class="card res"><div class="ic bad">!</div><h2>Το ραντεβού δεν βρέθηκε</h2><p class="t2">Ο σύνδεσμος μπορεί να έχει αντιγραφεί λάθος.</p></div>`; return; }
   applyBrand(x);
   const st = { booked:'', arrived:'', done:'Ολοκληρώθηκε', cancelled:'Ακυρώθηκε', no_show:'Δεν πραγματοποιήθηκε' }[x.status] || '';
-  let h = `<div class="card"><h2>Το ραντεβού σου${x.name ? ', ' + esc(x.name) : ''}</h2>
+  let h = (S.okMsg ? `<div class="card res" style="padding:14px"><div class="ic">✓</div><h2 style="margin:0">${esc(S.okMsg)}</h2></div>` : '') + `<div class="card"><h2>Το ραντεβού σου${x.name ? ', ' + esc(x.name) : ''}</h2>
     <div class="sum" style="${x.status === 'cancelled' ? 'opacity:.6' : ''}"><div class="d">${esc(fmtDay(x.starts_at))}</div><div class="t">${esc(fmtTime(x.starts_at))}</div><div class="t2">${esc(x.services || '')}${x.tech ? ' · με ' + art(x.tech) + ' ' + esc(x.tech) : ''}</div></div>
     ${st ? `<div class="warn">${st}</div>` : ''}${infoBlock(x)}</div>`;
   if (x.status === 'booked' && new Date(x.starts_at) > new Date()) h += calBlock({ token: TOKEN, start: x.starts_at, end: x.ends_at, org: x.org, store: x.store, address: x.address, phone: x.phone, services: x.services, tech: x.tech });
+  if (x.status === 'booked' && x.can_change){
+    const R = S.R;
+    if (!R) h += `<div class="card"><div class="t2">Θέλεις άλλη μέρα ή ώρα; Το ραντεβού σου αλλάζει εδώ και ο σύνδεσμος μένει ο ίδιος.</div><button class="btn ghost" data-a="chgOpen">Αλλαγή ώρας</button></div>`;
+    else {
+      const t0 = pd(x.today), days = [];
+      for (let i = 0; i <= x.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); days.push(d); }
+      h += `<div class="card"><h2>Νέα μέρα και ώρα</h2><div class="t2">${esc(x.services || '')}${x.dur ? ' · ' + x.dur + '΄' : ''}</div>
+        <div class="days" id="days">${days.map(d => { const open = (x.open_days || []).includes(wdOf(d)), on = R.day && ymd(d) === ymd(R.day);
+          return `<button class="day ${on ? 'on' : ''}" data-a="chgDay" data-v="${ymd(d)}" ${open ? '' : 'disabled'} aria-label="${longDay(d)}${open ? '' : ' (κλειστά)'}"><span>${WD[wdOf(d)]}</span><b>${d.getDate()}</b><span>${MON[d.getMonth()]}</span></button>`; }).join('')}</div>`;
+      if (!R.day) h += `<div class="empty">Διάλεξε ημέρα.</div>`;
+      else if (R.slots === null) h += `<div class="spin"></div>`;
+      else if (!R.slots.length) h += `<div class="empty">Δεν υπάρχει ελεύθερη ώρα ${longDay(R.day)}. Δοκίμασε άλλη μέρα.</div>`;
+      else h += `<div class="slots">${R.slots.map(t => `<button class="slot ${R.time === t ? 'on' : ''}" data-a="chgTime" data-v="${t}">${t}</button>`).join('')}</div>`;
+      if (S.err) h += `<div class="err">${esc(S.err)}</div>`;
+      h += `<button class="btn pri" data-a="chgDo" ${R.time && !S.busy ? '' : 'disabled'}>${S.busy ? 'Αλλαγή…' : R.time ? 'Αλλαγή σε ' + WD[wdOf(R.day)] + ' ' + R.day.getDate() + '/' + (R.day.getMonth() + 1) + ' ' + R.time : 'Διάλεξε ώρα'}</button>
+        <button class="btn ghost" data-a="chgNo">Άκυρο, μένει όπως είναι</button></div>`;
+    }
+  }
   if (x.status === 'booked'){
     if (x.can_cancel) h += `<div class="card"><div class="t2">Δεν μπορείς να έρθεις; Ακύρωσέ το για να το πάρει κάποια άλλη.</div>${S.confirmCancel ? `<button class="btn neg" data-a="cancelDo" ${S.busy ? 'disabled' : ''}>Ναι, ακύρωση του ραντεβού</button><button class="btn ghost" data-a="cancelNo">Όχι, θα έρθω</button>` : `<button class="btn neg" data-a="cancelAsk">Ακύρωση ραντεβού</button>`}${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
-    else h += `<div class="card"><div class="t2">Η online ακύρωση γίνεται έως ${x.cancel_hours} ώρες πριν. Για αλλαγή πάρε τηλέφωνο στο κατάστημα.</div></div>`;
+    else h += `<div class="card"><div class="t2">Η online αλλαγή ή ακύρωση γίνεται έως ${x.cancel_hours} ώρες πριν. Τώρα πάρε τηλέφωνο στο κατάστημα.</div></div>`;
   }
   if (x.status === 'cancelled' && x.store_id) h += `<a class="btn pri" href="${location.pathname}?s=${esc(x.slug || x.store_id)}" style="flex:none">Κλείσε νέο ραντεβού</a>`;
   m.innerHTML = h;
+}
+async function loadChgSlots(){
+  const R = S.R; R.slots = null; render();
+  const day = R.day;
+  try {
+    const { data, error } = await sb.rpc('book_change_slots', { p_token: TOKEN, p_date: ymd(day) });
+    if (error) throw error;
+    if (!S.R || day !== S.R.day) return;
+    R.slots = data.ok ? data.slots : [];
+    if (R.time && !R.slots.includes(R.time)) R.time = '';
+  } catch(_){ R.slots = []; S.err = 'Δεν υπάρχει σύνδεση. Δοκίμασε ξανά.'; }
+  render();
 }
 async function loadSlots(){
   S.slots = null; S.slotsErr = ''; render();
@@ -291,12 +321,20 @@ function firstOpenDay(){
   for (let i = 0; i <= I.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); if (I.open_days.includes(wdOf(d))) return d; }
   return null;
 }
-const REASONS = { busy:'Έγιναν πολλές κρατήσεις από αυτή τη σύνδεση. Δοκίμασε ξανά σε λίγα λεπτά ή πάρε τηλέφωνο στο κατάστημα.', error:'Κάτι πήγε στραβά. Δοκίμασε ξανά.', taken:'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.', phone:'Γράψε ένα σωστό ελληνικό τηλέφωνο (10 ψηφία).', name:'Γράψε το ονοματεπώνυμό σου.', limit:'Έχεις ήδη 3 online ραντεβού. Για περισσότερα πάρε τηλέφωνο.', date:'Η ημερομηνία δεν είναι διαθέσιμη.', services:'Κάποια υπηρεσία δεν είναι πια διαθέσιμη. Ξεκίνα από την αρχή.', disabled:'Οι online κρατήσεις δεν είναι διαθέσιμες αυτή τη στιγμή.' };
+// Ελληνικό κινητό/σταθερό (10 ψηφία) ή ξένο με +κωδικό χώρας. Επιστρέφει τον αριθμό για αποστολή ή null.
+function normPhone(raw){
+  const t = String(raw || '').trim(); let d = t.replace(/\D/g, ''); let intl = t.startsWith('+') || d.startsWith('00');
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('30') && d.length === 12){ d = d.slice(2); intl = false; }
+  if (!intl) return /^(69|2)\d{8}$/.test(d) ? d : null;
+  return /^[1-9]\d{7,14}$/.test(d) ? '+' + d : null;
+}
+const REASONS = { busy:'Έγιναν πολλές κρατήσεις από αυτή τη σύνδεση. Δοκίμασε ξανά σε λίγα λεπτά ή πάρε τηλέφωνο στο κατάστημα.', error:'Κάτι πήγε στραβά. Δοκίμασε ξανά.', taken:'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.', phone:'Γράψε σωστό τηλέφωνο: ελληνικό με 10 ψηφία ή ξένο με + και κωδικό χώρας (π.χ. +44…).', name:'Γράψε το ονοματεπώνυμό σου.', limit:'Έχεις ήδη 3 online ραντεβού. Για περισσότερα πάρε τηλέφωνο.', date:'Η ημερομηνία δεν είναι διαθέσιμη.', services:'Κάποια υπηρεσία δεν είναι πια διαθέσιμη. Ξεκίνα από την αρχή.', disabled:'Οι online κρατήσεις δεν είναι διαθέσιμες αυτή τη στιγμή.' };
 async function book(){
   S.name = (document.getElementById('fName') || {}).value || S.name; S.phone = (document.getElementById('fPhone') || {}).value || S.phone;
   S.note = (document.getElementById('fNote') || {}).value || ''; S.ok = !!(document.getElementById('fOk') || {}).checked;
-  const digits = S.phone.replace(/\D/g, '').replace(/^(0030|30)(?=\d{10}$)/, '');
-  S.bad = { name: S.name.trim().length < 2, phone: !/^(69|2)\d{8}$/.test(digits), ok: !S.ok };
+  const digits = normPhone(S.phone);
+  S.bad = { name: S.name.trim().length < 2, phone: !digits, ok: !S.ok };
   if (S.bad.name || S.bad.phone || S.bad.ok){ S.err = S.bad.phone && !S.bad.name ? REASONS.phone : S.bad.ok && !S.bad.name && !S.bad.phone ? 'Χρειάζεται η συγκατάθεσή σου για να κλείσει το ραντεβού.' : 'Συμπλήρωσε τα πεδία με κόκκινο.'; render(); return; }
   S.busy = true; S.err = ''; render();
   try {
@@ -333,6 +371,22 @@ document.addEventListener('click', async e => {
   else if (a === 'book') book();
   else if (a === 'demoReset'){ Object.assign(S, { step: 1, sel: [], tech: '', day: null, slots: null, slotsErr: '', time: '', name: '', phone: '', note: '', ok: false, err: '', bad: {}, busy: false, done: null, _scrolled: false }); window.scrollTo(0, 0); render(); }
   else if (a === 'copy'){ try { await navigator.clipboard.writeText(v); b.textContent = 'Αντιγράφηκε ✓'; } catch(_){ prompt('Αντέγραψε τον σύνδεσμο:', v); } }
+  else if (a === 'chgOpen'){ S.R = { day: null, slots: null, time: '' }; S.err = ''; const x = S.M, t0 = pd(x.today);
+    for (let i = 0; i <= x.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); if ((x.open_days || []).includes(wdOf(d))){ S.R.day = d; break; } }
+    if (S.R.day) loadChgSlots(); else render(); }
+  else if (a === 'chgNo'){ S.R = null; S.err = ''; render(); }
+  else if (a === 'chgDay'){ S.R.day = pd(v); S.R.time = ''; loadChgSlots(); }
+  else if (a === 'chgTime'){ S.R.time = v; S.err = ''; render(); }
+  else if (a === 'chgDo'){
+    S.busy = true; S.err = ''; render();
+    try {
+      const { data, error } = await sb.rpc('book_reschedule', { p_token: TOKEN, p_date: ymd(S.R.day), p_time: S.R.time }); if (error) throw error;
+      if (!data.ok){ S.err = data.reason === 'taken' ? 'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.' : data.reason === 'late' ? 'Πέρασε το όριο για online αλλαγή. Πάρε τηλέφωνο στο κατάστημα.' : 'Δεν ήταν δυνατή η αλλαγή.'; S.busy = false; if (data.reason === 'taken'){ S.R.time = ''; loadChgSlots(); return; } render(); return; }
+      const r = await sb.rpc('book_manage', { p_token: TOKEN }); if (!r.error) S.M = r.data;
+      S.R = null; S.okMsg = 'Το ραντεβού σου άλλαξε ✓'; window.scrollTo(0, 0);
+    } catch(_){ S.err = 'Δεν υπάρχει σύνδεση. Δοκίμασε ξανά.'; }
+    S.busy = false; render();
+  }
   else if (a === 'cancelAsk'){ S.confirmCancel = true; render(); }
   else if (a === 'cancelNo'){ S.confirmCancel = false; render(); }
   else if (a === 'cancelDo'){

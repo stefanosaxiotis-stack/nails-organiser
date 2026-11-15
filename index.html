@@ -21,10 +21,10 @@
   --bg:#F6F6F7; --surface:#FFFFFF; --chip:#F3F4F6; --track:#E5E7EB; --line:#E5E7EB;
   --ink:#1F2937; --ink2:#4B5563; --muted:#6B7280;
   --head:#1F2937; --head2:#374151; --headmuted:#D1D5DB;
-  --teal:#BE185D; --tealbg:#FCE7F3; --tealink:#9D174D; --pink:#EC4899;
+  --teal:#BE185D; --tealbg:#FCE7F3; --tealink:#9D174D; --pink:#BE185D;
   --primary:#1F2937; --onprimary:#FFFFFF;
-  --coral:#C8455F; --neg:#B3344F; --negbg:#FBE7EB; --pos:#2F7D4F; --posbg:#DDEFE2;
-  --lilac:#F3F4F6; --gold:#7A4E14; --goldbg:#FBF3E6; --amber:#B9772A;
+  --coral:#C8455F; --neg:#B3344F; --negbg:#FBE7EB; --pos:#1F6B3F; --posbg:#DDEFE2;
+  --lilac:#F3F4F6; --gold:#7A4E14; --goldbg:#FBF3E6; --amber:#8A5A12;
   --winter:#1F5FA8; --winterbg:#DCE9F8; --summer:#A0521C; --summerbg:#FBEBDD;
   --hatch:#EEEFF2; --scrim:rgba(17,24,39,.45); --staff:#E5E7EB; --staffink:#374151;
   --font-display:Manrope, system-ui, sans-serif;
@@ -60,7 +60,7 @@ nav button svg{width:22px;height:22px}
 .subbar{display:flex;gap:10px;align-items:center;background:var(--goldbg);color:var(--gold);padding:9px 16px;font-size:13px;line-height:1.4}
 .subbar.neg{background:var(--negbg);color:var(--neg)}
 .gap{justify-content:flex-start!important;padding-top:4px}
-.gap .gh{position:absolute;left:0;right:0;text-align:center;font-size:10px;opacity:.75;pointer-events:none}
+.gap .gh{position:absolute;left:0;right:0;text-align:center;font-size:12px;opacity:.75;pointer-events:none}
 nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3px;border-radius:2px;background:var(--pink)}
 .badge{position:absolute;top:-4px;right:calc(50% - 22px);min-width:18px;height:18px;border-radius:9px;background:var(--coral);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
 .card{background:var(--surface);border-radius:22px;padding:16px}
@@ -82,22 +82,22 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .btn.primary{background:var(--primary);color:var(--onprimary)}.btn.navy{background:var(--ink);color:var(--surface)}
 .btn.ghost{background:var(--surface);border:1.5px solid var(--line);color:var(--ink)}.btn.danger{background:var(--negbg);color:var(--neg)}
 .btn.split{justify-content:space-between}
-.lbl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lbl{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600}
 .big{font-size:38px;font-weight:800;letter-spacing:-1px;line-height:1.1}
 .stat{background:var(--chip);border-radius:12px;padding:6px 12px;font-size:13px;color:var(--ink2)}.stat b{color:var(--ink)}
 .svcrow{display:flex;align-items:center;border-top:1px solid var(--line)}
 .card.flush .svcrow:first-child{border-top:none}
 .svcrow .row{border-top:none;flex:1;min-width:0;padding-right:8px}
-.svcrow .web{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 14px 0 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.svcrow .web{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 14px 0 4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .row{display:flex;align-items:center;gap:12px;padding:12px 16px;border:none;border-top:1px solid var(--line);width:100%;background:none;text-align:left;min-height:56px}
 .row:first-child{border-top:none}
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;background:var(--lilac);color:var(--ink)}
 .t1{font-size:15px;font-weight:700}.t2{font-size:12px;color:var(--muted);margin-top:2px}
-.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:8px;padding:2px 8px}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:8px;padding:2px 8px}
 .t-teal{background:var(--tealbg);color:var(--tealink)}.t-lilac{background:var(--lilac);color:var(--ink)}.t-gray{background:var(--chip);color:var(--muted)}.t-neg{background:var(--negbg);color:var(--neg)}.t-gold{background:var(--goldbg);color:var(--gold)}
 .mk{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;border-radius:6px;min-width:18px;height:18px;padding:0 4px;background:var(--winterbg);color:var(--winter)}
 .mk.m-x{background:var(--winterbg);color:var(--winter)}.mk.m-k{background:var(--summerbg);color:var(--summer)}.mk.m-v{background:var(--goldbg);color:var(--gold)}.mk.m-ns{background:var(--negbg);color:var(--neg)}.mk.m-bd{background:var(--posbg);color:var(--pos)}
-.stage{font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
+.stage{font-size:12px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
 .st-new{background:var(--tealbg);color:var(--tealink)}.st-once,.st-none{background:var(--chip);color:var(--muted)}.st-regular{background:var(--posbg);color:var(--pos)}.st-late{background:var(--goldbg);color:var(--gold)}.st-lost{background:var(--negbg);color:var(--neg)}
 .hs{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}.hs::-webkit-scrollbar{display:none}
 .hs .pill{flex-shrink:0}.pill .ct{font-size:11px;opacity:.7}
@@ -106,7 +106,7 @@ nav button.on::before{content:"";position:absolute;top:-8px;width:32px;height:3p
 .why{background:var(--chip);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:8px}
 .why div{display:flex;gap:8px;align-items:flex-start;line-height:1.4}
 .months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
-.months div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--muted)}
+.months div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--muted)}
 .months i{display:block;width:100%;height:34px;border-radius:5px;background:var(--chip);position:relative;overflow:hidden}
 .months i.sea{outline:1.5px dashed var(--summer);outline-offset:-1.5px}
 .months i b{position:absolute;left:0;right:0;bottom:0;background:var(--teal)}
@@ -133,7 +133,7 @@ textarea.inp{height:auto;min-height:80px;line-height:1.4;padding:12px 14px;resiz
 .chev{color:var(--muted);flex-shrink:0}
 select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;padding:0 30px 0 10px;background-position:right 10px center;border-radius:12px}
 .pgrid{display:grid;grid-template-columns:minmax(0,1fr) 116px 116px;gap:8px;align-items:center}
-.pgrid .h{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
+.pgrid .h{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-align:center}
 .field.bad>label{color:var(--neg)}
 .field.bad>label::after{content:" · Υποχρεωτικό";font-weight:600;font-size:12px}
 .field.bad .inp:not(.ok),.field.bad .svc:not(.on),.inp.bad{border-color:var(--neg)!important;background:var(--negbg)}
@@ -142,8 +142,8 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .blk.ovl{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg)}
 .plt{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr) 20px;gap:6px;align-items:center;padding:9px 8px;font-size:13.5px;font-variant-numeric:tabular-nums;border:none;border-top:1px solid var(--line);background:none;color:var(--ink);text-align:left;width:100%;border-radius:10px;font-family:inherit}
 .plt span:nth-child(2),.plt span:nth-child(3),.plt span:nth-child(4){text-align:right}
-.plt.th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:none}
-.plt .pc{display:block;font-size:11px;font-weight:600;color:var(--muted);font-style:normal}
+.plt.th{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:none}
+.plt .pc{display:block;font-size:12px;font-weight:600;color:var(--muted);font-style:normal}
 .blk.oss{box-shadow:inset 0 0 0 2px var(--neg),0 0 0 1.5px var(--bg);background:var(--negbg)!important;color:var(--ink)}
 .blk .osb{color:var(--neg);font-size:13px;line-height:1;flex-shrink:0}
 .col.offcol .blk{opacity:1}
@@ -157,14 +157,14 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .sst .hd span{font-weight:400;color:var(--muted);font-size:12px}
 .pp{display:inline-flex;align-items:center;gap:6px;border-radius:12px;padding:4px 10px 4px 4px;font-size:13px;font-weight:600;background:var(--chip)}
 .pp.me{background:var(--tealbg);color:var(--tealink);box-shadow:inset 0 0 0 1.5px var(--teal)}
-.pp small{font-weight:500;color:var(--muted);font-size:11px}.pp.me small{color:var(--tealink)}
+.pp small{font-weight:500;color:var(--muted);font-size:12px}.pp.me small{color:var(--tealink)}
 .soff{font-size:12px;color:var(--muted)}
 .shrs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:6px}
 .ga{display:flex;flex-direction:column;gap:10px}
 .gday{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:start}
 .gday + .gday{border-top:1px solid var(--line);padding-top:10px}
 .gday .dn{font-weight:800;font-size:13px;line-height:1.1;padding:3px 0 0;border:none;background:none;text-align:left;color:var(--ink)}
-.gday .dn small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.gday .dn small{display:block;font-weight:500;color:var(--muted);font-size:12px}
 .gday.today .dn{color:var(--teal)}
 .lanes{position:relative;display:flex;flex-direction:column;gap:4px;padding-block:2px;min-width:0}
 .lanes .grid{position:absolute;inset:0;pointer-events:none}
@@ -173,10 +173,10 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .bar .av{width:24px;height:24px;font-size:10px;border:2px solid var(--surface)}
 .bar small{font-weight:500;opacity:.8}
 .bar.me{box-shadow:inset 0 0 0 2px var(--teal)}
-.offrow{font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.offrow{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .offrow .av{width:20px;height:20px;font-size:9px;opacity:.6}
 .axis{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px}
-.axis div{position:relative;height:14px;font-size:10px;color:var(--muted)}
+.axis div{position:relative;height:14px;font-size:12px;color:var(--muted)}
 .axis span{position:absolute;transform:translateX(-50%)}
 .axis span:first-child{transform:none}.axis span:last-child{transform:translateX(-100%)}
 .catbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:13px}
@@ -203,7 +203,7 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .sum div{background:var(--surface);border-radius:16px;padding:10px 12px}
 .sum b{display:block;font-size:22px;font-weight:800;line-height:1.1}
-.sum span{font-size:11px;color:var(--muted)}
+.sum span{font-size:12px;color:var(--muted)}
 .todo{background:var(--surface);border-radius:18px;padding:12px 12px 12px 14px;display:flex;align-items:center;gap:12px;border:none;width:100%;text-align:left;min-height:64px}
 .todo .ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
 .todo .tx{flex:1;min-width:0}
@@ -212,7 +212,7 @@ select.inp.sm{height:40px;min-height:40px;line-height:40px;font-size:14px;paddin
 .allok{background:var(--posbg);color:var(--pos);border-radius:18px;padding:16px;text-align:center;font-weight:700}
 .aprow{background:var(--surface);border-radius:16px;padding:12px;display:flex;align-items:center;gap:12px;width:100%;border:none;text-align:left}
 .aprow .tm{font-weight:800;font-size:16px;width:50px;flex-shrink:0}
-.pillst{font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
+.pillst{font-size:12px;font-weight:700;border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0}
 .ps-book{background:var(--lilac);color:var(--ink)}.ps-conf{background:var(--posbg);color:var(--pos)}.ps-wait{background:var(--goldbg);color:var(--gold)}.ps-chg{background:var(--negbg);color:var(--neg)}.ps-here{background:var(--tealbg);color:var(--tealink)}.ps-paid{background:var(--chip);color:var(--muted)}
 .moremenu{background:var(--chip);border-radius:16px;overflow:hidden}
 .moremenu>*{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;text-align:left;padding:14px 16px;font-weight:600;border-top:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:15px}
@@ -229,31 +229,32 @@ details.adv summary::after{content:"›";margin-left:auto;color:var(--muted);fon
 details.adv[open] summary::after{transform:rotate(90deg)}
 /* μήνας */
 .cal-h,.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-.cal-h div{text-align:center;font-size:11px;color:var(--muted)}
+.cal-h div{text-align:center;font-size:12px;color:var(--muted)}
 .dcell{border:1px solid var(--line);background:var(--surface);border-radius:12px;min-height:66px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink)}
-.dcell .n{font-size:14px;font-weight:700}.dcell .c{font-size:10px;color:var(--muted)}
+.dcell .n{font-size:14px;font-weight:700}.dcell .c{font-size:12px;color:var(--muted)}
 .dcell.past{background:var(--chip);border-color:var(--chip)}
 .dcell.closed{background:transparent;border-style:dashed;color:var(--muted)}
 .dcell.blank{visibility:hidden}
 .dcell.today{border:2.5px solid var(--teal)!important;box-shadow:0 0 0 2px var(--tealbg)}
 .dcell.today .n{color:var(--teal);font-weight:800}
-.dcell .rev{font-size:10px;font-weight:700;color:var(--pos);margin-top:auto}
+.dcell .rev{font-size:12px;font-weight:700;color:var(--pos);margin-top:auto}
 .avail{width:70%;height:4px;border-radius:2px;background:var(--track);margin-top:auto;overflow:hidden}.avail i{display:block;height:4px;border-radius:2px}
 .fr-hi{background:var(--posbg)!important;border-color:var(--posbg)!important}.fr-mid{background:var(--goldbg)!important;border-color:var(--goldbg)!important}.fr-full{background:var(--negbg)!important;border-color:var(--negbg)!important}
-.legend{display:flex;gap:14px;justify-content:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.legend{display:flex;gap:14px;justify-content:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
 .legend span{display:flex;align-items:center;gap:5px}.legend i{width:10px;height:10px;border-radius:3px;display:block}
 /* ημέρα */
 .tl{display:flex;position:relative}
-.tl .hours{width:42px;position:relative;font-size:11px;color:var(--muted);flex-shrink:0}
+.tl .hours{width:42px;position:relative;font-size:12px;color:var(--muted);flex-shrink:0}
 .tl .col{flex:1;min-width:0;position:relative;border-left:1px solid var(--line)}
 .tl .hl{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.bufband{position:absolute;left:3px;right:3px;border-radius:0 0 8px 8px;background:repeating-linear-gradient(135deg,var(--chip) 0 6px,var(--line) 6px 8px);opacity:.9;pointer-events:none}
 .blk{position:absolute;left:3px;right:3px;border-radius:10px;padding:4px 7px;font-size:12px;line-height:1.3;overflow:hidden;border:none;text-align:left;box-shadow:0 0 0 1.5px var(--bg)}
 .blk.short{display:flex;align-items:center;gap:6px;padding:0 7px;white-space:nowrap}
 .blk.short b{flex-shrink:0}
 .blk.short .sv{overflow:hidden;text-overflow:ellipsis;color:inherit;opacity:.8}
 .blk b{font-weight:700;display:flex;gap:4px;align-items:center;white-space:nowrap;overflow:hidden}
 .b-booked{background:var(--lilac);color:var(--ink)}.b-arrived{background:var(--tealbg);color:var(--tealink)}.b-done{background:var(--chip);color:var(--muted)}
-.gap{position:absolute;left:3px;right:3px;border-radius:10px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gap{position:absolute;left:3px;right:3px;border-radius:10px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .offcol{background:repeating-linear-gradient(135deg,var(--hatch) 0 6px,transparent 6px 12px);display:flex;align-items:center;justify-content:center}
 .slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .slot{border:1.5px solid var(--line);border-radius:14px;min-height:44px;background:var(--surface);font-size:15px;color:var(--ink)}
@@ -283,6 +284,7 @@ select.inp{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xm
 .svc .box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:transparent;font-size:13px}
 .svc.on .box{background:var(--teal);border-color:var(--teal);color:#fff}
 .err{color:var(--neg);font-size:13px;font-weight:600}
+.ok-note{background:var(--tealbg);color:var(--tealink);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600}
 .banner{border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center;background:var(--goldbg);color:var(--gold)}
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;z-index:30;max-width:calc(100% - 32px);text-align:center}
 .lock{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
@@ -510,15 +512,19 @@ function shiftOf(storeId, d, memberId){
   const a = Math.max(h[0], toTime(sc.starts)), b = Math.min(h[1], toTime(sc.ends));
   return b > a ? [a, b] : null;
 }
+// Χρόνος καθαρισμού (λεπτά) μετά από ένα ραντεβού ή για νέες υπηρεσίες: ο μεγαλύτερος των υπηρεσιών, αλλιώς ο γενικός
+const bufGen = () => Number((S.ctx.settings || {}).buffer_min || 0);
+const svcBuf = ids => { const L = (ids || []).map(id => S.ctx.services.find(x => x.id === id)).filter(Boolean); return L.length ? Math.max(...L.map(x => x.buffer_min ?? bufGen())) : bufGen(); };
+const apBuf = a => svcBuf((a.appointment_services || []).map(x => x.service_id));
 function gapsFor(storeId, d, techId, appts){
   const h = shiftOf(storeId, d, techId); if (!h) return [];
   const list = appts.filter(a => a.tech_id === techId && sameDay(new Date(a.starts_at), d) && ['booked','arrived','done'].includes(a.status))
-                    .map(a => [minsOf(a.starts_at), minsOf(a.ends_at)]).sort((a,b) => a[0]-b[0]);
+                    .map(a => [minsOf(a.starts_at), minsOf(a.ends_at) + apBuf(a)]).sort((a,b) => a[0]-b[0]);
   let m = h[0];
   if (sameDay(d, today())) { const n = new Date(); const now = Math.ceil((n.getHours()*60 + n.getMinutes())/15)*15; m = Math.max(m, now); }
   const out = [];
-  list.forEach(([s,e]) => { if (s - m >= 30) out.push([m, s]); m = Math.max(m, e); });
-  if (h[1] - m >= 30) out.push([m, h[1]]);
+  list.forEach(([s,e]) => { if (s - m >= 30) out.push([m, s, false]); m = Math.max(m, e); });
+  if (h[1] - m >= 30) out.push([m, h[1], true]);
   return out;
 }
 
@@ -595,7 +601,7 @@ function marks(sg, opt){
   if (sg.vip) h += '<span class="mk m-v" title="VIP">★</span>';
   if (sg.winter) h += '<span class="mk m-x" title="Πελάτισσα χειμώνα">Χ</span>';
   if (sg.summer) h += '<span class="mk m-k" title="Πελάτισσα καλοκαιριού">Κ</span>';
-  if (opt && opt.ns && sg.no_shows) h += `<span class="mk m-ns" title="Δεν ήρθε ${sg.no_shows} φορές">NS${sg.no_shows > 1 ? ' ' + sg.no_shows : ''}</span>`;
+  if (opt && opt.ns && sg.no_shows) h += `<span class="mk m-ns" title="Δεν ήρθε ${sg.no_shows} φορές" style="padding:0 6px">Δεν ήρθε${sg.no_shows > 1 ? ' ×' + sg.no_shows : ''}</span>`;
   if (sg.birthday_soon) h += '<span class="mk m-bd" title="Γενέθλια σύντομα">🎂</span>';
   return h;
 }
@@ -680,7 +686,7 @@ async function afterConf(){
 }
 function genPw(){ const a = 'abcdefghjkmnpqrstuvwxyz', A = 'ABCDEFGHJKLMNPQRSTUVWXYZ', d = '23456789'; const r = s => s[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 * s.length)];
   return r(A) + r(a) + r(a) + r(a) + r(a) + '-' + r(d) + r(d) + r(d) + r(d); }
-const TAB_NAMES = { appts:'Ραντεβού', clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'P&L' };
+const TAB_NAMES = { appts:'Ραντεβού', clients:'Πελάτες', cash:'Ταμείο', expenses:'Έξοδα', pl:'Κέρδη & ζημιές' };
 const LV_NAMES = { none:'Όχι', view:'Βλέπει', write:'Γράφει', full:'Πλήρης' };
 const tgl = (on, a, v, label) => `<button class="tg ${on?'on':''}" data-a="${a}" ${v != null ? `data-v="${v}"` : ''} aria-pressed="${!!on}" aria-label="${esc(label||'')}"><span class="k"></span></button>`;
 const hhmm = t => t ? String(t).slice(0, 5) : '';
@@ -889,7 +895,8 @@ function todoList(){
   if (sw && wr) L.push({ c:'red', ic:'⚡', t1:`${sw} ${sw === 1 ? 'ραντεβού θέλει αλλαγή' : 'ραντεβού θέλουν αλλαγή'}`, t2:'Κλεισμένα εκτός προγράμματος (ρεπό, κλειστό ή εκτός βάρδιας)', a: sw === 1 ? 'openApptObj' : 'tab', v: sw === 1 ? S.td.stray[0].id : 'stray', go:'Δες', urgent: true });
   const un = S.td.unpaid.length;
   if (un && can('cash','write')) L.push({ c:'red', ic:'€', t1:`${un} ${un === 1 ? 'ραντεβού δεν πληρώθηκε' : 'ραντεβού δεν πληρώθηκαν'}`, t2:'Πέρασε η ώρα τους', a: un === 1 ? 'openApptObj' : 'tab', v: un === 1 ? S.td.unpaid[0].id : 'unpaid', go:'Δες', urgent: true });
-  if (can('cash','write') && !S.td.cashClosed) L.push({ c:'gray', ic:'▣', t1:'Κλείσιμο ταμείου', t2:'Στο τέλος της μέρας', a:'tab', v:'cash', go:'Άνοιξε' });
+  const cashIdle = !storeHours(S.store, today()) && !(S.td.appts || []).some(a => a.status === 'done');
+  if (can('cash','write') && !S.td.cashClosed && !cashIdle) L.push({ c:'gray', ic:'▣', t1:'Κλείσιμο ταμείου', t2:'Στο τέλος της μέρας', a:'tab', v:'cash', go:'Άνοιξε' });
   return L;
 }
 const todoCount = () => todoList().filter(x => x.urgent).length;
@@ -1250,6 +1257,8 @@ function render(){
   const app = document.getElementById('app');
   if (S.loading) { app.innerHTML = '<div class="center" style="height:100%"><div class="spin"></div></div>'; return; }
   if (!S.session) { app.innerHTML = renderLogin(); return; }
+  if (S.mfaNeed) { app.innerHTML = renderMfaGate(); return; }
+  if (S.pwForce) { app.innerHTML = renderPwForce(); return; }
   if (!S.ctx) {
     if (S.super) { app.innerHTML = renderSuper(); return; }
     app.innerHTML = `<div class="login"><h1 class="brand"><img src="icons/icon-192.png" alt="" width="40" height="40">kalenda</h1><div class="card">Ο λογαριασμός σου δεν ανήκει ακόμα σε κάποια επιχείρηση ή έχει απενεργοποιηθεί. Μίλα με τον υπεύθυνο του καταστήματος.</div><button class="btn ghost" data-a="logout">Αποσύνδεση</button></div>`; return;
@@ -1260,7 +1269,7 @@ function render(){
   if (S.tab === 'appts' && S.day && S.view === 'cal'){
     const n = S.dayAppts.length;
     head = `<button class="rbtn sq" data-a="dayStep" data-v="-1" aria-label="Προηγούμενη μέρα">${I.back}</button>
-      <button style="flex:1;min-width:0;border:none;background:none;color:#fff;text-align:center;padding:0" data-a="toMonth" aria-label="Πίσω στον μήνα"><h1 style="font-size:17px">${WD[wdOf(S.day)]} ${S.day.getDate()} ${MSHORT[S.day.getMonth()]}</h1><div class="sub">${n} ραντεβού</div></button>
+      <button style="flex:1;min-width:0;border:none;background:none;color:#fff;text-align:center;padding:0" data-a="toMonth" aria-label="Πίσω στον μήνα"><h1 style="font-size:17px">${dlabel(S.day)}</h1><div class="sub">${n} ραντεβού</div></button>
       <button class="rbtn sq" data-a="dayStep" data-v="1" aria-label="Επόμενη μέρα">${I.fwd}</button>
       <button class="tg dark ${S.freeOnly?'on':''}" data-a="freeOnly" aria-pressed="${S.freeOnly}"><span class="k"></span>Κενά</button>`;
   } else if (S.tab === 'today'){
@@ -1271,10 +1280,10 @@ function render(){
     const tt = { conf:'Επιβεβαιώσεις', unpaid:'Απλήρωτα ραντεβού', stray:'Εκτός προγράμματος', wait:'Λίστα αναμονής', more:'Περισσότερα' }[S.tab];
     head = `${S.tab !== 'more' ? `<button class="rbtn sq" data-a="tab" data-v="${S.tab === 'wait' ? (S.waitBack || 'more') : 'today'}" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${tt}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else if (S.tab === 'settings'){
-    const pt = { online:'Online κρατήσεις', confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Πελάτες & segment', cash:'Ταμείο', audit:'Ιστορικό αλλαγών', export:'Εξαγωγή δεδομένων' }[S.set.page];
+    const pt = { online:'Online κρατήσεις', confirm:'Επιβεβαίωση ραντεβού', hours:'Ωράριο καταστημάτων', team:'Ομάδα', perm:'Δικαιώματα', services:'Υπηρεσίες', seg:'Ομάδες πελατών', cash:'Ταμείο', audit:'Ιστορικό αλλαγών', export:'Εξαγωγή δεδομένων' }[S.set.page];
     head = `<button class="rbtn sq" data-a="setBack" aria-label="Πίσω">${I.back}</button><div style="flex:1;min-width:0"><h1>${pt || 'Ρυθμίσεις'}</h1><div class="sub">${esc(S.ctx.org.name)}</div></div>`;
   } else {
-    const titles = { wait:'Λίστα αναμονής', appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'P&L' };
+    const titles = { wait:'Λίστα αναμονής', appts: S.ctx.org.name, clients:'Πελάτες', cash:'Ταμείο', sched:'Πρόγραμμα εργασίας', expenses:'Έξοδα', pl:'Κέρδη & ζημιές' };
     const d = today(), fromMore = !isTech() && ['sched','expenses','pl'].includes(S.tab);
     head = `${fromMore ? `<button class="rbtn sq" data-a="tab" data-v="more" aria-label="Πίσω">${I.back}</button>` : ''}<div style="flex:1;min-width:0"><h1>${esc(titles[S.tab])}</h1><div class="sub">${WDF[wdOf(d)]}, ${d.getDate()} ${MSHORT[d.getMonth()]} · ${ROLE_NAME[m.role]}</div></div>
       <button class="rbtn" data-a="refresh" aria-label="Ανανέωση">${I.refresh}</button>`;
@@ -1300,8 +1309,67 @@ function renderLogin(){
       ${S.loginErr ? `<div class="err">${esc(S.loginErr)}</div>` : ''}
       <button class="btn primary" type="submit" ${S.busy?'disabled':''}>${S.busy?'Σύνδεση…':'Σύνδεση'}</button>
     </div>
-    <div style="font-size:12px;color:var(--muted);text-align:center">Ξέχασες τον κωδικό; Ζήτα από τον υπεύθυνο του καταστήματος να σου ορίσει νέο.</div>
+    ${S.forgot ? `<div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <div class="t1">Ξέχασα τον κωδικό</div>
+      <div class="t2"><b>Δουλεύεις στο κατάστημα;</b> Ζήτα από τον υπεύθυνο να σου ορίσει προσωρινό κωδικό. Στην επόμενη σύνδεση θα βάλεις δικό σου.</div>
+      <div class="t2"><b>Είσαι ο υπεύθυνος (admin);</b> Γράψε το email σου στο πεδίο Email πιο πάνω και πάτα «Στείλε μου σύνδεσμο».</div>
+      ${S.forgot === 'sent' ? '<div class="ok-note">Αν το email ανήκει σε λογαριασμό, θα λάβεις σε λίγα λεπτά σύνδεσμο για νέο κωδικό. Κοίτα και στα ανεπιθύμητα.</div>' : `<button class="btn ghost" type="button" data-a="pwReset" ${S.busy?'disabled':''}>Στείλε μου σύνδεσμο</button>`}
+    </div>` : `<button type="button" class="linkbtn" data-a="forgot">Ξέχασα τον κωδικό</button>`}
   </form>`;
+}
+// ===== Ασφάλεια λογαριασμού: δικός σου κωδικός, νέος κωδικός από email, 2ο βήμα παρόχου =====
+function pwFields(err){
+  return `<div class="field"><label for="pwNew">Νέος κωδικός</label><input id="pwNew" class="inp" type="password" autocomplete="new-password" minlength="8"></div>
+    <div class="field"><label for="pwNew2">Ξανά τον νέο κωδικό</label><input id="pwNew2" class="inp" type="password" autocomplete="new-password" minlength="8"></div>
+    <div class="t2">Τουλάχιστον 8 χαρακτήρες. Μην τον λες σε κανέναν, ούτε στον υπεύθυνο.</div>
+    ${err ? `<div class="err">${esc(err)}</div>` : ''}`;
+}
+function renderPwForce(){
+  const why = S.pwForce === 'recovery' ? 'Βάλε νέο κωδικό για τον λογαριασμό σου.' : 'Ο κωδικός σου ορίστηκε από τον υπεύθυνο. Για ασφάλεια, βάλε τώρα δικό σου κωδικό, που θα ξέρεις μόνο εσύ.';
+  return `<div class="login">
+    <div><h1 class="brand"><img src="icons/icon-192.png" alt="" width="40" height="40">kalenda</h1><div style="color:var(--muted);margin-top:6px">${esc(S.session.user.email || '')}</div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px"><div class="t1">Δικός σου κωδικός</div><div class="t2">${why}</div>${pwFields(S.pwErr)}
+      <button class="btn primary" data-a="pwSave" ${S.busy?'disabled':''}>${S.busy?'Αποθήκευση…':'Αποθήκευση κωδικού'}</button></div>
+    <button class="btn ghost" data-a="logout">Αποσύνδεση</button></div>`;
+}
+function renderMfaGate(){
+  return `<div class="login">
+    <div><h1 class="brand"><img src="icons/icon-192.png" alt="" width="40" height="40">kalenda</h1><div style="color:var(--muted);margin-top:6px">Επιβεβαίωση 2 βημάτων</div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div class="t2">Άνοιξε στο iPhone την εφαρμογή <b>Συνθηματικά</b> (ή την εφαρμογή Authenticator που χρησιμοποιείς), βρες το «Kalenda» και γράψε τον 6ψήφιο κωδικό.</div>
+      <div class="field"><label for="mfaCode">Κωδικός 6 ψηφίων</label><input id="mfaCode" class="inp num" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="font-size:22px;letter-spacing:6px;text-align:center"></div>
+      ${S.mfaErr ? `<div class="err">${esc(S.mfaErr)}</div>` : ''}
+      <button class="btn primary" data-a="mfaGo" ${S.busy?'disabled':''}>${S.busy?'Έλεγχος…':'Συνέχεια'}</button></div>
+    <button class="btn ghost" data-a="logout">Αποσύνδεση</button></div>`;
+}
+function renderPwSheet(){
+  const sh = S.sheet;
+  return sheet('Αλλαγή κωδικού', pwFields(sh.err), `<button class="btn primary" data-a="pwSave" ${sh.busy?'disabled':''}>${sh.busy?'Αποθήκευση…':'Αποθήκευση'}</button>`);
+}
+function renderSaMeSheet(){
+  const sh = S.sheet, f = sh.factor;
+  let b = `<div class="t1">${esc(S.session.user.email || '')}</div><div class="t2">Λογαριασμός παρόχου</div>
+    <button class="btn ghost" data-a="pwOpen">Αλλαγή κωδικού</button>
+    <div class="t1" style="margin-top:6px">Επιβεβαίωση 2 βημάτων</div>`;
+  if (sh.loading) b += '<div class="spin"></div>';
+  else if (f && f.status === 'verified') b += `<div class="ok-note">✓ Ενεργή. Σε κάθε σύνδεση θα σου ζητάει και τον 6ψήφιο κωδικό από το iPhone.</div>
+    <div class="t2">Αν χάσεις το κινητό, η απενεργοποίηση γίνεται μόνο από τη βάση (Supabase → Authentication → Users → MFA factors).</div>`;
+  else if (sh.qr) b += `<div class="t2"><b>1.</b> Στο iPhone άνοιξε την κάμερα ή την εφαρμογή <b>Συνθηματικά</b> και σκάναρε τον κωδικό QR.</div>
+    <div style="background:#fff;border-radius:16px;padding:12px;align-self:center"><img src="${esc(sh.qr)}" alt="Κωδικός QR" width="190" height="190"></div>
+    <div class="t2">Δεν σκανάρει; Πρόσθεσε χειροκίνητα το κλειδί: <span class="num" style="user-select:all;word-break:break-all">${esc(sh.secret || '')}</span></div>
+    <div class="t2"><b>2.</b> Γράψε εδώ τον 6ψήφιο κωδικό που εμφανίζεται για το «Kalenda».</div>
+    <div class="field"><input id="mfaCode" class="inp num" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="font-size:22px;letter-spacing:6px;text-align:center"></div>`;
+  else b += `<div class="t2">Ανενεργή. Με την ενεργοποίηση, εκτός από τον κωδικό θα χρειάζεται και ένας 6ψήφιος κωδικός από το iPhone σου, που αλλάζει κάθε 30 δευτερόλεπτα.</div>`;
+  if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
+  const foot = sh.loading || (f && f.status === 'verified') ? '' : sh.qr
+    ? `<button class="btn primary" data-a="mfaEnrollOk" ${sh.busy?'disabled':''}>${sh.busy?'Έλεγχος…':'Ενεργοποίηση'}</button>`
+    : `<button class="btn primary" data-a="mfaEnroll" ${sh.busy?'disabled':''}>Ξεκίνα την ενεργοποίηση</button>`;
+  return sheet('Ο λογαριασμός μου', b, foot);
+}
+async function loadSaMe(){
+  const sh = S.sheet;
+  const { data } = await sb.auth.mfa.listFactors();
+  sh.factor = ((data && data.totp) || []).find(x => x.status === 'verified') || null; sh.loading = false; paint();
 }
 // ===== Panel παρόχου (super admin) =====
 const APP_DIR = location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, ''); // φάκελος της εφαρμογής, τελειώνει σε /
@@ -1336,7 +1404,7 @@ function renderSuper(){
     </div>`;
   }).join('');
   return `<div class="sa">
-    <div class="sa-h"><h1>Επιχειρήσεις</h1><button class="rbtn" data-a="saReload" aria-label="Ανανέωση">${I.refresh}</button><button class="rbtn" data-a="logout" aria-label="Αποσύνδεση" style="font-size:12px;width:auto;padding:0 12px;border-radius:999px">Έξοδος</button></div>
+    <div class="sa-h"><h1>Επιχειρήσεις</h1><button class="rbtn" data-a="saReload" aria-label="Ανανέωση">${I.refresh}</button><button class="rbtn" data-a="saMe" aria-label="Ο λογαριασμός μου" style="font-size:12px;width:auto;padding:0 12px;border-radius:999px">Λογαριασμός</button><button class="rbtn" data-a="logout" aria-label="Αποσύνδεση" style="font-size:12px;width:auto;padding:0 12px;border-radius:999px">Έξοδος</button></div>
     <button class="sa-newbtn" data-a="saNewOrg">+ Νέα επιχείρηση</button>
     ${orgs.length ? cards : '<div class="card">Καμία επιχείρηση ακόμη.</div>'}
   </div>
@@ -1345,6 +1413,8 @@ function renderSuper(){
   ${S.sheet && S.sheet.type === 'saNewStore' ? renderNewStoreSheet() : ''}
   ${S.sheet && S.sheet.type === 'saAddAdmin' ? renderAddAdminSheet() : ''}
   ${S.sheet && S.sheet.type === 'saImport' ? renderImportSheet() : ''}
+  ${S.sheet && S.sheet.type === 'saMe' ? renderSaMeSheet() : ''}
+  ${S.sheet && S.sheet.type === 'pw' ? renderPwSheet() : ''}
   ${S.toast ? `<div class="toast" role="status"><span style="flex:1">${esc(S.toast.msg)}</span></div>` : ''}`;
 }
 function renderAddAdminSheet(){
@@ -1444,13 +1514,14 @@ function renderPLMonth(){
   const N = x => Number(x || 0), p = N(d.operating_profit), net = N(d.net_revenue), pos = p >= 0;
   let h = '';
   // 1. Αποτέλεσμα (στον μήνα που τρέχει: η πρόβλεψη, γιατί τα σταθερά μετράνε ήδη ολόκληρα)
-  const fc = d.current && d.forecast ? d.forecast : null, hp = fc ? N(fc.operating_profit) : p, hpos = hp >= 0;
+  const thin = !!(d.current && d.forecast && (net <= 0 || today().getDate() <= 7));
+  const fc = d.current && d.forecast && !thin ? d.forecast : null, hp = fc ? N(fc.operating_profit) : p, hpos = hp >= 0;
   const cmp = (lbl, o) => { if (!o) return ''; const df = hp - N(o.operating_profit); return `<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1;min-width:0;color:var(--muted)">${lbl}</span><b class="num">${sgn0(N(o.operating_profit))}</b><span class="num" style="min-width:70px;text-align:right;font-weight:700;color:${df >= 0 ? 'var(--tealink)' : 'var(--neg)'}">${df >= 0 ? '▲' : '▼'} ${eur0(Math.abs(df))}</span></div>`; };
   const pm = d.prev ? new Date(d.prev.month) : null, lm = d.last_year ? new Date(d.last_year.month) : null;
   h += `<div class="card" style="display:flex;flex-direction:column;gap:6px;padding:18px">
-    <div style="display:flex;align-items:center;gap:8px"><div class="lbl" style="flex:1">${fc ? 'Πρόβλεψη τέλους μήνα' : 'Αποτέλεσμα μήνα'}</div>${d.closed ? `<span class="tag t-gray">${I.lock} Κλεισμένος</span>` : d.current ? '<span class="tag t-lilac">Σε εξέλιξη</span>' : ''}</div>
+    <div style="display:flex;align-items:center;gap:8px"><div class="lbl" style="flex:1">${fc ? 'Πρόβλεψη τέλους μήνα' : thin ? 'Αποτέλεσμα μέχρι σήμερα' : 'Αποτέλεσμα μήνα'}</div>${d.closed ? `<span class="tag t-gray">${I.lock} Κλεισμένος</span>` : d.current ? '<span class="tag t-lilac">Σε εξέλιξη</span>' : ''}</div>
     <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="num" style="font-size:36px;font-weight:800;letter-spacing:-.5px;color:${hpos ? 'var(--tealink)' : 'var(--neg)'}">${fc ? '≈ ' : ''}${sgn0(hp)}</div><span class="tag ${hpos ? 't-teal' : 't-red'}">${hpos ? 'κέρδος' : 'ζημιά'}${fc ? '' : ' · ' + pct1(d.margin_pct)}</span></div>
-    <div class="t2">${fc ? `Με βάση τον ρυθμό ${eur0(N(fc.pace_per_day))}/μέρα για τις ${fc.open_days_left} ανοιχτές μέρες που απομένουν (ήδη κλεισμένα: ${fc.booked_n} ραντεβού · ${eur0(N(fc.booked_value))}).` : 'Πριν από τον φόρο εισοδήματος · ποσά χωρίς ΦΠΑ'}</div>
+    ${thin ? '<div class="t2"><b>Δεν υπάρχουν ακόμα αρκετά στοιχεία για πρόβλεψη.</b> Η πρόβλεψη τέλους μήνα εμφανίζεται μετά τις 7 του μήνα, όταν υπάρχει τζίρος.</div>' : ''}<div class="t2">${fc ? `Με βάση τον ρυθμό ${eur0(N(fc.pace_per_day))}/μέρα για τις ${fc.open_days_left} ανοιχτές μέρες που απομένουν (ήδη κλεισμένα: ${fc.booked_n} ραντεβού · ${eur0(N(fc.booked_value))}).` : 'Πριν από τον φόρο εισοδήματος · ποσά χωρίς ΦΠΑ'}</div>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px">${fc ? plKp('Τζίρος μέχρι σήμερα', eur0(net)) + plKp('Τζίρος (πρόβλεψη)', '≈ ' + eur0(N(fc.net_revenue))) : plKp('Καθαρός τζίρος', eur0(net)) + plKp('Σύνολο εξόδων', eur0(N(d.expenses_total)))}</div>`;
   if (pm || lm) h += `<div style="display:flex;flex-direction:column;gap:5px;border-top:1.5px solid var(--line);padding-top:10px;margin-top:4px">${cmp((pm ? MSHORT[pm.getMonth()] + ' ' + pm.getFullYear() : '') + ' · προηγούμενος', d.prev)}${cmp((lm ? MSHORT[lm.getMonth()] + ' ' + lm.getFullYear() : '') + ' · πέρσι', d.last_year)}</div>`;
   h += `</div>`;
@@ -1535,7 +1606,7 @@ function renderPLYear(){
       return `<button data-a="plOpenMonth" data-v="${m.month}" aria-label="${MONTHS[new Date(m.month).getMonth()]} ${sgn0(v)}" style="border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center">
         <div style="height:${up}px;width:100%;display:flex;align-items:flex-end">${v >= 0 && m.has_data ? `<div style="width:100%;height:${Math.max(2, hh)}px;border-radius:5px 5px 0 0;${bar}"></div>` : ''}</div>
         <div style="height:${dn}px;width:100%;display:flex;align-items:flex-start;border-top:1.5px solid var(--line)">${v < 0 ? `<div style="width:100%;height:${Math.max(2, hh)}px;border-radius:0 0 5px 5px;${bar}"></div>` : ''}</div>
-        <span style="font-size:11px;color:var(--muted)">${MSHORT[new Date(m.month).getMonth()][0]}</span></button>`; }).join('')}</div>
+        <span style="font-size:12px;color:var(--muted)">${MSHORT[new Date(m.month).getMonth()][0]}</span></button>`; }).join('')}</div>
     ${M.some(m => m.current) ? '<div class="t2">Η διακεκομμένη μπάρα είναι ο μήνας που τρέχει, μέχρι σήμερα.</div>' : ''}</div>`;
   // Πίνακας
   const lockI = `<span style="display:inline-flex;color:var(--muted)" aria-label="Κλεισμένος">${I.lock}</span>`;
@@ -1583,7 +1654,7 @@ function renderMonth(){
     if (S.freeOnly && !past){ cls += ratio > .3 ? ' fr-hi' : ratio > .1 ? ' fr-mid' : ' fr-full'; extra = `<span class="c" style="margin-top:auto;font-weight:700;color:var(--ink)">${ratio <= .02 ? 'γεμάτη' : (Math.round(free/6)/10) + ' ώρ.'}</span>`; }
     else if (past && seesMoney() && !isTech()){ const r = ap.filter(a => a.status === 'done').reduce((s, a) => s + (a.appointment_services||[]).reduce((x, q) => x + Number(q.price), 0), 0); rev += r; extra = r ? `<span class="rev num">€${Math.round(r)}</span>` : ''; }
     else if (!past && cap){ const c = ratio > .3 ? 'var(--teal)' : ratio > .1 ? 'var(--amber)' : 'var(--coral)'; extra = `<span class="avail"><i style="width:${Math.round((1-ratio)*100)}%;background:${c}"></i></span>`; }
-    cells.push(`<button class="${cls}" ${isToday ? 'aria-current="date" ' : ''}data-a="openDay" data-v="${ymd(d)}" aria-label="${dn} ${MONTHS[mo]}, ${ap.length} ραντεβού"><span class="n">${dn}</span><span class="c">${ap.length} ραντ.</span>${extra}</button>`);
+    cells.push(`<button class="${cls}" ${isToday ? 'aria-current="date" ' : ''}data-a="openDay" data-v="${ymd(d)}" aria-label="${dn} ${MONTHS[mo]}, ${ap.length} ραντεβού"><span class="n">${dn}</span>${ap.length ? `<span class="c num">${ap.length}</span>` : ''}${extra}</button>`);
   }
   const sub = seesMoney() && !isTech() && rev ? `${tot} ραντεβού · τζίρος ολοκληρωμένων ${eur0(rev)}` : `${tot} ραντεβού`;
   let h = `<div style="display:flex;align-items:center;gap:6px;padding-top:2px">
@@ -1643,7 +1714,8 @@ function renderDay(){
       const ovTag = ovs.length ? `<span class="ov" title="Υπερκάλυψη">⚠ ${Math.max(...ovs.map(o => o.min))}΄</span>` : '';
       const nm = a.client ? (isTech() ? a.client.name : a.client.name.split(' ')[0] + (a.client.name.split(' ')[1] ? ' ' + a.client.name.split(' ')[1][0] + '.' : '')) : '—';
       const w = (a.source === 'online' && !isTech() ? '<span class="mk" title="Online κράτηση" style="background:var(--tealbg);color:var(--tealink)">web</span>' : '') + (!isTech() && S.winter.has(a.client_id) ? '<span class="mk">Χ</span>' : '') + cfTag(confInfo({ ...a, store_id: a.store_id || S.store }));
-      const hpx = (e-s)*PX-2, short = hpx < 46, os = offSched(a, S.store), osc = os ? ' oss' : '';
+      const hpx = (e-s)*PX-2, short = hpx < 46, os = offSched(a, S.store), osc = os ? ' oss' : '', bf = ['booked','arrived','done'].includes(a.status) ? apBuf(a) : 0;
+      if (bf && !isTech()) c += `<div class="bufband" style="${pos}top:${(e-hrs[0])*PX}px;height:${bf*PX}px" title="Καθαρισμός ${bf}΄"></div>`;
       const osTag = os ? '<span class="osb" title="Εκτός προγράμματος">⚡</span>' : '';
       c += short
         ? `<button class="blk short b-${a.status}${ovs.length?' ovl':''}${osc}" style="${pos}top:${(s-hrs[0])*PX+1}px;height:${Math.max(20,hpx)}px" data-a="openAppt" data-v="${a.id}"><b>${osTag}<span style="overflow:hidden;text-overflow:ellipsis">${esc(nm)}</span>${w}${ovTag}</b><span class="sv">${hm(s)} · ${esc(a.svcText||'')}</span></button>`
@@ -1655,7 +1727,7 @@ function renderDay(){
     });
     h += c + '</div>';
   });
-  h += `</div><div class="legend"><span><i style="background:var(--lilac)"></i>Κλεισμένο</span><span><i style="background:var(--tealbg)"></i>Ήρθε</span><span><i style="background:var(--chip)"></i>Ολοκληρώθηκε</span>${Object.keys(overlapMap(S.dayAppts)).length ? '<span><i style="background:var(--neg)"></i>Υπερκάλυψη</span>' : ''}${stray.length ? '<span>⚡ Εκτός προγράμματος</span>' : ''}</div>`;
+  h += `</div><div class="legend"><span><i style="background:var(--lilac)"></i>Κλεισμένο</span>${!isTech() && S.dayAppts.some(a => apBuf(a)) ? '<span><i style="background:repeating-linear-gradient(135deg,var(--chip) 0 3px,var(--line) 3px 4px)"></i>Καθαρισμός</span>' : ''}${!isTech() && S.dayAppts.some(a => S.winter.has(a.client_id)) ? '<span><span class="mk m-x">Χ</span>έρχεται και τον χειμώνα</span>' : ''}<span><i style="background:var(--tealbg)"></i>Ήρθε</span><span><i style="background:var(--chip)"></i>Ολοκληρώθηκε</span>${Object.keys(overlapMap(S.dayAppts)).length ? '<span><i style="background:var(--neg)"></i>Υπερκάλυψη</span>' : ''}${stray.length ? '<span>⚡ Εκτός προγράμματος</span>' : ''}</div>`;
   if (!isTech() && can('appts','write')) h += `<button class="btn navy" data-a="newAppt">+ Νέο ραντεβού</button>`;
   return h;
 }
@@ -1722,7 +1794,7 @@ function renderClients(){
       return `<button class="pill ${C.tags.includes(k)?'on':''}" data-a="clTag" data-v="${k}" aria-pressed="${C.tags.includes(k)}">${n}<span class="ct num">${ct}</span></button>`; }).join('')}</div></div>`;
   const list = all.filter(x => stOk(x.g, C.stage) && tagOk(x.g) && qOk(x.c));
   list.sort((a, b) => C.stage === 'late' || C.stage === 'lost' ? (b.g.visits_12m - a.g.visits_12m) : 0);
-  h += `<div class="t2" style="margin:0 2px">${list.length} πελάτισσες</div><div class="card flush">`;
+  h += `<div class="t2" style="margin:0 2px">${list.length} πελάτισσες</div>${mOn ? '<div class="legend" style="justify-content:flex-start;margin:-4px 2px 0"><span><span class="mk m-v">★</span> VIP</span><span><span class="mk m-x">Χ</span> έρχεται και τον χειμώνα</span><span><span class="mk m-k">Κ</span> έρχεται το καλοκαίρι</span></div>' : ''}<div class="card flush">`;
   if (!list.length) h += `<div style="padding:22px;text-align:center;color:var(--muted)">${C.q ? 'Δεν βρέθηκε πελάτισσα.' : 'Καμία πελάτισσα σε αυτόν τον συνδυασμό.'}</div>`;
   list.slice(0, C.show).forEach(({ c, g }) => {
     const ds = daysSince(g.last_visit);
@@ -1747,7 +1819,7 @@ function clientWhy(c, g){
   if (g.vip) out.push(`<div><span class="mk m-v">★</span><span>${g.visits_12m} επισκέψεις τους τελευταίους 12 μήνες (όριο VIP ${st.seg_vip_visits}).</span></div>`);
   if (g.winter) out.push(`<div><span class="mk m-x">Χ</span><span>${c.manual_winter ? 'Ορίστηκε χειροκίνητα.' : `Τουλάχιστον ${st.seg_x_visits} επισκέψεις σε ${st.seg_x_months}+ μήνες εκτός σεζόν.`} Παίρνει προτεραιότητα στην αναμονή.</span></div>`);
   if (g.summer) out.push(`<div><span class="mk m-k">Κ</span><span>Έρχεται κυρίως μέσα στη σεζόν.</span></div>`);
-  if (g.no_shows) out.push(`<div><span class="mk m-ns">NS</span><span>${g.no_shows === 1 ? 'Μία φορά' : g.no_shows + ' φορές'} δεν ήρθε στο ραντεβού.</span></div>`);
+  if (g.no_shows) out.push(`<div><span class="mk m-ns" style="padding:0 6px">Δεν ήρθε</span><span>${g.no_shows === 1 ? 'Μία φορά' : g.no_shows + ' φορές'} δεν ήρθε στο ραντεβού.</span></div>`);
   if (g.birthday_soon && c.birthday){ const b = parseYmd(c.birthday); out.push(`<div><span class="mk m-bd">🎂</span><span>Γενέθλια ${b.getDate()} ${MSHORT[b.getMonth()]}.</span></div>`); }
   return out.join('');
 }
@@ -1785,7 +1857,7 @@ function renderCash(){
   }
   if (ed && !closed){
     h += `<div class="grid2"><button class="btn ghost" style="font-size:14px" data-a="cashAdd" data-v="product">+ Πώληση προϊόντος</button><button class="btn ghost" style="font-size:14px;color:var(--neg)" data-a="cashAdd" data-v="drawer_out">− Πλήρωσα από συρτάρι</button></div>
-      <button class="btn navy" data-a="cashClose">Κλείσιμο ταμείου</button>`;
+      ${!storeHours(S.store, dd) && !(S.cash.mv || []).length ? '<div class="t2" style="text-align:center">Κλειστή μέρα χωρίς κινήσεις · δεν χρειάζεται κλείσιμο ταμείου.</div>' : '<button class="btn navy" data-a="cashClose">Κλείσιμο ταμείου</button>'}`;
   } else if (!can('cash','write')) h += `<div class="lock">${I.lock} Μόνο προβολή.</div>`;
   h += `<div class="lbl" style="margin:4px 2px -4px">Κινήσεις ${isTodayCash() ? 'σήμερα' : 'ημέρας'}</div><div class="card flush">`;
   if (!C.mv.length) h += `<div style="padding:22px;text-align:center;color:var(--muted)">Καμία κίνηση ακόμα. Οι πληρωμές ραντεβού γράφονται εδώ αυτόματα.</div>`;
@@ -1889,7 +1961,7 @@ function renderSettings(){
       ['services','Υπηρεσίες', `${S.ctx.services.filter(x => x.active).length} ενεργές · χρόνος και τιμή`],
       ['online','Online κρατήσεις', st.online_enabled ? `Ενεργές · έως ${st.online_horizon_days} μέρες μπροστά` : 'Ανενεργές'],
       ['confirm','Επιβεβαίωση ραντεβού', st.confirm_enabled ? `${st.confirm_hours} ώρες πριν · ${({ whatsapp:'WhatsApp', viber:'Viber', sms:'SMS' })[st.confirm_channel]}` : 'Ανενεργή'],
-      ['seg','Πελάτες & segment','Όρια σκαλιών, VIP, Χ/Κ, ποιος βλέπει τα σήματα'],
+      ['seg','Ομάδες πελατών','Πότε μια πελάτισσα είναι VIP, χειμώνα (Χ), καλοκαιριού (Κ) και ποιος βλέπει τα σήματα'],
       ['cash','Ταμείο', 'Διόρθωση παλιών ημερών: ' + (st.allow_past_cash_edit ? 'επιτρέπεται' : 'κλειστή')],
       ['audit','Ιστορικό αλλαγών','Ποιος άλλαξε τι και πότε'],
       ['export','Εξαγωγή δεδομένων','Πελάτες, ραντεβού, ταμείο, έξοδα σε αρχείο Excel']
@@ -1944,15 +2016,19 @@ function renderSettings(){
       ${Object.keys(TAB_NAMES).map(t => `<b style="font-size:14px">${TAB_NAMES[t]}</b>${sel('store', t)}<span style="font-size:13px;color:var(--muted);align-self:center">${t === 'appts' ? 'Μόνο τα δικά της' : 'Όχι'}</span>`).join('')}</div></div>
       <div class="card" style="font-size:13px;color:var(--ink2);display:flex;flex-direction:column;gap:6px">
         <div><b>Όχι</b> · δεν εμφανίζεται η καρτέλα</div><div><b>Βλέπει</b> · μόνο ανάγνωση</div><div><b>Γράφει</b> · καταχωρίζει και αλλάζει</div><div><b>Πλήρης</b> · και διαγραφές/ρυθμίσεις της καρτέλας</div>
-        <div class="t2">Η τεχνίτρια βλέπει πάντα μόνο τα δικά της ραντεβού, χωρίς τηλέφωνα. Όποιος έχει P&L βλέπει και τζίρο/ποσά προηγούμενων ημερών. Εξαιρέσεις ανά άτομο ορίζεις από την Ομάδα.</div></div>`;
+        <div class="t2">Η τεχνίτρια βλέπει πάντα μόνο τα δικά της ραντεβού, χωρίς τηλέφωνα. Όποιος έχει «Κέρδη & ζημιές» βλέπει και τζίρο/ποσά προηγούμενων ημερών. Εξαιρέσεις ανά άτομο ορίζεις από την Ομάδα.</div></div>`;
     return h;
   }
   if (X.page === 'services'){
-    let h = '';
+    const bg = bufGen();
+    let h = `<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="t1">Χρόνος καθαρισμού μετά το ραντεβού</div>
+      <div class="t2">Λεπτά για καθάρισμα και ετοιμασία της θέσης. Δεν φαίνεται στην πελάτισσα. Η σελίδα κρατήσεων και τα κενά «+» δεν προτείνουν ώρες μέσα σε αυτόν· με «Στρίμωγμα» κλείνεις κολλητά αν χρειαστεί.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${[0,5,10,15,20].map(n => `<button class="pill ${bg === n ? 'on' : ''}" style="flex:1" data-a="bufSet" data-v="${n}" ${role() === 'admin' ? '' : 'disabled'}>${n ? n + '΄' : 'Καθόλου'}</button>`).join('')}</div>
+      <div class="t2">Μπορείς να βάλεις διαφορετικό χρόνο σε μια υπηρεσία (π.χ. ημιμόνιμο) από την υπηρεσία.</div></div>`;
     S.ctx.cats.forEach(c => {
       const list = S.ctx.services.filter(x => x.category_id === c.id);
       h += `<div style="display:flex;align-items:center;margin:4px 2px -4px"><div class="lbl" style="flex:1">${esc(c.name)}</div><button class="pill" style="min-height:32px" data-a="editCat" data-v="${c.id}">Μετονομασία</button></div>
-        <div class="card flush">${list.length ? list.map(x => `<div class="svcrow" style="${x.active ? '' : 'opacity:.55'}"><button class="row" data-a="editSvc" data-v="${x.id}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(x.name)}${x.active ? '' : ' <span class="tag t-gray">Ανενεργή</span>'}</span><span class="t2 num" style="display:block">${x.duration_min}΄</span></span><b class="num">${eur0(x.price)}</b>${I.chev}</button>${x.active ? `<span class="web">${tgl(x.online !== false, 'svcWeb', x.id, 'Εμφάνιση στις online κρατήσεις: ' + x.name)}Web</span>` : ''}</div>`).join('') : '<div style="padding:16px;color:var(--muted);font-size:13px">Καμία υπηρεσία.</div>'}</div>`;
+        <div class="card flush">${list.length ? list.map(x => `<div class="svcrow" style="${x.active ? '' : 'opacity:.55'}"><button class="row" data-a="editSvc" data-v="${x.id}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${esc(x.name)}${x.active ? '' : ' <span class="tag t-gray">Ανενεργή</span>'}</span><span class="t2 num" style="display:block">${x.duration_min}΄${x.buffer_min != null && x.buffer_min !== bg ? ' · καθαρισμός ' + x.buffer_min + '΄' : ''}</span></span><b class="num">${eur0(x.price)}</b>${I.chev}</button>${x.active ? `<span class="web">${tgl(x.online !== false, 'svcWeb', x.id, 'Εμφάνιση στις online κρατήσεις: ' + x.name)}Web</span>` : ''}</div>`).join('') : '<div style="padding:16px;color:var(--muted);font-size:13px">Καμία υπηρεσία.</div>'}</div>`;
     });
     return h + `<div class="grid2"><button class="btn ghost" style="font-size:14px" data-a="editCat" data-v="">+ Κατηγορία</button><button class="btn navy" style="font-size:14px" data-a="editSvc" data-v="">+ Υπηρεσία</button></div>
       <div class="t2" style="margin:0 2px">Ο διακόπτης «Web» ορίζει αν η υπηρεσία φαίνεται στη σελίδα online κρατήσεων${st.online_enabled ? '' : ' (οι online κρατήσεις είναι ανενεργές)'}.</div>
@@ -1972,7 +2048,7 @@ function renderSettings(){
         ${stp('seg_x_months','Χ · σε διαφορετικούς μήνες','τουλάχιστον','',1)}</div>
       <div class="card"><div class="lbl" style="margin-bottom:8px">Μήνες σεζόν (καλοκαίρι)</div><div class="chips">${MSHORT.map((m, i) => `<button class="pill ${D.season_months.includes(i+1)?'on':''}" style="min-width:58px" data-a="sMonth" data-v="${i+1}">${m}</button>`).join('')}</div></div>
       <div class="card" style="padding:8px 16px">
-        <div class="prm"><span class="tx">Η γραμματεία βλέπει τα σήματα<span class="t2" style="display:block">★ Χ Κ NS στη λίστα και στο ημερολόγιο</span></span>${tgl(D.marks_store, 'sTog', 'marks_store')}</div>
+        <div class="prm"><span class="tx">Η γραμματεία βλέπει τα σήματα<span class="t2" style="display:block">★ Χ Κ «Δεν ήρθε» στη λίστα και στο ημερολόγιο</span></span>${tgl(D.marks_store, 'sTog', 'marks_store')}</div>
         <div class="prm"><span class="tx">Οι τεχνίτριες βλέπουν τα σήματα</span>${tgl(D.marks_tech, 'sTog', 'marks_tech')}</div>
         <div class="prm"><span class="tx">Προτεραιότητα Χ στην αναμονή<span class="t2" style="display:block">Οι πελάτισσες χειμώνα εμφανίζονται πρώτες στα ταιριάσματα</span></span>${tgl(D.waitlist_x_priority, 'sTog', 'waitlist_x_priority')}</div></div>`;
     if (X.err) h += `<div class="err">${esc(X.err)}</div>`;
@@ -2179,7 +2255,7 @@ function navTabs(){
   if (can('cash')) prim.push(['cash','Ταμείο',I.cash]);
   const more = [['sched','Πρόγραμμα εργασίας',I.clock]];
   if (can('expenses')) more.push(['expenses','Έξοδα',I.exp]);
-  if (can('pl')) more.push(['pl','P&L',I.pl]);
+  if (can('pl')) more.push(['pl','Κέρδη & ζημιές',I.pl]);
   if (role() === 'admin') more.push(['settings','Ρυθμίσεις',I.gear]);
   return { prim, more };
 }
@@ -2187,6 +2263,29 @@ function renderMore(){
   const { more } = navTabs();
   return `<div class="card flush">${more.map(([t, n, ic]) => `<button class="row" data-a="${t === 'settings' ? 'settings' : 'tab'}" data-v="${t === 'settings' ? '' : t}"><span style="color:var(--teal);display:flex">${ic}</span><span class="t1" style="flex:1">${n}</span>${t === 'wait' && S.wait.length ? `<span class="tag t-lilac">${S.wait.length}</span>` : ''}${I.chev}</button>`).join('')}</div>
     <div class="card flush"><button class="row" data-a="me"><span class="t1" style="flex:1">Ο λογαριασμός μου</span>${I.chev}</button><button class="row" data-a="logout" style="color:var(--neg)"><span class="t1" style="flex:1">Αποσύνδεση</span></button></div>`;
+}
+// Οδηγός πρώτης ρύθμισης για τον admin (4 βήματα)
+function setupSteps(){
+  const st = S.ctx.settings || {}, done = st.setup_done || [];
+  return [
+    ['hours','Ωράριο καταστήματος','Ποιες μέρες και ώρες είστε ανοιχτά', done.includes('hours')],
+    ['services','Υπηρεσίες και τιμές','Τι κάνετε, πόση ώρα θέλει και πόσο κοστίζει', done.includes('services') || S.ctx.services.some(x => x.active)],
+    ['team','Η ομάδα σου','Πρόσθεσε τις τεχνίτριες και τη ρεσεψιόν', done.includes('team') || (S.ctx.members || []).some(x => x.role === 'user')],
+    ['online','Σελίδα κρατήσεων','Ενεργοποίησε τις online κρατήσεις και μοιράσου τον σύνδεσμο', done.includes('online') || !!st.online_enabled]
+  ];
+}
+function renderSetup(){
+  if (role() !== 'admin' || S.ctx.member._support) return '';
+  const st = S.ctx.settings || {}; if ((st.setup_done || []).includes('hide')) return '';
+  const L = setupSteps(), n = L.filter(x => x[3]).length; if (n === L.length) return '';
+  return `<div class="card" style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px"><div class="t1" style="flex:1">Στήσε το κατάστημα · ${n}/${L.length}</div><button class="pill" style="min-height:32px" data-a="setupHide">Απόκρυψη</button></div>
+    ${L.map(([k, t, d, ok], i) => `<button class="row" style="padding:8px 0" data-a="setupGo" data-v="${k}"><span class="mk" style="min-width:24px;height:24px;border-radius:12px;${ok ? 'background:var(--posbg);color:var(--pos)' : 'background:var(--chip);color:var(--ink)'}">${ok ? '✓' : i + 1}</span><span style="flex:1;min-width:0"><span class="t1" style="display:block;${ok ? 'color:var(--muted);text-decoration:line-through' : ''}">${t}</span><span class="t2" style="display:block">${d}</span></span>${I.chev}</button>`).join('')}</div>`;
+}
+async function setupMark(k){
+  const st = S.ctx.settings; const L = Array.from(new Set([...(st.setup_done || []), k]));
+  const r = await sb.from('org_settings').update({ setup_done: L }).eq('org_id', S.ctx.org.id);
+  if (!r.error) st.setup_done = L;
 }
 function renderToday(){
   if (!S.ctx.stores.length) return `<div class="center">Δεν σου έχει ανατεθεί κατάστημα. Μίλα με τον υπεύθυνο.</div>`;
@@ -2202,7 +2301,7 @@ function renderToday(){
   const now = new Date(), act = T.appts.filter(a => a.status !== 'done');
   const paid = T.appts.filter(a => a.status === 'done').length;
   let gaps = 0; techsFor(S.store, today()).on.forEach(t => { gapsFor(S.store, today(), t, T.appts).forEach(g => { if (g[1] - g[0] >= 30) gaps++; }); });
-  let h = storeSeg();
+  let h = storeSeg() + renderSetup();
   h += `<div class="sum"><div><b class="num">${T.appts.length}</b><span>ραντεβού σήμερα</span></div><div><b class="num">${gaps}</b><span>${gaps === 1 ? 'κενό ακόμα' : 'κενά ακόμα'}</span></div><div><b class="num">${paid}/${T.appts.length}</b><span>πληρωμένα</span></div></div>`;
   const L = todoList();
   h += `<div class="lbl" style="margin:6px 2px -4px">Τι πρέπει να κάνεις</div>`;
@@ -2316,8 +2415,9 @@ function renderSheet(){
   if (sh.type === 'me'){
     const m = S.ctx.member;
     return sheet('Ο λογαριασμός μου', `<div style="display:flex;align-items:center;gap:12px">${av(m.name, 52, 'var(--teal)', '#fff')}<div><div class="t1" style="font-size:17px">${esc(m.name)}</div><div class="t2">${ROLE_NAME[m.role]} · ${esc(S.ctx.org.name)}</div><div class="t2">${esc(S.session.user.email)}</div></div></div>
-      <div class="t2">Καταστήματα: ${S.ctx.stores.map(s => esc(s.name)).join(', ') || '—'}</div>`, `<button class="btn ghost" data-a="logout">Αποσύνδεση</button>`);
+      <div class="t2">Καταστήματα: ${S.ctx.stores.map(s => esc(s.name)).join(', ') || '—'}</div>${m._support ? '' : '<button class="btn ghost" data-a="pwOpen">Αλλαγή κωδικού</button>'}`, `<button class="btn ghost" data-a="logout">Αποσύνδεση</button>`);
   }
+  if (sh.type === 'pw') return renderPwSheet();
   if (sh.type === 'appt'){
     const a = sh.a, c = a.client || {}, pool = sh.pool || S.dayAppts;
     const s = minsOf(a.starts_at), e = minsOf(a.ends_at), wr = !isTech() && can('appts','write');
@@ -2377,8 +2477,8 @@ function renderSheet(){
     const picked = S.ctx.services.filter(s => sh.svcs.includes(s.id));
     const min = picked.reduce((s, x) => s + x.duration_min, 0), e = picked.reduce((s, x) => s + Number(x.price), 0);
     const g = sh.t ? gapsFor(st, d, sh.t, sh.appts || []) : [];
-    const need = Math.max(min, 15), times = [];
-    g.forEach(x => { for (let m = x[0]; m + need <= x[1]; m += 15) times.push(m); });
+    const need = Math.max(min, 15), nb = svcBuf(sh.svcs), times = [];
+    g.forEach(x => { const lim = x[1] - (x[2] ? 0 : nb); for (let m = x[0]; m + need <= lim; m = m % 15 ? Math.ceil(m / 15) * 15 : m + 15) times.push(m); });
     if (sh.m != null && !times.includes(sh.m) && min === 0 && g.some(x => sh.m >= x[0] && sh.m < x[1])) times.unshift(sh.m);
     const sq = !!sh.squeeze, sqTimes = [];
     if (sq) g.forEach(x => { for (let m = x[0]; m < x[1]; m += 15) sqTimes.push(m); });
@@ -2526,6 +2626,7 @@ function renderSheet(){
     let b = `<div class="field"><label for="svName">Όνομα</label><input id="svName" class="inp" value="${esc(sh.name||'')}"></div>
       <div class="field"><label for="svCat">Κατηγορία</label><select id="svCat" class="inp">${S.ctx.cats.map(c => `<option value="${c.id}" ${sh.cat===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
       <div class="pair"><div class="field"><label for="svDur">Διάρκεια (λεπτά)</label><input id="svDur" class="inp num" inputmode="numeric" value="${esc(sh.dur||'')}"></div><div class="field"><label for="svPrice">Τιμή (€)</label><input id="svPrice" class="inp num" inputmode="decimal" value="${esc(sh.price||'')}"></div></div>`;
+    b += `<div class="field"><label for="svBuf">Χρόνος καθαρισμού μετά</label><select id="svBuf" class="inp"><option value="" ${sh.buf == null ? 'selected' : ''}>Όπως όλες (${bufGen() ? bufGen() + '΄' : 'καθόλου'})</option>${[0,5,10,15,20,30].map(n => `<option value="${n}" ${sh.buf === n ? 'selected' : ''}>${n ? n + ' λεπτά' : 'Καθόλου'}</option>`).join('')}</select></div>`;
     if (sh.id) b += `<div class="prm"><span class="tx"><b>Ενεργή</b><span class="t2" style="display:block">Οι ανενεργές δεν εμφανίζονται στα νέα ραντεβού</span></span>${tgl(sh.active, 'svActive')}</div>`;
     if (sh.err) b += `<div class="err">${esc(sh.err)}</div>`;
     return sheet(sh.id ? 'Επεξεργασία υπηρεσίας' : 'Νέα υπηρεσία', b, `<button class="btn primary" data-a="svSave" ${S.busy?'disabled':''}>Αποθήκευση</button>`);
@@ -2749,6 +2850,78 @@ document.addEventListener('click', async ev => {
     case 'saImport': S.sheet = { type:'saImport', org: v }; break;
     case 'impGo': await importGo(); return;
     case 'closeSheet': S.sheet = null; break;
+    case 'setupHide': await setupMark('hide'); break;
+    case 'setupGo': {
+      setupMark(v);
+      S.tab = 'settings'; S.sheet = null; await refresh();
+      S.set.page = v; S.set.err = null; S.set.hDraft = null; S.set.oDraft = null; document.getElementById('main') && (document.getElementById('main').scrollTop = 0);
+      break;
+    }
+    case 'bufSet': {
+      const n = +v; S.busy = true; paint();
+      const r = await sb.from('org_settings').update({ buffer_min: n }).eq('org_id', S.ctx.org.id);
+      S.busy = false; if (r.error) throw r.error;
+      S.ctx.settings.buffer_min = n; toast(n ? `Καθαρισμός ${n}΄ μετά από κάθε ραντεβού` : 'Χωρίς χρόνο καθαρισμού');
+      break;
+    }
+    case 'forgot': S.forgot = true; break;
+    case 'pwReset': {
+      const em = (document.getElementById('email') || {}).value || '';
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em.trim())){ S.loginErr = 'Γράψε πρώτα το email σου στο πεδίο Email.'; break; }
+      S.busy = true; render();
+      const { error } = await sb.auth.resetPasswordForEmail(em.trim(), { redirectTo: APP_DIR });
+      S.busy = false; if (error) S.loginErr = friendlyError(error); else { S.loginErr = null; S.forgot = 'sent'; }
+      break;
+    }
+    case 'pwOpen': S.sheet = { type:'pw' }; break;
+    case 'pwSave': {
+      const p1 = (document.getElementById('pwNew') || {}).value || '', p2 = (document.getElementById('pwNew2') || {}).value || '';
+      const err = p1.length < 8 ? 'Ο κωδικός θέλει τουλάχιστον 8 χαρακτήρες.' : p1 !== p2 ? 'Οι δύο κωδικοί δεν είναι ίδιοι.' : null;
+      const tgt = S.sheet && S.sheet.type === 'pw' ? S.sheet : null;
+      if (err){ if (tgt) tgt.err = err; else S.pwErr = err; break; }
+      if (tgt) tgt.busy = true; else S.busy = true; paint();
+      const { error } = await sb.auth.updateUser({ password: p1 });
+      if (tgt) tgt.busy = false; else S.busy = false;
+      if (error){ const m = /different from the old/i.test(error.message || '') ? 'Βάλε κωδικό διαφορετικό από τον προηγούμενο.' : /weak|short|characters/i.test(error.message || '') ? 'Ο κωδικός είναι πολύ απλός. Βάλε μεγαλύτερο, με γράμματα και αριθμούς.' : friendlyError(error); if (tgt) tgt.err = m; else S.pwErr = m; break; }
+      await sb.rpc('pw_changed');
+      S.pwErr = null; S.sheet = null;
+      if (S.pwForce){ S.pwForce = null; bootedFor = null; await boot((await sb.auth.getSession()).data.session); }
+      toast('Ο κωδικός άλλαξε');
+      break;
+    }
+    case 'mfaGo': {
+      const code = ((document.getElementById('mfaCode') || {}).value || '').replace(/\D/g, '');
+      if (code.length !== 6){ S.mfaErr = 'Γράψε τον 6ψήφιο κωδικό.'; break; }
+      S.busy = true; render();
+      const { data: fl } = await sb.auth.mfa.listFactors();
+      const f = ((fl && fl.totp) || []).find(x => x.status === 'verified');
+      const { error } = f ? await sb.auth.mfa.challengeAndVerify({ factorId: f.id, code }) : { error: new Error('Δεν βρέθηκε ρύθμιση 2 βημάτων.') };
+      S.busy = false;
+      if (error){ S.mfaErr = /invalid|expired/i.test(error.message || '') ? 'Λάθος ή ληγμένος κωδικός. Δοκίμασε τον τωρινό.' : friendlyError(error); break; }
+      S.mfaErr = null; S.mfaNeed = false; bootedFor = null; await boot((await sb.auth.getSession()).data.session);
+      return;
+    }
+    case 'saMe': S.sheet = { type:'saMe', loading: true }; render(); loadSaMe(); return;
+    case 'mfaEnroll': {
+      sh.busy = true; sh.err = null; paint();
+      const { data: fl } = await sb.auth.mfa.listFactors();
+      for (const x of ((fl && fl.all) || []).filter(x => x.status !== 'verified')) await sb.auth.mfa.unenroll({ factorId: x.id });
+      const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Kalenda', issuer: 'Kalenda' });
+      sh.busy = false;
+      if (error){ sh.err = friendlyError(error); break; }
+      sh.enrollId = data.id; sh.qr = data.totp.qr_code; sh.secret = data.totp.secret;
+      break;
+    }
+    case 'mfaEnrollOk': {
+      const code = ((document.getElementById('mfaCode') || {}).value || '').replace(/\D/g, '');
+      if (code.length !== 6){ sh.err = 'Γράψε τον 6ψήφιο κωδικό από το iPhone.'; break; }
+      sh.busy = true; sh.err = null; paint();
+      const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: sh.enrollId, code });
+      sh.busy = false;
+      if (error){ sh.err = 'Λάθος κωδικός. Γράψε αυτόν που φαίνεται τώρα στο iPhone.'; break; }
+      sh.qr = null; sh.loading = true; paint(); await loadSaMe(); toast('Η επιβεβαίωση 2 βημάτων ενεργοποιήθηκε');
+      return;
+    }
     case 'copy': {
       const txt = v || '';
       try { await navigator.clipboard.writeText(txt); }
@@ -2953,7 +3126,7 @@ document.addEventListener('click', async ev => {
       const tEl = document.getElementById('nTime'); sh.m = tEl ? +tEl.value : null;
       const dur = svcs.reduce((s, x) => s + x.duration_min, 0);
       const gaps = sh.t ? gapsFor(sh.store, sh.d, sh.t, sh.appts) : [];
-      const fits = sh.m != null && gaps.some(g => sh.m >= g[0] && sh.m + dur <= g[1]);
+      const nb = svcBuf(sh.svcs), fits = sh.m != null && gaps.some(g => sh.m >= g[0] && sh.m + dur <= g[1] - (g[2] ? 0 : nb));
       const inGap = sh.m != null && gaps.some(g => sh.m >= g[0] && sh.m < g[1]);
       sh.miss = {
         client: !sh.client && !(sh.newClient && (sh.ncName||'').trim()),
@@ -3348,8 +3521,8 @@ document.addEventListener('click', async ev => {
     }
     case 'editSvc': {
       const x = v ? S.ctx.services.find(q => q.id === v) : null;
-      S.sheet = x ? { type:'svcEdit', id:x.id, name:x.name, cat:x.category_id, dur:String(x.duration_min), price:String(x.price).replace('.', ','), active:x.active }
-                  : { type:'svcEdit', id:null, name:'', cat:(S.ctx.cats[0]||{}).id, dur:'45', price:'', active:true };
+      S.sheet = x ? { type:'svcEdit', id:x.id, name:x.name, cat:x.category_id, dur:String(x.duration_min), price:String(x.price).replace('.', ','), active:x.active, buf: x.buffer_min ?? null }
+                  : { type:'svcEdit', id:null, name:'', cat:(S.ctx.cats[0]||{}).id, dur:'45', price:'', active:true, buf:null };
       break;
     }
     case 'svActive': sh.active = !sh.active; break;
@@ -3361,7 +3534,8 @@ document.addEventListener('click', async ev => {
       if (isNaN(price) || price < 0){ sh.err = 'Μη έγκυρη τιμή.'; break; }
       S.busy = true; paint();
       try {
-        const row = { name: sh.name.trim(), category_id: sh.cat, duration_min: dur, price, active: sh.id ? sh.active : true };
+        const bEl = document.getElementById('svBuf'); if (bEl) sh.buf = bEl.value === '' ? null : +bEl.value;
+        const row = { name: sh.name.trim(), category_id: sh.cat, duration_min: dur, price, active: sh.id ? sh.active : true, buffer_min: sh.buf };
         const r = sh.id ? await sb.from('services').update(row).eq('id', sh.id)
                         : await sb.from('services').insert({ ...row, org_id: S.ctx.org.id, sort: S.ctx.services.length + 1 });
         if (r.error) throw r.error;
@@ -3636,6 +3810,7 @@ document.addEventListener('change', async ev => {
   if (ds.shs != null || ds.she != null){ const w = +(ds.shs ?? ds.she); sh.hrs[w] = sh.hrs[w] || {}; sh.hrs[w][ds.shs != null ? 's' : 'e'] = ev.target.value || null; return; }
   if (ds.mperm){ sh.perms[ds.mperm] = ev.target.value || null; return; }
   if (id === 'svCat'){ sh.cat = ev.target.value; return; }
+  if (id === 'svBuf'){ sh.buf = ev.target.value === '' ? null : +ev.target.value; return; }
   if (id === 'exDay'){ sh.day = ev.target.value; if (sh.locked){ sh.locked = false; paint(); } return; }
   if (id === 'reDay'){ sh.dom = +ev.target.value; return; }
   if (id === 'offFrom' || id === 'offTo'){ sh[id] = ev.target.value; return; }
@@ -3652,10 +3827,16 @@ document.addEventListener('change', async ev => {
 async function boot(session){
   S.session = session; S.ctx = null; S.super = false; S.supportOrg = null; S.sa = { orgs: [], loaded: false }; S.sheet = null; S.freed = null; S.winterLoaded = false; S.winter = new Set(); S.wait = []; S.cl = { list:[], seg:new Map(), loaded:false, stage:'all', tags:[], q:'', show:60 }; S.cash = { day:null, cd:null, mv:[], hist:[], loaded:false }; S.set = { page:null, loaded:false }; S.ex = { month:null, view:'list', list:[], rec:[], sup:[], cats:[], loaded:false }; S.pl = { view:'month', month:null, year:null, store:null, m:null, y:null, loaded:false, confirm:null }; S.conf = { list:[], loaded:false }; S.td = { appts:[], unpaid:[], freed:[], cashClosed:null, rev:null, estN:0, loaded:false }; S.freedList = []; S.cf = null;
   try { sb.removeAllChannels(); } catch(e) {}
-  if (!session){ S.loading = false; render(); return; }
+  if (!session){ S.loading = false; S.mfaNeed = false; S.pwForce = null; render(); return; }
   S.loading = true; render();
   try {
+    // 2ο βήμα: αν ο λογαριασμός το έχει ενεργό και δεν έχει δοθεί ακόμα ο 6ψήφιος κωδικός
+    const { data: al } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (al && al.nextLevel === 'aal2' && al.currentLevel !== 'aal2'){ S.mfaNeed = true; S.loading = false; render(); return; }
+    S.mfaNeed = false;
     S.ctx = await loadContext();
+    if (S.ctx && S.ctx.member.must_change_pw && !S.ctx.member._support) S.pwForce = S.pwForce || 'must';
+    if (S.pwForce){ S.loading = false; render(); return; }
     if (S.ctx && S.ctx.stores.length){
       S.store = S.ctx.stores[0].id; S.month = new Date(today().getFullYear(), today().getMonth(), 1); S.day = null; S.view = 'cal'; S.tab = 'today';
       S.loading = false;
@@ -3690,7 +3871,8 @@ function goBack(){
 let bootedFor;
 sb.auth.onAuthStateChange((evt, session) => {
   const uid = session ? session.user.id : null;
-  if (uid === bootedFor && evt !== 'SIGNED_OUT') { S.session = session; return; }
+  if (evt === 'PASSWORD_RECOVERY') S.pwForce = 'recovery';
+  if (uid === bootedFor && evt !== 'SIGNED_OUT') { S.session = session; if (evt === 'PASSWORD_RECOVERY') render(); return; }
   bootedFor = uid; boot(session);
 });
 </script>
