@@ -1968,7 +1968,9 @@ function renderSettings(){
     ];
     const rowF = ([k, t, d]) => `<button class="row" data-a="setPage" data-v="${k}"><span style="flex:1;min-width:0"><span class="t1" style="display:block">${t}</span><span class="t2" style="display:block">${esc(d)}</span></span>${I.chev}</button>`;
     const basic = ['hours','team','services','online','confirm'], adv = ['perm','seg','cash'], data = ['audit','export'], O = S.ctx.org;
+    const sL = setupSteps(), sN = sL.filter(x => x[3]).length, sOn = !(st.setup_done || []).includes('hide');
     return `<div class="card flush">${items.filter(x => basic.includes(x[0])).map(rowF).join('')}</div>
+      <div class="card" style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0"><span class="t1" style="display:block">Οδηγός πρώτης ρύθμισης · ${sN}/${sL.length}</span><span class="t2" style="display:block">${sN === sL.length ? 'Όλα τα βήματα έγιναν. Δεν εμφανίζεται πια.' : 'Η κάρτα «Στήσε το κατάστημα» στο Σήμερα'}</span></span>${sN === sL.length ? '' : `<button class="tg ${sOn ? 'on' : ''}" data-a="setupShow" aria-pressed="${sOn}"><span class="k"></span>${sOn ? 'Εμφάνιση' : 'Κρυφός'}</button>`}</div>
       <div class="lbl" style="margin:6px 2px -4px">Για προχωρημένους</div><div class="card flush">${items.filter(x => adv.includes(x[0])).map(rowF).join('')}</div>
       <div class="lbl" style="margin:6px 2px -4px">Δεδομένα</div><div class="card flush">${items.filter(x => data.includes(x[0])).map(rowF).join('')}</div>
       ${O.terms_accepted_at ? `<div class="t2" style="margin:0 2px">Όροι Χρήσης και Σύμβαση Επεξεργασίας: αποδεκτοί στις ${fmtD(O.terms_accepted_at)} (έκδοση ${esc(O.terms_version || '')}).</div>` : ''}`;
@@ -2851,6 +2853,12 @@ document.addEventListener('click', async ev => {
     case 'impGo': await importGo(); return;
     case 'closeSheet': S.sheet = null; break;
     case 'setupHide': await setupMark('hide'); break;
+    case 'setupShow': {
+      const st = S.ctx.settings, L = st.setup_done || [];
+      const N = L.includes('hide') ? L.filter(x => x !== 'hide') : L.concat('hide');
+      const r = await sb.from('org_settings').update({ setup_done: N }).eq('org_id', S.ctx.org.id);
+      if (r.error) throw r.error; st.setup_done = N; break;
+    }
     case 'setupGo': {
       setupMark(v);
       S.tab = 'settings'; S.sheet = null; await refresh();

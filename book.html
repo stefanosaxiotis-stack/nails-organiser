@@ -22,7 +22,10 @@
   --bg:#111318; --surface:#1A1D23; --chip:#23272F; --line:#2F343D; --ink:#F3F4F6; --muted:#9CA3AF; --head:#0B0D11; --headmuted:#9CA3AF;
   --teal:#F472B6; --tealbg:#3B1729; --tealink:#F9A8D4; --neg:#F08AA0; --negbg:#3D1F2A; --gold:#E6C48A; --goldbg:#3A2E1A; color-scheme:dark}}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%}
+html,body{margin:0;height:100%;overflow:hidden}
+/* Σταθερή σελίδα: κυλάει μόνο το περιεχόμενο, η κάτω μπάρα μένει πάντα ορατή (και στο Safari του iPhone) */
+body{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;-webkit-font-smoothing:antialiased}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -54,7 +57,7 @@ header.img .st{color:#F2F2F2}
 .hg .ban{position:relative;height:150px;border-radius:26px;background:center/cover no-repeat;margin-top:16px}
 body.it h2{font-style:italic;font-weight:500;font-size:24px}
 body:not(.th-classic) main{margin-top:10px}
-main{max-width:520px;margin:-16px auto 0;padding:0 16px calc(120px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+main{max-width:520px;margin:-16px auto 0;padding:0 16px 24px;display:flex;flex-direction:column;gap:14px}
 .card{background:var(--surface);border-radius:var(--r,22px);padding:18px;display:flex;flex-direction:column;gap:12px}
 .steps{display:flex;gap:6px}
 .steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
@@ -92,7 +95,7 @@ textarea.inp{min-height:80px;resize:vertical}
 .sum{background:var(--chip);border-radius:var(--rs,16px);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
 .sum .d{font-weight:800;font-size:17px}
 .sum .t{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.bar{flex:none;position:relative;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
 .bar .in{max-width:520px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .btn{border:none;border-radius:var(--rb,18px);min-height:54px;font-size:17px;font-weight:700;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .btn.pri{background:var(--teal);color:var(--onacc,#fff);flex:1}
@@ -113,8 +116,10 @@ textarea.inp{min-height:80px;resize:vertical}
 </style>
 </head>
 <body>
+<div class="scroll" id="scroll">
 <div id="hdr"><header><div class="org" id="org">Κλείσε ραντεβού</div><div class="st" id="st"></div></header></div>
 <main id="main"><div class="spin" aria-label="Φόρτωση"></div></main>
+</div>
 <div class="bar" id="bar" hidden><div class="in" id="barIn"></div></div>
 <script>
 const sb = supabase.createClient('https://koliyglqlgpwsrkjahrn.supabase.co', 'sb_publishable_0JPsGiN40GN8y4ZFRnYp2A_47M-yXM_');
@@ -164,6 +169,7 @@ function applyBrand(x){
   else h = `<header class="${banner ? 'img' : ''}" style="${banner ? `background-image:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.55)),url('${esc(banner)}')` : ''}"><div class="org">${esc(x.org)}</div><div class="st">${esc(x.store)}</div></header>`;
   document.getElementById('hdr').innerHTML = h;
 }
+const toTop = () => { const el = document.getElementById('scroll'); if (el) el.scrollTop = 0; };
 const isDemo = () => P.get('demo') === '1' || /demo/i.test((I && I.org) || '');
 const isUuid = s => /^[0-9a-f-]{36}$/i.test(s);
 const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -349,7 +355,7 @@ async function book(){
       if (data.reason === 'services'){ S.step = 1; S.sel = []; }
       render(); return;
     }
-    S.done = data; S.step = 4; window.scrollTo(0, 0); render();
+    S.done = data; S.step = 4; toTop(); render();
   } catch(e){ S.busy = false; S.err = 'Δεν ήταν δυνατή η αποστολή. Έλεγξε τη σύνδεση και δοκίμασε ξανά.'; render(); }
 }
 document.addEventListener('input', e => {
@@ -362,14 +368,14 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
   const a = b.dataset.a, v = b.dataset.v;
   if (a === 'svc'){ S.sel = S.sel.includes(v) ? S.sel.filter(x => x !== v) : S.sel.concat(v); S.time = ''; render(); }
-  else if (a === 'to1'){ S.step = 1; S.err = ''; render(); window.scrollTo(0, 0); }
-  else if (a === 'to2'){ S.step = 2; S.err = ''; if (!S.day) S.day = firstOpenDay(); S._scrolled = false; window.scrollTo(0, 0); if (S.day) loadSlots(); else render(); }
-  else if (a === 'to3'){ S.step = 3; S.err = ''; render(); window.scrollTo(0, 0); }
+  else if (a === 'to1'){ S.step = 1; S.err = ''; render(); toTop(); }
+  else if (a === 'to2'){ S.step = 2; S.err = ''; if (!S.day) S.day = firstOpenDay(); S._scrolled = false; toTop(); if (S.day) loadSlots(); else render(); }
+  else if (a === 'to3'){ S.step = 3; S.err = ''; render(); toTop(); }
   else if (a === 'tech'){ S.tech = v; S.time = ''; if (S.day) loadSlots(); else render(); }
   else if (a === 'day'){ S.day = pd(v); S.time = ''; loadSlots(); }
   else if (a === 'time'){ S.time = v; S.err = ''; render(); }
   else if (a === 'book') book();
-  else if (a === 'demoReset'){ Object.assign(S, { step: 1, sel: [], tech: '', day: null, slots: null, slotsErr: '', time: '', name: '', phone: '', note: '', ok: false, err: '', bad: {}, busy: false, done: null, _scrolled: false }); window.scrollTo(0, 0); render(); }
+  else if (a === 'demoReset'){ Object.assign(S, { step: 1, sel: [], tech: '', day: null, slots: null, slotsErr: '', time: '', name: '', phone: '', note: '', ok: false, err: '', bad: {}, busy: false, done: null, _scrolled: false }); toTop(); render(); }
   else if (a === 'copy'){ try { await navigator.clipboard.writeText(v); b.textContent = 'Αντιγράφηκε ✓'; } catch(_){ prompt('Αντέγραψε τον σύνδεσμο:', v); } }
   else if (a === 'chgOpen'){ S.R = { day: null, slots: null, time: '' }; S.err = ''; const x = S.M, t0 = pd(x.today);
     for (let i = 0; i <= x.horizon_days; i++){ const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i); if ((x.open_days || []).includes(wdOf(d))){ S.R.day = d; break; } }
@@ -383,7 +389,7 @@ document.addEventListener('click', async e => {
       const { data, error } = await sb.rpc('book_reschedule', { p_token: TOKEN, p_date: ymd(S.R.day), p_time: S.R.time }); if (error) throw error;
       if (!data.ok){ S.err = data.reason === 'taken' ? 'Μόλις κλείστηκε αυτή η ώρα. Διάλεξε άλλη.' : data.reason === 'late' ? 'Πέρασε το όριο για online αλλαγή. Πάρε τηλέφωνο στο κατάστημα.' : 'Δεν ήταν δυνατή η αλλαγή.'; S.busy = false; if (data.reason === 'taken'){ S.R.time = ''; loadChgSlots(); return; } render(); return; }
       const r = await sb.rpc('book_manage', { p_token: TOKEN }); if (!r.error) S.M = r.data;
-      S.R = null; S.okMsg = 'Το ραντεβού σου άλλαξε ✓'; window.scrollTo(0, 0);
+      S.R = null; S.okMsg = 'Το ραντεβού σου άλλαξε ✓'; toTop();
     } catch(_){ S.err = 'Δεν υπάρχει σύνδεση. Δοκίμασε ξανά.'; }
     S.busy = false; render();
   }
