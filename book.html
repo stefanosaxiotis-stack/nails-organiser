@@ -237,7 +237,7 @@ function render(){
       <div class="field"><label for="fPhone">Κινητό τηλέφωνο</label><input id="fPhone" class="inp ${S.bad.phone ? 'bad' : ''}" type="tel" inputmode="tel" autocomplete="tel" placeholder="69xxxxxxxx" value="${esc(S.phone)}"></div>
       <div class="field"><label for="fNote">Σημείωση <span style="font-weight:400;color:var(--muted)">· προαιρετικό</span></label><textarea id="fNote" class="inp" maxlength="300" placeholder="π.χ. θέλω σχέδιο στα 2 νύχια">${esc(S.note)}</textarea></div>
       <label class="chk ${S.bad.ok ? 'err' : ''}"><input type="checkbox" id="fOk" ${S.ok ? 'checked' : ''}><span>Συμφωνώ να κρατήσει το κατάστημα το όνομα και το τηλέφωνό μου για τα ραντεβού μου.</span></label>
-      <div class="t2" style="font-size:13px;margin-top:-6px">Τα στοιχεία σου τα χρησιμοποιεί μόνο το κατάστημα «${esc(I.store)}» για τα ραντεβού σου. <a href="https://kalenda.gr/privacy.html#booking" target="_blank" rel="noopener" style="color:var(--teal)">Περισσότερα</a></div>
+      <div class="t2" style="font-size:13px;margin-top:-6px">Τα στοιχεία σου τα χρησιμοποιεί μόνο το κατάστημα «${esc(I.org)}» για τα ραντεβού σου. <a href="https://kalenda.gr/privacy.html#booking" target="_blank" rel="noopener" style="color:var(--teal)">Περισσότερα</a></div>
       <input id="fWeb" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
       ${I.cancel_hours ? `<div class="t2">Μπορείς να ακυρώσεις μόνη σου έως ${I.cancel_hours} ώρες πριν, από τον σύνδεσμο που θα πάρεις.</div>` : ''}
       ${S.err ? `<div class="err">${esc(S.err)}</div>` : ''}</div>`;
