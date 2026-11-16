@@ -3401,6 +3401,7 @@ document.addEventListener('click', async ev => {
         if (r3.error) throw r3.error;
         const so2 = S.ctx.stores.find(x => x.id === sid); if (so2){ so2.phone = (X.sPhone || '').trim() || null; so2.address = (X.sAddr || '').trim() || null; }
         const h2 = await sb.from('store_hours').select('*').eq('org_id', S.ctx.org.id); if (!h2.error) S.ctx.hours = h2.data;
+        if (role() === 'admin' && !(S.ctx.settings.setup_done || []).includes('hours')) await setupMark('hours');
         S.busy = false; toast('Αποθηκεύτηκε το ωράριο ' + storeName(sid));
       } catch(e){ S.busy = false; X.err = friendlyError(e); }
       break;
